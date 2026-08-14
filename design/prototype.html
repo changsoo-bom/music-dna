@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MUSIC DNA — 당신의 취향에는 지문이 있습니다</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sofia+Sans:ital,wght@0,1..1000;1,1..1000&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+/* ═══════════ TOKENS ═══════════
+   Design system: Mastercard-inspired — warm cream canvas, pill/circle language,
+   ink-black CTAs, one-font system. Signal orange reserved for eyebrow dots +
+   orbital arcs only (never a marketing CTA).                                   */
+:root{
+  /* surfaces */
+  --canvas:#F3F0EE;      /* Canvas Cream — page ground, never white */
+  --lifted:#FCFBFA;      /* Lifted Cream — paper on paper */
+  --white:#FFFFFF;
+  --ghost:#E8E2DA;       /* watermark headline, cream-on-cream */
+  --hair:#DED8D1;        /* hairlines, chart grid */
+
+  /* ink */
+  --ink:#141413;         /* primary text, CTAs, footer */
+  --slate:#696969;       /* muted secondary text */
+  --dust:#D1CDC7;        /* whisper text */
+
+  /* signal — reserved */
+  --signal:#CF4500;      /* eyebrow dot */
+  --signal-lt:#F37338;   /* orbital arcs, active indicators */
+
+  /* categorical chart palette — validated on #F3F0EE (light):
+     lightness band PASS · chroma PASS · CVD deutan ΔE 12.1 / tritan 17.7 PASS ·
+     normal-vision 17.9 PASS · contrast PASS. Order is load-bearing. */
+  --c1:#00897C; --c2:#B4521E; --c3:#3860BE; --c4:#C0405B; --c5:#7A3E9E;
+
+  --sh-1:rgba(0,0,0,.04) 0 4px 24px 0;
+  --sh-2:rgba(0,0,0,.08) 0 24px 48px 0;
+  --ease:cubic-bezier(.16,1,.3,1);
+  --shell:min(1280px, 100% - 96px);
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--canvas); color:var(--ink);
+  font-family:"Sofia Sans","Pretendard Variable",Arial,sans-serif;
+  font-size:16px; font-weight:450; line-height:1.4;
+  font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-weight:500; letter-spacing:-.02em; margin:0}
+h1{font-size:clamp(38px,5.6vw,64px); line-height:1.04}
+h2{font-size:clamp(28px,3.6vw,36px); line-height:1.22}
+h3{font-size:24px; line-height:1.2}
+p{margin:0}
+a{color:inherit; text-decoration:none}
+img{display:block}
+::selection{background:var(--ink); color:var(--canvas)}
+:focus-visible{outline:2px solid var(--signal); outline-offset:3px}
+
+.shell{width:var(--shell); margin-inline:auto}
+.sect{padding-block:clamp(56px,9vw,128px)}
+.lead{color:var(--ink); max-width:52ch; margin-top:20px; font-size:16px; line-height:1.4}
+.muted{color:var(--slate)}
+
+/* eyebrow — dot + uppercase 14/700/+4%. The identity marker; never omit the dot. */
+.eyebrow{display:inline-flex; align-items:center; gap:9px; font-size:14px; font-weight:700;
+  line-height:1; letter-spacing:.04em; text-transform:uppercase; margin-bottom:20px}
+.eyebrow::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--signal)}
+
+/* ═══════════ BUTTONS ═══════════ */
+.btn{display:inline-flex; align-items:center; justify-content:center; gap:10px;
+  padding:10px 24px; border-radius:20px; border:1.5px solid var(--ink);
+  font:inherit; font-size:16px; font-weight:500; letter-spacing:-.02em; white-space:nowrap;
+  cursor:pointer; transition:transform .16s var(--ease), background .2s, color .2s}
+.btn-p{background:var(--ink); color:var(--canvas)}
+.btn-p:hover{background:#000}
+.btn-s{background:var(--white); color:var(--ink); font-weight:450}
+.btn-s:hover{background:var(--canvas)}
+.btn:active{transform:translateY(1px) scale(.985)}
+.btn-sm{padding:7px 20px; font-size:15px}
+
+/* satellite — white circular micro-CTA docked to a portrait */
+/* docked at the circle's 45° point: 50%+35.4% puts its centre exactly on the
+   perimeter, so it protrudes ~40-50% outside at every portrait size */
+.sat{position:absolute; left:84%; top:84%; transform:translate(-50%,-50%);
+  width:56px; height:56px; border-radius:50%;
+  background:var(--white); border:0; display:grid; place-items:center; cursor:pointer;
+  box-shadow:var(--sh-1); transition:transform .22s var(--ease)}
+.sat svg{width:20px; height:20px; stroke:var(--ink); stroke-width:1.8; fill:none}
+.sat:hover{transform:translate(-50%,-50%) scale(1.1)}
+
+/* ═══════════ NAV — floating white pill ═══════════ */
+.navwrap{position:sticky; top:24px; z-index:50; padding-inline:48px; margin-bottom:8px}
+.nav{max-width:1280px; margin-inline:auto; background:var(--white); border-radius:999px;
+  box-shadow:var(--sh-1); padding:12px 16px 12px 32px; display:flex; align-items:center; gap:32px}
+.logo{display:flex; align-items:center; gap:10px; font-size:15px; font-weight:700; letter-spacing:.02em}
+.mark{width:34px; height:20px; position:relative; flex:none}
+.mark i{position:absolute; top:0; width:20px; height:20px; border-radius:50%; mix-blend-mode:multiply}
+.mark i:first-child{left:0; background:var(--c2)}
+.mark i:last-child{right:0; background:var(--c1)}
+.nav ul{display:flex; gap:48px; list-style:none; margin:0 auto; padding:0; font-size:16px; font-weight:500;
+  letter-spacing:-.02em}
+.nav ul a{opacity:.9; transition:opacity .2s}
+.nav ul a:hover{opacity:.55}
+.search{width:44px; height:44px; border-radius:50%; border:1px solid rgba(20,20,19,.18);
+  background:transparent; display:grid; place-items:center; cursor:pointer; flex:none;
+  transition:background .2s}
+.search:hover{background:var(--canvas)}
+.search svg{width:18px; height:18px; stroke:var(--ink); stroke-width:1.8; fill:none}
+
+/* ═══════════ HERO ═══════════ */
+.hero{padding-top:clamp(40px,7vw,88px)}
+.hero-top{display:grid; grid-template-columns:1.25fr .75fr; gap:clamp(32px,6vw,88px); align-items:end}
+.hero-top p{max-width:38ch}
+.hero-cta{display:flex; gap:12px; margin-top:28px; flex-wrap:wrap}
+
+/* stadium frame — 40px radius, the iconic gesture */
+.stadium{background:var(--lifted); border-radius:40px; padding:clamp(24px,3.4vw,44px);
+  box-shadow:var(--sh-2); margin-top:clamp(40px,5vw,64px)}
+.frame-cap{display:flex; justify-content:space-between; align-items:baseline; gap:16px;
+  flex-wrap:wrap; font-size:14px; color:var(--slate); margin-bottom:22px}
+
+/* signature: 청취 지문 */
+.print{width:100%; height:clamp(110px,15vw,168px); display:block; overflow:visible}
+.print rect{transform-origin:center bottom; transform:scaleY(0); animation:grow .7s var(--ease) forwards}
+@keyframes grow{to{transform:scaleY(1)}}
+.print-axis{display:flex; justify-content:space-between; margin-top:14px; padding-top:12px;
+  border-top:1px solid var(--hair); font-size:13px; color:var(--slate)}
+
+/* ═══════════ VERDICT ═══════════ */
+.verdict{position:relative; overflow:hidden}
+.watermark{position:absolute; inset:auto 0 -.16em 0; font-size:clamp(96px,20vw,260px);
+  font-weight:500; letter-spacing:-.05em; line-height:.8; color:var(--ghost);
+  white-space:nowrap; pointer-events:none; user-select:none; z-index:0}
+.verdict .shell{position:relative; z-index:1}
+.verdict h2{font-size:clamp(34px,6vw,64px); max-width:14ch; line-height:1.06}
+.stats{display:flex; flex-wrap:wrap; gap:12px; margin-top:44px}
+.stat{background:var(--white); border-radius:999px; padding:16px 30px; min-width:172px;
+  box-shadow:var(--sh-1)}
+.stat b{display:block; font-size:32px; font-weight:500; letter-spacing:-.03em; line-height:1.1}
+.stat span{font-size:14px; color:var(--slate)}
+.stat i{display:block; height:2px; border-radius:999px; background:var(--ink); margin-top:12px;
+  width:0; transition:width 1.1s var(--ease)}
+.on .stat i{width:var(--w)}
+
+/* ═══════════ GENRES ═══════════ */
+.band{display:flex; gap:2px; height:96px; margin-top:44px}
+.band span{border-radius:999px; transform:scaleX(0); transform-origin:left;
+  transition:transform .9s var(--ease); transition-delay:var(--d); cursor:default}
+.on .band span{transform:scaleX(1)}
+.legend{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:0 40px; margin-top:8px}
+.lg{display:flex; align-items:center; gap:12px; padding:18px 0; border-bottom:1px solid var(--hair)}
+.lg em{width:12px; height:12px; border-radius:50%; flex:none}
+.lg strong{font-weight:500; font-size:16px}
+.lg .v{margin-left:auto; font-weight:500}
+.lg small{color:var(--slate); font-size:14px; width:52px; text-align:right}
+
+/* ═══════════ CLOCK ═══════════ */
+.two{display:grid; grid-template-columns:minmax(0,460px) 1fr; gap:clamp(36px,7vw,96px); align-items:center}
+.two svg{width:100%; height:auto; overflow:visible}
+.peaks{margin-top:32px; display:flex; flex-direction:column; gap:10px}
+.peaks div{background:var(--white); border-radius:999px; padding:14px 26px; box-shadow:var(--sh-1);
+  display:flex; align-items:baseline; gap:18px; font-size:15px}
+.peaks b{font-weight:700; flex:none; width:78px}
+
+/* ═══════════ MOOD / DRIFT ═══════════ */
+.chart svg{width:100%; height:auto; display:block; overflow:visible}
+.mood circle{transition:r .18s var(--ease)}
+.mood circle[data-tip]:hover{r:12}
+.axlab{font-size:13px; fill:var(--slate); font-weight:450}
+.drift path.ln{fill:none; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round;
+  stroke-dasharray:1600; stroke-dashoffset:1600; transition:stroke-dashoffset 1.5s var(--ease)}
+.on .drift path.ln{stroke-dashoffset:0}
+.endlab{font-size:14px; font-weight:500; fill:var(--ink)}
+
+/* ═══════════ ARTISTS CONSTELLATION ═══════════ */
+.constel{position:relative; margin-top:56px}
+.arcs{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible}
+.arcs path{fill:none; stroke:var(--signal-lt); stroke-width:1.2; stroke-linecap:round;
+  stroke-dasharray:1200; stroke-dashoffset:1200; transition:stroke-dashoffset 1.8s var(--ease) .3s}
+.on .arcs path{stroke-dashoffset:0}
+.orbits{display:grid; grid-template-columns:repeat(3,1fr); gap:clamp(24px,4vw,64px);
+  position:relative; z-index:1}
+.orbit{display:flex; flex-direction:column; align-items:flex-start}
+.orbit:nth-child(2){margin-top:clamp(40px,9vw,120px)}
+.orbit:nth-child(3){margin-top:clamp(16px,3.5vw,48px)}
+.portrait{position:relative; width:100%; max-width:320px; aspect-ratio:1}
+.portrait img{width:100%; height:100%; border-radius:50%; object-fit:cover}
+.orbit .eyebrow{margin:28px 0 10px; font-size:13px}
+.orbit h3{font-size:24px}
+.orbit .hrs{color:var(--slate); font-size:15px; margin-top:6px}
+
+/* ═══════════ RECOMMEND — pill carousel ═══════════ */
+.rec-head{display:flex; align-items:flex-end; justify-content:space-between; gap:32px; flex-wrap:wrap}
+.rec-nav{display:flex; gap:10px; flex:none}
+.rnb{width:44px; height:44px; border-radius:50%; border:1px solid rgba(20,20,19,.2);
+  background:transparent; display:grid; place-items:center; cursor:pointer; transition:background .2s}
+.rnb:hover{background:var(--white)}
+.rnb svg{width:18px; height:18px; stroke:var(--ink); stroke-width:1.8; fill:none}
+.rail{display:flex; gap:28px; overflow-x:auto; scroll-snap-type:x mandatory;
+  margin-top:clamp(40px,5vw,60px); padding-bottom:8px; scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.rec{flex:0 0 clamp(240px,25vw,310px); scroll-snap-align:start}
+.rec-pill{position:relative; border-radius:999px; aspect-ratio:3/4; background:var(--dust)}
+.rec-pill img{width:100%; height:100%; object-fit:cover; border-radius:999px}
+/* satellite docked on the pill's south pole, half protruding */
+.rec-pill .sat{left:50%; top:auto; bottom:-28px; transform:translateX(-50%)}
+.rec-pill .sat:hover{transform:translateX(-50%) scale(1.1)}
+.rec-pill .sat svg{fill:var(--ink); stroke:none}
+.rec-chip{position:absolute; top:36px; left:50%; transform:translateX(-50%); background:var(--white);
+  border-radius:999px; padding:8px 18px; font-size:13px; font-weight:500; white-space:nowrap;
+  display:inline-flex; align-items:center; gap:8px; box-shadow:var(--sh-1)}
+.rec-chip em{width:9px; height:9px; border-radius:50%; flex:none}
+.rec h3{margin-top:52px; font-size:22px}
+.rec .meta{color:var(--slate); font-size:15px; margin-top:6px}
+.rec .why{margin-top:18px; padding-top:16px; border-top:1px solid var(--hair);
+  font-size:14px; color:var(--slate); line-height:1.45}
+
+.bignum{font-size:clamp(88px,14vw,168px); font-weight:500; letter-spacing:-.05em; line-height:.86}
+.bignum sup{font-size:.18em; vertical-align:top; margin-left:12px; font-weight:500; letter-spacing:0}
+
+/* ═══════════ SHARE ═══════════ */
+.share{display:grid; grid-template-columns:minmax(0,420px) 1fr; gap:clamp(40px,7vw,96px);
+  align-items:center}
+.pillcard{background:var(--white); border-radius:999px; padding:88px 56px; text-align:center;
+  box-shadow:var(--sh-2)}
+.chip{display:inline-block; background:var(--canvas); border-radius:999px; padding:8px 20px;
+  font-size:14px; font-weight:500}
+.pillcard h3{margin:24px 0 0; font-size:30px; line-height:1.16}
+.mini{width:100%; height:60px; display:block; margin:28px 0}
+.pillcard dl{display:grid; grid-template-columns:1fr 1fr; gap:18px 12px; margin:0; text-align:left}
+.pillcard dt{font-size:13px; color:var(--slate)}
+.pillcard dd{margin:3px 0 0; font-size:17px; font-weight:500}
+
+/* ═══════════ FOOTER ═══════════ */
+footer{background:var(--ink); color:var(--white); border-radius:40px 40px 0 0;
+  padding:clamp(56px,8vw,100px) 0 clamp(56px,10vw,148px); margin-top:clamp(48px,7vw,96px)}
+footer h2{max-width:16ch; font-size:clamp(28px,4vw,44px)}
+.fgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:40px; margin-top:clamp(48px,6vw,80px)}
+.fgrid h4{font-size:13px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:rgba(255,255,255,.55); margin:0 0 20px}
+.fgrid ul{list-style:none; margin:0; padding:0; display:grid; gap:14px; font-size:14px; font-weight:450}
+.fgrid a{opacity:.92; transition:opacity .2s}
+.fgrid a:hover{opacity:.6}
+.fbot{margin-top:clamp(40px,6vw,72px); padding-top:28px; border-top:1px solid rgba(255,255,255,.3);
+  display:flex; flex-wrap:wrap; align-items:center; gap:20px 28px; font-size:13px; color:rgba(255,255,255,.7)}
+.country{margin-left:auto; display:inline-flex; align-items:center; gap:10px; background:transparent;
+  color:var(--white); border:1px solid rgba(255,255,255,.4); border-radius:999px;
+  padding:9px 20px; font:inherit; font-size:14px; cursor:pointer}
+.socials{display:flex; gap:14px}
+.socials a{width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,.3);
+  display:grid; place-items:center; font-size:12px; font-weight:700; opacity:.85}
+
+/* ═══════════ TOOLTIP ═══════════ */
+#tip{position:fixed; z-index:90; pointer-events:none; opacity:0; transform:translate(-50%,-145%);
+  background:var(--white); border-radius:999px; padding:9px 18px; font-size:14px; white-space:nowrap;
+  box-shadow:var(--sh-2); transition:opacity .12s}
+#tip s{text-decoration:none; color:var(--slate); margin-left:10px}
+
+/* ═══════════ REVEAL ═══════════ */
+.r{opacity:0; transform:translateY(24px); transition:opacity .8s var(--ease), transform .8s var(--ease)}
+.on.r,.on .r{opacity:1; transform:none}
+
+/* ═══════════ RESPONSIVE ═══════════ */
+@media (max-width:1023px){
+  :root{--shell:min(1280px, 100% - 48px)}
+  .navwrap{padding-inline:24px}
+  .nav ul{display:none}
+  .hero-top,.two,.share{grid-template-columns:1fr; gap:32px}
+  .arcs{display:none}                     /* arcs only work with asymmetric placement */
+  .orbits{grid-template-columns:repeat(2,1fr)}
+  .orbit:nth-child(n){margin-top:0}
+  .fgrid{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:640px){
+  :root{--shell:min(1280px, 100% - 32px)}
+  .navwrap{padding-inline:16px; top:12px}
+  .nav{padding:10px 10px 10px 20px; gap:12px}
+  .orbits{grid-template-columns:1fr; gap:48px}
+  .portrait{max-width:260px}
+  .band{height:64px}
+  .stat{flex:1; min-width:calc(50% - 6px); padding:14px 22px}
+  .pillcard{border-radius:40px; padding:40px 32px}
+  .fgrid{grid-template-columns:1fr; gap:32px}
+  .country{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important; animation-delay:0ms!important;
+    transition-duration:.001ms!important}
+  .print rect{transform:scaleY(1)}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body data-palette="#00897C,#B4521E,#3860BE,#C0405B,#7A3E9E">
+
+<div class="navwrap">
+  <nav class="nav">
+    <a class="logo" href="#top">
+      <span class="mark" aria-hidden="true"><i></i><i></i></span>MUSIC DNA
+    </a>
+    <ul>
+      <li><a href="#genres">장르</a></li>
+      <li><a href="#clock">청취 시간</a></li>
+      <li><a href="#mood">분위기</a></li>
+      <li><a href="#artists">아티스트</a></li>
+      <li><a href="#rec">추천</a></li>
+    </ul>
+    <button class="search" aria-label="검색">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5 21 21"/></svg>
+    </button>
+    <a class="btn btn-p btn-sm" href="#connect">취향 분석하기</a>
+  </nav>
+</div>
+
+<!-- ══ HERO ══ -->
+<section class="hero shell" id="top">
+  <div class="hero-top">
+    <h1>당신의 취향에는<br>지문이 있습니다</h1>
+    <div>
+      <p>지난 1년의 재생 기록을 장르, 템포, 분위기, 시간대로 분해해 한 장의 리포트로 돌려드립니다.</p>
+      <div class="hero-cta">
+        <a class="btn btn-p" href="#connect">취향 분석하기</a>
+        <a class="btn btn-s" href="#verdict">샘플 리포트 보기</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="stadium">
+    <div class="frame-cap">
+      <span>세로선 하나가 재생 한 번, 색은 장르, 높이는 재생 길이</span>
+      <span>2025.08 – 2026.08</span>
+    </div>
+    <svg class="print" id="print" preserveAspectRatio="none" aria-label="지난 1년 청취 기록 시각화"></svg>
+    <div class="print-axis">
+      <span>8월</span><span>10월</span><span>12월</span><span>2월</span><span>4월</span><span>6월</span><span>8월</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ VERDICT ══ -->
+<section class="sect verdict" id="verdict">
+  <div class="shell r">
+    <span class="eyebrow">결과</span>
+    <h2>당신은 새벽형 감성 탐험가입니다</h2>
+    <p class="lead">재생의 38%가 자정 이후에 몰려 있고, 그중 대부분이 처음 듣는 곡입니다. 익숙한 걸 반복하기보다 매달 새로운 걸 찾아 듣는 쪽에 가깝습니다.</p>
+    <div class="stats">
+      <div class="stat"><b data-count="82">0</b><span>탐험 성향</span><i style="--w:82%"></i></div>
+      <div class="stat"><b data-count="74">0</b><span>감정 밀도</span><i style="--w:74%"></i></div>
+      <div class="stat"><b data-count="41">0</b><span>템포 선호</span><i style="--w:41%"></i></div>
+      <div class="stat"><b data-count="68">0</b><span>시간 편중</span><i style="--w:68%"></i></div>
+    </div>
+  </div>
+  <div class="watermark" aria-hidden="true">MUSIC DNA</div>
+</section>
+
+<!-- ══ GENRES ══ -->
+<section class="sect" id="genres">
+  <div class="shell r">
+    <span class="eyebrow">장르</span>
+    <h2>다섯 개의 장르가 1년을 나눠 가졌습니다</h2>
+    <p class="lead">한 곡이 여러 장르에 걸치면 재생 시간을 비율대로 나눠 배분했고, 점유율 3% 미만은 기타로 묶었습니다.</p>
+    <div class="band" id="band"></div>
+    <div class="legend" id="legend"></div>
+  </div>
+</section>
+
+<!-- ══ CLOCK ══ -->
+<section class="sect" id="clock">
+  <div class="shell r">
+    <div class="two">
+      <div><svg id="clockSvg" viewBox="0 0 460 460" aria-label="시간대별 청취량"></svg></div>
+      <div>
+        <span class="eyebrow">청취 시간</span>
+        <h2>가장 많이 듣는 시간은 새벽 1시입니다</h2>
+        <p class="lead">출근길과 자정 이후, 하루에 두 번 봉우리가 생깁니다. 밤에 고르는 곡은 낮보다 평균 14 BPM 느립니다.</p>
+        <div class="peaks">
+          <div><b>01–03시</b><span class="muted">전체 재생의 21.4%, 대부분 첫 청취</span></div>
+          <div><b>08–09시</b><span class="muted">반복 재생 비율이 가장 높은 구간</span></div>
+          <div><b>14–16시</b><span class="muted">가장 조용한 구간, 전체의 4.1%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ MOOD ══ -->
+<section class="sect" id="mood">
+  <div class="shell r">
+    <span class="eyebrow">분위기</span>
+    <h2>밝고 느린 곡에 오래 머뭅니다</h2>
+    <p class="lead">가장 많이 들은 40곡을 밝기와 에너지 두 축에 놓았습니다. 점 위에 마우스를 올리면 곡이 보입니다.</p>
+    <div class="stadium chart mood"><svg id="moodSvg" viewBox="0 0 1160 540" aria-label="곡별 밝기와 에너지 분포"></svg></div>
+  </div>
+</section>
+
+<!-- ══ DRIFT ══ -->
+<section class="sect" id="drift">
+  <div class="shell r">
+    <span class="eyebrow">변화</span>
+    <h2>취향은 3월에 한 번 꺾였습니다</h2>
+    <p class="lead">앰비언트가 자리를 내주고 시티팝과 재즈가 올라온 시점입니다.</p>
+    <div class="chart drift"><svg id="driftSvg" viewBox="0 0 1200 380" aria-label="월별 장르 점유율 변화"></svg></div>
+  </div>
+</section>
+
+<!-- ══ ARTISTS CONSTELLATION ══ -->
+<section class="sect" id="artists">
+  <div class="shell r">
+    <span class="eyebrow">아티스트</span>
+    <h2>1년 동안 거쳐 간 아티스트</h2>
+    <div class="bignum">312<sup>팀</sup></div>
+    <p class="lead">상위 10팀이 차지한 건 전체의 19.4%뿐입니다. 67팀은 딱 한 번만 재생됐습니다.</p>
+
+    <div class="constel">
+      <svg class="arcs" viewBox="0 0 1200 620" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M250 300 C 430 150, 520 330, 690 430" />
+        <path d="M690 430 C 830 520, 900 300, 1010 250" />
+      </svg>
+      <div class="orbits">
+        <article class="orbit">
+          <div class="portrait">
+            <img src="https://picsum.photos/seed/silicagel-neon-live/640/640" alt="실리카겔" loading="lazy">
+            <button class="sat" aria-label="실리카겔 상세 보기">
+              <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+          <span class="eyebrow">최다 재생</span>
+          <h3>실리카겔</h3>
+          <p class="hrs">48시간 · 인디록</p>
+        </article>
+        <article class="orbit">
+          <div class="portrait">
+            <img src="https://picsum.photos/seed/meninitrust-haze/640/640" alt="Men I Trust" loading="lazy">
+            <button class="sat" aria-label="Men I Trust 상세 보기">
+              <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+          <span class="eyebrow">새벽 전용</span>
+          <h3>Men I Trust</h3>
+          <p class="hrs">37시간 · 드림팝</p>
+        </article>
+        <article class="orbit">
+          <div class="portrait">
+            <img src="https://picsum.photos/seed/baekyerin-blue-room/640/640" alt="백예린" loading="lazy">
+            <button class="sat" aria-label="백예린 상세 보기">
+              <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+          <span class="eyebrow">올해의 발견</span>
+          <h3>백예린</h3>
+          <p class="hrs">26시간 · 시티팝</p>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ RECOMMEND ══ -->
+<section class="sect" id="rec">
+  <div class="shell r">
+    <div class="rec-head">
+      <div>
+        <span class="eyebrow">추천</span>
+        <h2>이 분석대로면, 다음은 이 곡들입니다</h2>
+        <p class="lead">아직 한 번도 재생하지 않은 곡 중에서, 위 지표와 가장 가까운 순으로 골랐습니다.</p>
+      </div>
+      <div class="rec-nav">
+        <button class="rnb" data-rail="-1" aria-label="이전 추천 곡">
+          <svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+        </button>
+        <button class="rnb" data-rail="1" aria-label="다음 추천 곡">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="rail" id="rail" tabindex="0" aria-label="추천 곡 목록">
+      <article class="rec">
+        <div class="rec-pill">
+          <img src="https://picsum.photos/seed/beachfossils-sugar/540/720" alt="Beach Fossils — Sugar" loading="lazy">
+          <span class="rec-chip"><em style="background:var(--c1)"></em>드림팝</span>
+          <button class="sat" aria-label="Sugar 미리 듣기"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        </div>
+        <h3>Sugar</h3>
+        <p class="meta">Beach Fossils · 96 BPM</p>
+        <p class="why">새벽 1–3시에 재생한 곡들과 템포가 겹칩니다.</p>
+      </article>
+
+      <article class="rec">
+        <div class="rec-pill">
+          <img src="https://picsum.photos/seed/mazzystar-fade/540/720" alt="Mazzy Star — Fade Into You" loading="lazy">
+          <span class="rec-chip"><em style="background:var(--c1)"></em>드림팝</span>
+          <button class="sat" aria-label="Fade Into You 미리 듣기"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        </div>
+        <h3>Fade Into You</h3>
+        <p class="meta">Mazzy Star · 78 BPM</p>
+        <p class="why">밝기·에너지 좌표가 상위 10곡의 평균과 가장 가깝습니다.</p>
+      </article>
+
+      <article class="rec">
+        <div class="rec-pill">
+          <img src="https://picsum.photos/seed/sunsetrollercoaster-jinji/540/720" alt="Sunset Rollercoaster — My Jinji" loading="lazy">
+          <span class="rec-chip"><em style="background:var(--c2)"></em>시티팝</span>
+          <button class="sat" aria-label="My Jinji 미리 듣기"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        </div>
+        <h3>My Jinji</h3>
+        <p class="meta">Sunset Rollercoaster · 92 BPM</p>
+        <p class="why">3월 이후 늘어난 시티팝 취향의 연장선에 있습니다.</p>
+      </article>
+
+      <article class="rec">
+        <div class="rec-pill">
+          <img src="https://picsum.photos/seed/soeumbalgwang-collapse/540/720" alt="소음발광 — 무너지고 있어" loading="lazy">
+          <span class="rec-chip"><em style="background:var(--c3)"></em>인디록</span>
+          <button class="sat" aria-label="무너지고 있어 미리 듣기"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        </div>
+        <h3>무너지고 있어</h3>
+        <p class="meta">소음발광 · 138 BPM</p>
+        <p class="why">가장 많이 들은 실리카겔과 같은 씬에서 활동합니다.</p>
+      </article>
+
+      <article class="rec">
+        <div class="rec-pill">
+          <img src="https://picsum.photos/seed/nujabes-feather-rain/540/720" alt="Nujabes — Feather" loading="lazy">
+          <span class="rec-chip"><em style="background:var(--c5)"></em>재즈</span>
+          <button class="sat" aria-label="Feather 미리 듣기"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+        </div>
+        <h3>Feather</h3>
+        <p class="meta">Nujabes · 88 BPM</p>
+        <p class="why">최근 3개월 재즈 점유율이 오른 흐름과 맞습니다.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ══ SHARE ══ -->
+<section class="sect" id="connect">
+  <div class="shell r">
+    <div class="share">
+      <div class="pillcard">
+        <span class="chip">MUSIC DNA 2026</span>
+        <h3>새벽형<br>감성 탐험가</h3>
+        <svg class="mini" id="mini" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <dl>
+          <dt>최다 청취 시간</dt><dd>01:00</dd>
+          <dt>평균 템포</dt><dd>94 BPM</dd>
+          <dt>주 장르</dt><dd>드림팝</dd>
+          <dt>아티스트</dt><dd>312팀</dd>
+        </dl>
+      </div>
+      <div>
+        <h2>한 장으로 정리된 당신의 1년</h2>
+        <p class="lead">스트리밍 계정을 연결하면 3분 안에 리포트가 만들어집니다. 재생 기록만 읽고, 저장은 하지 않습니다.</p>
+        <div class="hero-cta">
+          <a class="btn btn-p" href="#connect">취향 분석하기</a>
+          <a class="btn btn-s" href="#verdict">샘플 리포트 보기</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="shell">
+    <h2>궁금한 게 있으면 언제든 물어보세요</h2>
+    <div class="fgrid">
+      <div><h4>리포트</h4><ul>
+        <li><a href="#genres">장르 분석</a></li><li><a href="#clock">청취 시간</a></li>
+        <li><a href="#mood">분위기 지도</a></li><li><a href="#drift">취향 변화</a></li></ul></div>
+      <div><h4>서비스</h4><ul>
+        <li><a href="#connect">계정 연결</a></li><li><a href="#connect">리포트 공유</a></li>
+        <li><a href="#">연간 아카이브</a></li><li><a href="#">친구와 비교</a></li></ul></div>
+      <div><h4>도움이 필요하신가요?</h4><ul>
+        <li><a href="#">고객 문의</a></li><li><a href="#">자주 묻는 질문</a></li>
+        <li><a href="#">데이터 삭제 요청</a></li>
+        <li><a href="#">개발자 문서 ↗</a></li></ul></div>
+      <div><h4>회사</h4><ul>
+        <li><a href="#">소개</a></li><li><a href="#">채용</a></li>
+        <li><a href="#">뉴스룸 ↗</a></li><li><a href="#">브랜드 자산</a></li></ul></div>
+    </div>
+    <div class="fbot">
+      <span>© 2026 Music DNA</span>
+      <a href="#">개인정보 처리방침</a>
+      <a href="#">이용약관</a>
+      <span>이 페이지의 수치는 디자인 확인용 샘플입니다.</span>
+      <button class="country">대한민국 · 한국어 <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M1 1.5 6 6.5 11 1.5" stroke="currentColor" stroke-width="1.5"/></svg></button>
+      <div class="socials"><a href="#" aria-label="LinkedIn">in</a><a href="#" aria-label="X">X</a><a href="#" aria-label="YouTube">▶</a></div>
+    </div>
+  </div>
+</footer>
+
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+const NS = "http://www.w3.org/2000/svg";
+const el = (n, a = {}) => { const e = document.createElementNS(NS, n);
+  for (const k in a) e.setAttribute(k, a[k]); return e; };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// deterministic PRNG — the fingerprint must be identical on every reload
+let s = 20260814;
+const rnd = () => (s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296;
+
+const GENRES = [
+  { name: "드림팝",   c: "var(--c1)", pct: 29.6, hours: 128 },
+  { name: "시티팝",   c: "var(--c2)", pct: 23.1, hours: 100 },
+  { name: "인디록",   c: "var(--c3)", pct: 18.4, hours: 79 },
+  { name: "앰비언트", c: "var(--c4)", pct: 15.7, hours: 68 },
+  { name: "재즈",     c: "var(--c5)", pct: 13.2, hours: 57 },
+];
+const CUM = GENRES.reduce((a, g) => (a.push((a.at(-1) ?? 0) + g.pct), a), []);
+const pickGenre = () => { const r = rnd() * 100; return Math.max(0, CUM.findIndex(c => r < c)); };
+
+/* ── shared tooltip: one handler for every mark carrying data-tip ── */
+const tip = document.getElementById("tip");
+document.addEventListener("pointerover", e => {
+  const t = e.target.closest("[data-tip]"); if (!t) return;
+  tip.innerHTML = t.dataset.tip; tip.style.opacity = 1;
+});
+document.addEventListener("pointermove", e => {
+  if (tip.style.opacity === "1") { tip.style.left = e.clientX + "px"; tip.style.top = e.clientY + "px"; }
+});
+document.addEventListener("pointerout", e => {
+  if (e.target.closest("[data-tip]")) tip.style.opacity = 0;
+});
+
+/* ── 1. 청취 지문 — pill-capped bars, the signature ── */
+const MONTHS = ["8월","9월","10월","11월","12월","1월","2월","3월","4월","5월","6월","7월"];
+function fingerprint(svg, n, h, live) {
+  const w = 4, bw = 2.6;
+  svg.setAttribute("viewBox", `0 0 ${n * w} ${h}`);
+  for (let i = 0; i < n; i++) {
+    const gi = pickGenre();
+    const v = 0.14 + Math.pow(rnd(), 1.7) * 0.86;
+    const bh = v * h;
+    const r = el("rect", { x: i * w, y: h - bh, width: bw, height: bh,
+      rx: bw / 2, fill: GENRES[gi].c, opacity: (0.55 + v * 0.45).toFixed(2) });
+    if (live) {
+      r.style.animationDelay = (reduce ? 0 : i * 2.4) + "ms";
+      r.dataset.tip = `<b>${GENRES[gi].name}</b><s>${MONTHS[Math.floor(i / n * 12)]} · ${Math.round(v * 46)}분</s>`;
+    } else { r.style.animation = "none"; r.style.transform = "scaleY(1)"; }
+    svg.appendChild(r);
+  }
+}
+fingerprint(document.getElementById("print"), 300, 150, true);
+fingerprint(document.getElementById("mini"), 70, 60, false);
+
+/* ── 2. 장르: full-pill stacked band, 2px canvas gaps + direct-labelled legend ── */
+const band = document.getElementById("band"), legend = document.getElementById("legend");
+GENRES.forEach((g, i) => {
+  const sp = document.createElement("span");
+  sp.style.cssText = `flex:${g.pct}; background:${g.c}; --d:${i * 90}ms`;
+  sp.dataset.tip = `<b>${g.name}</b><s>${g.pct}% · ${g.hours}시간</s>`;
+  band.appendChild(sp);
+  legend.insertAdjacentHTML("beforeend",
+    `<div class="lg"><em style="background:${g.c}"></em><strong>${g.name}</strong>
+     <span class="v">${g.pct.toFixed(1)}%</span><small>${g.hours}h</small></div>`);
+});
+
+/* ── 3. 시간대별 극좌표 — single hue, magnitude by length + opacity ── */
+const HOURS = [3.1,5.8,7.4,6.2,4.1,2.6,2.2,3.4,6.9,8.1,5.2,4.4,
+               3.8,2.9,2.1,2.0,2.4,3.6,4.8,5.1,5.9,7.2,8.8,9.6];
+{
+  const svg = document.getElementById("clockSvg"), cx = 230, cy = 230, r0 = 70, rM = 204;
+  const mx = Math.max(...HOURS);
+  [r0 - 14, (r0 + rM) / 2, rM].forEach(r =>
+    svg.appendChild(el("circle", { cx, cy, r, fill: "none", stroke: "var(--hair)", "stroke-width": 1 })));
+
+  HOURS.forEach((v, h) => {
+    const a = (h * 15 - 90) * Math.PI / 180, t = v / mx;
+    const len = r0 + (rM - r0) * t;
+    const ln = el("line", {
+      x1: cx + Math.cos(a) * r0, y1: cy + Math.sin(a) * r0,
+      x2: cx + Math.cos(a) * len, y2: cy + Math.sin(a) * len,
+      stroke: "var(--ink)", "stroke-width": 12, "stroke-linecap": "round",
+      opacity: (0.22 + t * 0.78).toFixed(2) });
+    ln.dataset.tip = `<b>${String(h).padStart(2, "0")}:00</b><s>${v}% · ${Math.round(v * 11)}시간</s>`;
+    svg.appendChild(ln);
+  });
+
+  [[0, "0시"], [6, "6시"], [12, "12시"], [18, "18시"]].forEach(([h, lab]) => {
+    const a = (h * 15 - 90) * Math.PI / 180;
+    const t = el("text", { x: cx + Math.cos(a) * (rM + 26), y: cy + Math.sin(a) * (rM + 26) + 5,
+      "text-anchor": "middle", class: "axlab" });
+    t.textContent = lab; svg.appendChild(t);
+  });
+  const pk = el("text", { x: cx, y: cy + 2, "text-anchor": "middle",
+    "font-size": 34, "font-weight": 500, "letter-spacing": "-1.2", fill: "var(--ink)" });
+  pk.textContent = "01:00"; svg.appendChild(pk);
+  const pk2 = el("text", { x: cx, y: cy + 26, "text-anchor": "middle", class: "axlab" });
+  pk2.textContent = "최다 청취"; svg.appendChild(pk2);
+}
+
+/* ── 4. 분위기 맵 ── */
+const TRACKS = [
+  ["Tidal Wave","실리카겔",0.71,0.86,2],["난 아직도 널","새소년",0.34,0.42,3],
+  ["Show Me How","Men I Trust",0.52,0.22,0],["Numb","백예린",0.29,0.31,1],
+  ["Pelota","Khruangbin",0.68,0.49,4],["EVERYTHING","검정치마",0.61,0.58,2],
+  ["Space Song","Beach House",0.44,0.28,0],["Weightless","Marconi Union",0.38,0.08,3],
+  ["Plastic Love","竹内まりや",0.79,0.55,1],["Midnight City","M83",0.66,0.81,4],
+];
+{
+  const svg = document.getElementById("moodSvg"), P = { l: 56, r: 56, t: 44, b: 56 }, W = 1160, H = 540;
+  const X = v => P.l + v * (W - P.l - P.r), Y = v => H - P.b - v * (H - P.t - P.b);
+
+  [0.25, 0.5, 0.75].forEach(g => {
+    svg.appendChild(el("line", { x1: X(g), y1: P.t, x2: X(g), y2: H - P.b,
+      stroke: "var(--hair)", "stroke-width": g === 0.5 ? 1.5 : 1 }));
+    svg.appendChild(el("line", { x1: P.l, y1: Y(g), x2: W - P.r, y2: Y(g),
+      stroke: "var(--hair)", "stroke-width": g === 0.5 ? 1.5 : 1 }));
+  });
+  const q = (x, y, anchor, txt) => { const t = el("text", { x, y, class: "axlab", "text-anchor": anchor });
+    t.textContent = txt; svg.appendChild(t); };
+  q(P.l, P.t - 16, "start", "어둡고 격렬함");     q(W - P.r, P.t - 16, "end", "밝고 격렬함");
+  q(P.l, H - P.b + 32, "start", "어둡고 차분함"); q(W - P.r, H - P.b + 32, "end", "밝고 차분함");
+
+  const pts = TRACKS.map(([n, a, v, e, g]) => ({ n, a, v, e, g, big: 1 }));
+  for (let i = 0; i < 30; i++)
+    pts.push({ v: 0.18 + rnd() * 0.68, e: 0.1 + Math.pow(rnd(), 1.4) * 0.72, g: pickGenre(), big: 0 });
+
+  pts.forEach(p => {
+    const c = el("circle", { cx: X(p.v), cy: Y(p.e), r: p.big ? 10 : 6,
+      fill: GENRES[p.g].c, opacity: p.big ? 0.95 : 0.34,
+      stroke: "var(--lifted)", "stroke-width": 2 });
+    if (p.n) c.dataset.tip = `<b>${p.n}</b><s>${p.a} · ${GENRES[p.g].name}</s>`;
+    svg.appendChild(c);
+  });
+  const ax = el("text", { x: W / 2, y: H - 10, class: "axlab", "text-anchor": "middle" });
+  ax.textContent = "밝기 →"; svg.appendChild(ax);
+  const ay = el("text", { x: 14, y: H / 2, class: "axlab", "text-anchor": "middle",
+    transform: `rotate(-90 14 ${H / 2})` });
+  ay.textContent = "에너지 →"; svg.appendChild(ay);
+}
+
+/* ── 5. 취향 변화 — lines with direct end labels ── */
+const DRIFT = [
+  { g: 0, v: [24, 25, 26, 28, 29, 29.6] },
+  { g: 1, v: [13, 14, 17, 21, 22, 23.1] },
+  { g: 2, v: [25, 23, 21, 19, 18, 18.4] },
+  { g: 3, v: [27, 25, 21, 18, 16, 15.7] },
+  { g: 4, v: [7, 8, 10, 12, 13, 13.2] },
+];
+{
+  const svg = document.getElementById("driftSvg"), P = { l: 40, r: 150, t: 26, b: 46 }, W = 1200, H = 380;
+  const MO = ["3월", "4월", "5월", "6월", "7월", "8월"];
+  const X = i => P.l + i / 5 * (W - P.l - P.r), Y = v => H - P.b - (v / 32) * (H - P.t - P.b);
+
+  MO.forEach((m, i) => {
+    svg.appendChild(el("line", { x1: X(i), y1: P.t, x2: X(i), y2: H - P.b, stroke: "var(--hair)" }));
+    const t = el("text", { x: X(i), y: H - P.b + 28, "text-anchor": "middle", class: "axlab" });
+    t.textContent = m; svg.appendChild(t);
+  });
+
+  DRIFT.forEach((d, k) => {
+    const p = el("path", { class: "ln", stroke: GENRES[d.g].c,
+      d: d.v.map((v, i) => `${i ? "L" : "M"}${X(i)} ${Y(v)}`).join(" ") });
+    p.style.transitionDelay = (k * 130) + "ms";
+    svg.appendChild(p);
+    d.v.forEach((v, i) => {
+      const c = el("circle", { cx: X(i), cy: Y(v), r: 5, fill: GENRES[d.g].c,
+        stroke: "var(--canvas)", "stroke-width": 2.5 });
+      c.dataset.tip = `<b>${GENRES[d.g].name}</b><s>${MO[i]} · ${v}%</s>`;
+      svg.appendChild(c);
+    });
+    const lab = el("text", { x: X(5) + 18, y: Y(d.v[5]) + 5, class: "endlab" });
+    lab.textContent = `${GENRES[d.g].name} ${d.v[5]}%`;
+    svg.appendChild(lab);
+  });
+}
+
+/* ── 6. 추천 캐러셀: scroll-snap 레일을 카드 한 장 단위로 이동 ── */
+{
+  const rail = document.getElementById("rail");
+  document.querySelectorAll("[data-rail]").forEach(b => b.addEventListener("click", () => {
+    const card = rail.firstElementChild;
+    const step = card.getBoundingClientRect().width + 28;   // card + gap
+    rail.scrollBy({ left: +b.dataset.rail * step, behavior: reduce ? "auto" : "smooth" });
+  }));
+}
+
+/* ── 7. reveal + count-up (IntersectionObserver — no scroll listener) ── */
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (!e.isIntersecting) return;
+  e.target.classList.add("on");
+  e.target.querySelectorAll("[data-count]").forEach(n => {
+    const to = +n.dataset.count, dur = reduce ? 0 : 900, t0 = performance.now();
+    const step = t => { const p = dur ? Math.min((t - t0) / dur, 1) : 1;
+      n.textContent = Math.round(to * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  });
+  io.unobserve(e.target);
+}), { threshold: .2 });
+document.querySelectorAll(".r").forEach(n => io.observe(n));
+})();
+</script>
+</body>
+</html>

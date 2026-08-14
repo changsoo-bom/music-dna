@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+/**
+ * 디자인 토큰. 값의 근거와 사용 규칙은 docs/design-reference.md 에 있다.
+ * 여기서 값을 바꾸기 전에 그 문서를 먼저 읽는다 — 특히 --chart-* 는
+ * 색각 이상 대비 검증을 통과한 조합이라 임의로 교체하면 검증이 깨진다.
+ */
+:root {
+  /* 표면 — 순백은 쓰지 않는다 */
+  --canvas: #f3f0ee;
+  --lifted: #fcfbfa;
+  --white: #ffffff;
+  --ghost: #e8e2da;
+  --hair: #ded8d1;
+
+  /* 잉크 */
+  --ink: #141413;
+  --slate: #696969;
+  --dust: #d1cdc7;
+
+  /* 시그널 — 예약색. 마케팅 CTA 에 쓰지 않는다 */
+  --signal: #cf4500;
+  --signal-lt: #f37338;
+
+  /* 차트 카테고리 5색 — 순서가 곧 검증 단위다 */
+  --chart-1: #00897c;
+  --chart-2: #b4521e;
+  --chart-3: #3860be;
+  --chart-4: #c0405b;
+  --chart-5: #7a3e9e;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-lifted: var(--lifted);
+  --color-white: var(--white);
+  --color-ghost: var(--ghost);
+  --color-hair: var(--hair);
+
+  --color-ink: var(--ink);
+  --color-slate: var(--slate);
+  --color-dust: var(--dust);
+
+  --color-signal: var(--signal);
+  --color-signal-lt: var(--signal-lt);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-sans: var(--font-sofia), var(--font-kr), Arial, sans-serif;
+
+  /* 반경은 셋뿐이다. 8~16px 중간값을 만들지 않는다 */
+  --radius-btn: 20px;
+  --radius-stadium: 40px;
+  --radius-pill: 999px;
+
+  --shadow-lift: 0 4px 24px 0 rgb(0 0 0 / 0.04);
+  --shadow-float: 0 24px 48px 0 rgb(0 0 0 / 0.08);
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-weight: 450;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
