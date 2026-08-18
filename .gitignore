@@ -46,3 +46,7 @@ next-env.d.ts
 # bkit (machine-local runtime/logs; state/ is shared)
 .bkit/runtime/
 .bkit/audit/
+!.env.example
+
+# bkit snapshots (machine-local)
+.bkit/snapshots/

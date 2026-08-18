@@ -1,67 +1,109 @@
 /** 차트 카테고리 슬롯. globals.css 의 --chart-1..5 와 1:1 대응한다. */
 export type ChartSlot = 1 | 2 | 3 | 4 | 5;
 
-export type Genre = {
-  name: string;
-  slot: ChartSlot;
-  /** 재생 시간 기준 점유율(%). 5개 합이 100 이 되도록 정규화된 값 */
-  share: number;
-  hours: number;
+/* ── 장르 ─────────────────────────────────────────────────────────
+   상위 5종 = 차트 5색. 하위 장르가 실제 분류 해상도를 담당한다.
+   목록은 @/constants/genres 에 있다.                              */
+
+export type Genre = "pop" | "rock" | "hiphop" | "rnb" | "electronic";
+
+export type SubGenre =
+  | "kpop" | "ballad" | "indie-pop" | "city-pop"
+  | "indie-rock" | "modern-rock" | "shoegaze" | "punk"
+  | "boombap" | "trap" | "melodic-rap" | "lofi-hiphop"
+  | "neo-soul" | "alt-rnb" | "funk" | "slow-jam"
+  | "house" | "ambient" | "synth-pop" | "dnb";
+
+export type SubGenreNode = {
+  id: SubGenre;
+  label: string;
+  ko: string;
+  /** 걸쳐 있는 다른 상위 장르. 성향 검사 점수가 1점 흘러간다 */
+  near?: Genre;
+  /** 이 하위 장르의 기본 좌표. 카탈로그에 곡을 넣을 때 여기서 출발해 조정한다 */
+  mood: MoodVector;
 };
 
-export type Track = {
+export type GenreNode = {
+  id: Genre;
+  slot: ChartSlot;
+  label: string;
+  ko: string;
+  children: readonly SubGenreNode[];
+};
+
+/* ── 성향 검사가 재는 축 ──────────────────────────────────────── */
+
+export type TimeSlot = "morning" | "afternoon" | "evening" | "night" | "dawn";
+
+/** MOOD 화면의 7종. 축에서 파생되는 값이지 직접 묻는 값이 아니다 */
+export type Mood =
+  | "melancholic" | "dreamy" | "energetic" | "romantic"
+  | "chill" | "dark" | "happy";
+
+/**
+ * 분위기를 3축 좌표로 표현한다. **사용자와 곡이 같은 공간에 놓인다.**
+ * 덕분에 MOOD 7종 파생도, 추천 매칭도 거리 계산 하나로 끝난다 —
+ * 라벨끼리 이어붙이는 매핑표가 필요 없다.
+ */
+export type MoodVector = {
+  /** 0~100. 차분함 ↔ 격렬함 */
+  energy: number;
+  /** 0~100. 어두움 ↔ 밝음 */
+  valence: number;
+  /** 0~100. 또렷함 ↔ 몽환적 */
+  dreamy: number;
+};
+
+export type PreferenceAxes = MoodVector & {
+  /** 합이 100 */
+  genre: Record<Genre, number>;
+  /** 합이 100 */
+  timeOfDay: Record<TimeSlot, number>;
+  /** 0~100. 익숙한 것 반복 ↔ 새로운 것 발견 */
+  explorer: number;
+};
+
+export type PersonaId =
+  | "dawn-explorer"
+  | "deep-diver"
+  | "genre-collector"
+  | "daylight-charger"
+  | "hype-player";
+
+/**
+ * Local Storage `musicdna:musicPreference:v1` 의 내용.
+ *
+ * `answers` 를 같이 저장한다 — 점수만 저장하면 문항이나 배점을 고칠 때
+ * 재검사를 시키는 것 말고 방법이 없다. 답이 남아 있으면 다시 계산하면 된다.
+ */
+export type MusicPreference = {
+  version: 1;
+  /** questionId → 고른 선택지 index */
+  answers: Record<string, number>;
+  axes: PreferenceAxes;
+  /** 0~100. axes 에서 파생 */
+  moods: Record<Mood, number>;
+  persona: PersonaId;
+  computedAt: string;
+};
+
+/* ── 곡 카탈로그 ──────────────────────────────────────────────── */
+
+export type CatalogTrack = {
   id: string;
   title: string;
   artist: string;
-  slot: ChartSlot;
-  bpm: number;
-  /** 0~1. 밝은 정도 */
-  valence: number;
-  /** 0~1. 격렬한 정도 */
-  energy: number;
+  subGenre: SubGenre;
+  /** 곡의 분위기 좌표. 하위 장르 기본값에서 출발해 곡별로 손본다 */
+  mood: MoodVector;
+  /** 초. videos.list 의 contentDetails.duration 에서 채운다 */
+  duration: number;
+  youtubeId: string;
 };
 
-export type Recommendation = Track & {
-  coverUrl: string;
-  genre: string;
-  /** 이 곡을 고른 근거. 반드시 리포트 지표에서 파생된 문장이어야 한다 */
-  reason: string;
-};
-
-export type TopArtist = {
-  name: string;
-  imageUrl: string;
-  hours: number;
-  genre: string;
-  /** "최다 재생", "새벽 전용" 처럼 이 아티스트가 왜 눈에 띄는지 */
-  note: string;
-};
-
-/** 0시부터 23시까지 24칸. 각 값은 전체 재생 대비 % */
-export type HourlyPlays = readonly number[];
-
-export type GenreDrift = {
-  slot: ChartSlot;
-  /** 최근 6개월 점유율(%), 오래된 달부터 */
-  monthly: number[];
-};
-
-export type PersonaAxis = {
-  label: string;
-  /** 0~100 */
-  score: number;
-};
-
-export type Report = {
-  persona: string;
-  summary: string;
-  axes: PersonaAxis[];
-  genres: Genre[];
-  hourly: HourlyPlays;
-  tracks: Track[];
-  drift: GenreDrift[];
-  artists: TopArtist[];
-  recommendations: Recommendation[];
-  totalArtists: number;
-  totalMinutes: number;
+/** 사용자가 고르거나 플레이리스트에 담은 곡. 시각은 처음부터 넣는다 */
+export type SavedTrack = {
+  trackId: string;
+  savedAt: string;
 };
