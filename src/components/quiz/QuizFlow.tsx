@@ -155,8 +155,8 @@ export function QuizFlow() {
             {picked.length === 0
               ? ""
               : picked.length < question.maxPicks
-                ? `${picked.length}개 선택 — 더 고르거나 이대로 넘어가도 됩니다`
-                : `${question.maxPicks}개 선택 완료 — 바꾸려면 하나를 해제하세요`}
+                ? `${picked.length}개 선택. 더 고르거나 이대로 넘어가도 됩니다`
+                : `${question.maxPicks}개 선택 완료. 바꾸려면 하나를 해제하세요`}
           </p>
         )}
       </div>

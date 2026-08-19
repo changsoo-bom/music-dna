@@ -90,6 +90,10 @@ for (let i = 0; i < 5; i += 1) {
 
   for (const pick of picks) {
     assert.ok(pick.reasons.length >= 2, `${pick.track.id}: 이유가 ${pick.reasons.length}줄이다`);
+    assert.ok(
+      pick.moodMatch >= 0 && pick.moodMatch <= 100,
+      `${pick.track.id}: moodMatch 가 ${pick.moodMatch} 다 — 궤도 호가 한 바퀴를 넘거나 음수가 된다`,
+    );
     genresSeen.add(PARENT_OF[pick.track.subGenre]);
     subGenresSeen.add(pick.track.subGenre);
   }

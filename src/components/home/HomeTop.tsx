@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 import { DnaSummary } from "@/components/report/DnaSummary";
 import { RecommendRail } from "@/components/report/RecommendRail";
 import { Arrow, ButtonLink } from "@/components/ui/Button";
-import { CATALOG } from "@/data/catalog";
 import { usePreference } from "@/hooks/use-preference";
 import { recommend } from "@/lib/report/recommend";
 
@@ -50,14 +49,15 @@ export function HomeTop({ children }: { children: ReactNode }) {
       {/* 지표에서 추천으로 넘어가는 자리. 선 하나로 나눈다 —
           "분석" 과 "그래서 뭘 들을까" 는 성격이 다른 구간이다. */}
       <section className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12">
-        <header className="flex items-baseline justify-between gap-8 max-sm:flex-col max-sm:gap-3">
-          <div>
-            <span className="eyebrow text-ink">추천</span>
-            <h2 className="mt-5 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">
-              그래서 이런 곡은 어떤가요
-            </h2>
-          </div>
-          <p className="text-sm text-slate">카탈로그 {CATALOG.length}곡에서 골랐습니다</p>
+        <header>
+          <span className="eyebrow text-ink">추천</span>
+          <h2 className="mt-5 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">
+            그래서 이런 곡은 어떤가요
+          </h2>
+          {/* 호가 무엇인지 여기서 한 번만 말한다. 카드마다 반복하면 그게 곧 잡음이다 */}
+          <p className="mt-5 max-w-[44ch] text-slate">
+            바깥 호가 길수록 당신이 답한 분위기에 가깝습니다.
+          </p>
         </header>
 
         <RecommendRail items={recommend(preference)} />

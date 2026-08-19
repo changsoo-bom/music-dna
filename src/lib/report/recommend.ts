@@ -30,6 +30,8 @@ function maxPerGenre(explorer: number): number {
 export type Recommendation = {
   track: CatalogTrack;
   score: number;
+  /** 0~100. 화면에서는 숫자가 아니라 궤도 호의 채워진 길이로 나온다 */
+  moodMatch: number;
   /** 이 곡이 올라온 이유. **실제 지표에서만 만든다** */
   reasons: string[];
 };
@@ -77,12 +79,13 @@ export function recommend(
       const reasons: string[] = [];
       if (genre === topGenre) reasons.push(`${shares[genre]}% 로 1순위인 장르`);
       else if (shares[genre] > 0) reasons.push(`고른 장르 중 ${shares[genre]}%`);
-      else reasons.push("고르지 않은 장르 — 넓혀 보기");
+      else reasons.push("아직 안 고른 장르");
       reasons.push(`분위기 근접도 ${moodMatch}`);
 
       return {
         track,
         score: Math.round(genreMatch * GENRE_WEIGHT + moodMatch * MOOD_WEIGHT),
+        moodMatch,
         reasons,
       };
     })

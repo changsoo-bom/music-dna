@@ -141,6 +141,24 @@ h3 {
   animation: q-enter 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* 궤도 호가 채워진다. 값은 `--orbit-gap` 이 정한다.
+   `stroke-dashoffset` 은 paint 단계만 건드린다 — 레이아웃을 다시 잡지 않으므로
+   transform/opacity 규칙의 취지 안에 있다. width 를 늘리는 것과는 다르다.
+   시차를 주면 호 여섯 개가 왼쪽부터 차례로 감긴다. */
+@keyframes orbit-draw {
+  from {
+    stroke-dashoffset: var(--orbit-len);
+  }
+  to {
+    stroke-dashoffset: var(--orbit-gap);
+  }
+}
+.orbit {
+  stroke-dasharray: var(--orbit-len);
+  stroke-dashoffset: var(--orbit-gap);
+  animation: orbit-draw 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* 가로로 미는 추천 레일. 스크롤바를 감추고 카드 단위로 물린다.
    `scrollbar-width` 와 `::-webkit-scrollbar` 는 유틸리티로 표현되지 않아 여기 둔다. */
 .rail {
