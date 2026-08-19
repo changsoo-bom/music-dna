@@ -8,20 +8,30 @@ type QuizOptionProps = {
   onClick: () => void;
 };
 
+/**
+ * 테두리 대신 그림자로 카드를 띄운다.
+ *
+ * 시스템의 그림자는 둘뿐이다 — `shadow-lift`(떠 있는 칩·네비) ·
+ * `shadow-float`(카드·프레임). 평소엔 lift 로 살짝 떠 있다가 호버에서 float 로
+ * 올라온다. **그림자 단계를 새로 만들지 않는다.**
+ *
+ * 떠 있는 요소라 표면은 `bg-white` 다. 크림 캔버스 위의 `bg-lifted` 는
+ * 대비가 너무 약해서 그림자만으로 경계를 만들면 카드가 뭉개진다.
+ */
 export function QuizOption({ label, sub, badge, selected, onClick }: QuizOptionProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`group flex w-full items-center gap-5 px-6 py-5 text-left rounded-btn border-[1.5px] transition-colors max-sm:gap-4 max-sm:px-5 ${
-        selected ? "border-ink bg-ink text-canvas" : "border-hair bg-lifted text-ink hover:border-ink"
+      className={`group flex w-full items-center gap-5 px-7 py-5 text-left rounded-btn transition-shadow max-sm:gap-4 max-sm:px-5 ${
+        selected ? "bg-ink text-canvas shadow-float" : "bg-white text-ink shadow-lift hover:shadow-float"
       }`}
     >
       <span
         aria-hidden
-        className={`grid h-8 w-8 shrink-0 place-items-center text-sm font-medium tabular-nums rounded-full border transition-colors ${
-          selected ? "border-canvas" : "border-hair group-hover:border-ink"
+        className={`grid h-8 w-8 shrink-0 place-items-center text-sm font-medium tabular-nums rounded-full transition-colors ${
+          selected ? "bg-canvas text-ink" : "bg-canvas text-slate group-hover:text-ink"
         }`}
       >
         {badge}

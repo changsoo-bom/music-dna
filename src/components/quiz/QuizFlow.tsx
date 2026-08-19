@@ -77,7 +77,8 @@ export function QuizFlow() {
         <h1 className="text-[clamp(28px,4vw,44px)] leading-[1.15]">{question.prompt}</h1>
         {isRank && <p className="mt-4 text-base text-slate">{question.hint}</p>}
 
-        <ul className="mt-12 flex flex-col gap-3 max-sm:mt-8">
+        {/* 그림자가 서로 겹치면 탁해진다. 테두리일 때보다 간격을 벌린다 */}
+        <ul className="mt-12 flex flex-col gap-4 max-sm:mt-8">
           {isRank
             ? question.options.map((option, optionIndex) => {
                 const rank = picked.indexOf(optionIndex);
