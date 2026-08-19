@@ -1,10 +1,7 @@
-"use client";
-
+import { Play } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
-import { useRef } from "react";
 import type { CSSProperties } from "react";
 
-import { RailNav } from "@/components/report/RailNav";
 import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import type { Recommendation } from "@/lib/report/recommend";
 import type { Genre } from "@/types/music";
@@ -36,48 +33,31 @@ function thumbnail(youtubeId: string) {
 }
 
 /**
- * 추천 레일.
+ * 추천 목록.
+ *
+ * **가로 레일을 걷어내고 격자로 편다.** 레일은 여섯 곡 중 다섯 곡만 보여 주고
+ * 나머지 하나를 화면 밖에 숨겼다. 목록 전체가 한눈에 들어오는 게 낫다 —
+ * 옆 카드와 호 길이를 비교하는 게 이 화면의 요점인데, 비교하려면 같이 보여야 한다.
+ * 미는 버튼도 같이 사라진다. 밀 것이 없으면 버튼도 없다.
  *
  * **근접도를 글자가 아니라 궤도 호로 그린다.**
+ * 점수를 크게 박으면 "87 이 뭔가" 라는 질문만 남는다. 호는 값을 말하지 않고
+ * 보여준다 — 얼마나 찼는지가 곧 답이고, 옆 카드와 비교가 눈으로 된다.
+ * `--signal-lt` 는 시스템이 궤도 호에 예약해 둔 색이다(`docs/design-reference.md`).
  *
- * 이 프로덕트의 주장은 "왜 이 곡인가" 인데, 그 이유를 카드에서 가장 작고 흐린
- * 회색 글자로 두면 위계가 주장을 배반한다. 그렇다고 점수를 크게 박으면
- * "87 이 뭔가" 라는 질문만 남는다. 호는 **값을 말하지 않고 보여준다** —
- * 얼마나 찼는지가 곧 답이고, 옆 카드와 비교가 눈으로 된다.
- *
- * `--signal-lt` 는 시스템이 궤도 호에 예약해 둔 색이다
- * (`docs/design-reference.md`). 이 저장소에서 처음 쓰는 자리다.
- *
- * 흰 카드 판을 걷어냈다. 호가 각 곡을 묶어 주므로 상자가 필요 없고,
- * 판이 사라지면 크림 캔버스 위에 원 여섯 개가 도는 그림이 된다.
+ * 서버 컴포넌트다. 재생 버튼이 링크라서 클라이언트로 내릴 이유가 없다.
  */
-export function RecommendRail({ items }: { items: readonly Recommendation[] }) {
-  const railRef = useRef<HTMLDivElement>(null);
-
+export function RecommendList({ items }: { items: readonly Recommendation[] }) {
   return (
-    <>
-      {/* 버튼은 레일 위 오른쪽에 둔다. 프로토타입의 rec-nav 자리다 */}
-      <div className="mt-10 flex justify-end max-sm:hidden">
-        <RailNav railRef={railRef} />
-      </div>
-
-      <div
-        ref={railRef}
-        tabIndex={0}
-        aria-label="추천 곡 목록"
-        className="rail mt-6 flex gap-10 overflow-x-auto pb-3 max-lg:gap-8 max-sm:mt-12 max-sm:gap-6"
-    >
+    <ul className="mt-14 grid grid-cols-3 gap-x-14 gap-y-16 max-lg:grid-cols-2 max-sm:mt-10 max-sm:grid-cols-1 max-sm:gap-y-12">
       {items.map(({ track, reasons, moodMatch }) => {
         const genre = PARENT_OF[track.subGenre];
         return (
-          <article
-            key={track.id}
-            className="flex w-[clamp(192px,17vw,224px)] shrink-0 flex-col snap-start"
-          >
-            <div className="relative aspect-square w-full">
+          <li key={track.id} className="flex flex-col">
+            <div className="relative aspect-square w-full max-w-[264px]">
               <svg viewBox="0 0 160 160" className="absolute inset-0 h-full w-full -rotate-90">
                 <circle cx="80" cy="80" r={R} fill="none" strokeWidth="2" className="stroke-ghost" />
-                {/* 채워진 만큼이 분위기 근접도다. 값은 아래 legend 가 한 번만 설명한다 */}
+                {/* 채워진 만큼이 분위기 근접도다. 값은 섹션 헤더가 한 번만 설명한다 */}
                 <circle
                   cx="80"
                   cy="80"
@@ -101,11 +81,28 @@ export function RecommendRail({ items }: { items: readonly Recommendation[] }) {
                     src={thumbnail(track.youtubeId)}
                     alt=""
                     fill
-                    sizes="176px"
+                    sizes="264px"
                     className="object-cover"
                   />
                 )}
               </div>
+
+              {/* 위성 버튼. 84% 는 궤도 호의 45° 지점이라, 버튼이 호 위에 도킹한다.
+                  시스템이 원형 초상에 정해 둔 자리다(docs/design-reference.md).
+                  링크로 둔다 — 페이지 안에 플레이어가 없는데 버튼만 두면
+                  눌러도 아무 일이 안 일어난다. 나가서라도 소리가 나는 쪽이 정직하다. */}
+              {track.youtubeId && (
+                <a
+                  href={`https://www.youtube.com/watch?v=${track.youtubeId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`${track.artist} ${track.title} — YouTube 에서 재생`}
+                  className="absolute top-[84%] left-[84%] grid h-13 w-13 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-ink shadow-lift transition-colors hover:bg-ink hover:text-canvas focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none"
+                >
+                  {/* 재생 삼각형은 광학 중심이 기하 중심보다 오른쪽이다. 1px 민다 */}
+                  <Play size={20} weight="fill" aria-hidden className="translate-x-px" />
+                </a>
+              )}
             </div>
 
             <p className="mt-7 flex items-center gap-2 text-[13px] font-bold text-slate">
@@ -121,10 +118,9 @@ export function RecommendRail({ items }: { items: readonly Recommendation[] }) {
             <p className="mt-5 text-sm leading-snug text-slate">
               {GENRE_LABEL[genre]} · {reasons[0]}
             </p>
-          </article>
+          </li>
         );
       })}
-      </div>
-    </>
+    </ul>
   );
 }

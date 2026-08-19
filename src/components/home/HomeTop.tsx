@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 import { DnaSummary } from "@/components/report/DnaSummary";
-import { RecommendRail } from "@/components/report/RecommendRail";
+import { RecommendList } from "@/components/report/RecommendList";
 import { Arrow, ButtonLink } from "@/components/ui/Button";
 import { usePreference } from "@/hooks/use-preference";
 import { recommend } from "@/lib/report/recommend";
@@ -60,7 +60,7 @@ export function HomeTop({ children }: { children: ReactNode }) {
           </p>
         </header>
 
-        <RecommendRail items={recommend(preference)} />
+        <RecommendList items={recommend(preference)} />
       </section>
     </>
   );

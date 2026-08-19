@@ -49,3 +49,5 @@ next-env.d.ts
 
 # enrich 중간 산출물 (검수용, 커밋하지 않는다)
 scripts/enrich-out.json
+.bkit/snapshots/
+.bkit/decisions/
