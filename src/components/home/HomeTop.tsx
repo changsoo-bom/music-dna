@@ -1,12 +1,14 @@
 "use client";
 
+import { Play } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
 
 import { DnaSummary } from "@/components/report/DnaSummary";
 import { RecommendList } from "@/components/report/RecommendList";
 import { Arrow, ButtonLink, buttonClass } from "@/components/ui/Button";
 import { usePreference } from "@/hooks/use-preference";
-import { playlistUrl, recommend } from "@/lib/report/recommend";
+import { recommend } from "@/lib/report/recommend";
+import { isPlayable, usePlayerStore } from "@/lib/use-player-store";
 
 /**
  * 홈 맨 위. 검사를 했으면 결과, 안 했으면 소개.
@@ -25,6 +27,9 @@ function showIntro(el: HTMLElement | null) {
 
 export function HomeTop({ children }: { children: ReactNode }) {
   const preference = usePreference();
+  // 훅은 조기 반환보다 위에 있어야 한다. 소개 화면에서는 안 쓰지만
+  // 호출 순서가 렌더마다 달라지면 React 가 훅을 짝지을 수 없다.
+  const play = usePlayerStore((state) => state.play);
 
   if (!preference) {
     // 저장값이 있는 줄 알고 스크립트가 숨겨 놨을 수 있다 — 깨진 값이었거나
@@ -34,7 +39,7 @@ export function HomeTop({ children }: { children: ReactNode }) {
 
   // 한 번만 고른다. 헤더의 "전체 재생" 과 목록이 같은 다섯 곡을 봐야 한다.
   const picks = recommend(preference);
-  const listUrl = playlistUrl(picks);
+  const queue = picks.map((pick) => pick.track).filter(isPlayable);
 
   return (
     <>
@@ -67,18 +72,16 @@ export function HomeTop({ children }: { children: ReactNode }) {
           </div>
 
           {/* 이 페이지가 원하는 단 하나의 행동이라 필 버튼이다.
-              카드의 위성 버튼은 한 곡, 이건 목록 전체 — 무게가 다르다.
-              `group` 은 PILL_BASE 에 없으므로 화살표를 위해 여기서 붙인다. */}
-          {listUrl && (
-            <a
-              href={listUrl}
-              target="_blank"
-              rel="noreferrer"
-              className={`${buttonClass()} group shrink-0 gap-2`}
+              카드의 위성 버튼은 한 곡, 이건 목록 전체 — 무게가 다르다. */}
+          {queue.length > 0 && (
+            <button
+              type="button"
+              onClick={() => play(queue, 0)}
+              className={`${buttonClass()} shrink-0 gap-2`}
             >
+              <Play size={17} weight="fill" aria-hidden className="translate-x-px" />
               전체 재생
-              <Arrow out />
-            </a>
+            </button>
           )}
         </header>
 

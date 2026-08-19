@@ -114,16 +114,3 @@ export function recommend(
   return taken;
 }
 
-/**
- * 추천 목록을 YouTube 임시 재생목록 URL 로 만든다. 곡이 없으면 `null`.
- *
- * `watch_videos?video_ids=` 는 넘긴 순서대로 그 자리에서 재생목록을 만들어 준다 —
- * **계정도 API 호출도 없다.** 화면에 보이는 순서가 재생 순서다.
- *
- * "나의 플레이리스트" 라고 이름 붙였으면 목록을 재생할 수 있어야 한다.
- * 이름만 붙이고 재생이 없으면 궤도 호가 진행률로 읽혔던 것과 같은 실수다.
- */
-export function playlistUrl(items: readonly Recommendation[]): string | null {
-  const ids = items.flatMap((item) => item.track.youtubeId ?? []);
-  return ids.length === 0 ? null : `https://www.youtube.com/watch_videos?video_ids=${ids.join(",")}`;
-}

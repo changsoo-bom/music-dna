@@ -30,4 +30,6 @@ jobs:
 
       - run: pnpm check:catalog
 
+      - run: pnpm check:player
+
       - run: pnpm build

@@ -1,8 +1,9 @@
-import { Play } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 
+import { PlayButton } from "@/components/player/PlayButton";
 import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import type { Recommendation } from "@/lib/report/recommend";
+import { isPlayable } from "@/lib/use-player-store";
 import type { Genre } from "@/types/music";
 
 /** slot → 검증된 차트 색. Tailwind 는 클래스명을 정적으로 읽으므로 조립하지 않는다 */
@@ -39,10 +40,15 @@ function thumbnail(youtubeId: string) {
  * 서버 컴포넌트다. 재생 버튼이 링크라서 클라이언트로 내릴 이유가 없다.
  */
 export function RecommendList({ items }: { items: readonly Recommendation[] }) {
+  // 어느 카드를 눌러도 큐는 목록 전체다. 재생할 수 없는 곡은 큐에서 빠지므로
+  // 카드 순서와 큐 순서가 어긋날 수 있다 — 그래서 인덱스를 따로 찾는다.
+  const queue = items.map((item) => item.track).filter(isPlayable);
+
   return (
     <ul className="mt-14 grid grid-cols-5 gap-x-7 gap-y-14 max-xl:grid-cols-3 max-sm:mt-10 max-sm:grid-cols-2 max-sm:gap-x-5 max-sm:gap-y-10">
       {items.map(({ track, reasons }) => {
         const genre = PARENT_OF[track.subGenre];
+        const queueIndex = queue.findIndex((t) => t.id === track.id);
         return (
           <li key={track.id} className="flex flex-col">
             <div className="relative aspect-square w-full">
@@ -73,20 +79,13 @@ export function RecommendList({ items }: { items: readonly Recommendation[] }) {
               </div>
 
               {/* 위성 버튼. 84% 는 궤도 호의 45° 지점이라, 버튼이 호 위에 도킹한다.
-                  시스템이 원형 초상에 정해 둔 자리다(docs/design-reference.md).
-                  링크로 둔다 — 페이지 안에 플레이어가 없는데 버튼만 두면
-                  눌러도 아무 일이 안 일어난다. 나가서라도 소리가 나는 쪽이 정직하다. */}
-              {track.youtubeId && (
-                <a
-                  href={`https://www.youtube.com/watch?v=${track.youtubeId}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`${track.artist} ${track.title} — YouTube 에서 재생`}
-                  className="absolute top-[84%] left-[84%] grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-ink shadow-lift transition-colors hover:bg-ink hover:text-canvas focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none"
-                >
-                  {/* 재생 삼각형은 광학 중심이 기하 중심보다 오른쪽이다. 1px 민다 */}
-                  <Play size={17} weight="fill" aria-hidden className="translate-x-px" />
-                </a>
+                  시스템이 원형 초상에 정해 둔 자리다(docs/design-reference.md). */}
+              {queueIndex >= 0 && (
+                <PlayButton
+                  queue={queue}
+                  index={queueIndex}
+                  className="absolute top-[84%] left-[84%] h-11 w-11 -translate-x-1/2 -translate-y-1/2"
+                />
               )}
             </div>
 

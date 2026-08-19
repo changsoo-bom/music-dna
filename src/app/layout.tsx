@@ -3,6 +3,8 @@ import { Sofia_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 
+import { PlayerBar } from "@/components/player/PlayerBar";
+
 // 라틴 디스플레이·본문. 가변 폰트라 본문 450 weight 가 실제로 렌더된다.
 const sofia = Sofia_Sans({
   variable: "--font-sofia",
@@ -63,6 +65,9 @@ export default function RootLayout({
             인라인 스크립트는 React 19 의 head 호이스팅 대상이 아니라 여기 남는다. */}
         <script dangerouslySetInnerHTML={{ __html: HIDE_INTRO_BEFORE_PAINT }} />
         {children}
+        {/* 라우트 밖에 둔다 — 검사하러 갔다 와도 듣던 곡이 끊기지 않는다.
+            큐가 비어 있으면 아무것도 그리지 않으므로 첫 화면에는 없다. */}
+        <PlayerBar />
       </body>
     </html>
   );
