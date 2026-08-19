@@ -1,8 +1,12 @@
-import Image from "next/image";
+"use client";
 
+import Image from "next/image";
+import { useRef } from "react";
+import type { CSSProperties } from "react";
+
+import { RailNav } from "@/components/report/RailNav";
 import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import type { Recommendation } from "@/lib/report/recommend";
-import type { CSSProperties } from "react";
 import type { Genre } from "@/types/music";
 
 /** slot → 검증된 차트 색. Tailwind 는 클래스명을 정적으로 읽으므로 조립하지 않는다 */
@@ -48,11 +52,20 @@ function thumbnail(youtubeId: string) {
  * 판이 사라지면 크림 캔버스 위에 원 여섯 개가 도는 그림이 된다.
  */
 export function RecommendRail({ items }: { items: readonly Recommendation[] }) {
+  const railRef = useRef<HTMLDivElement>(null);
+
   return (
-    <div
-      tabIndex={0}
-      aria-label="추천 곡 목록"
-      className="rail mt-16 flex gap-10 overflow-x-auto pb-3 max-lg:gap-8 max-sm:mt-12 max-sm:gap-6"
+    <>
+      {/* 버튼은 레일 위 오른쪽에 둔다. 프로토타입의 rec-nav 자리다 */}
+      <div className="mt-10 flex justify-end max-sm:hidden">
+        <RailNav railRef={railRef} />
+      </div>
+
+      <div
+        ref={railRef}
+        tabIndex={0}
+        aria-label="추천 곡 목록"
+        className="rail mt-6 flex gap-10 overflow-x-auto pb-3 max-lg:gap-8 max-sm:mt-12 max-sm:gap-6"
     >
       {items.map(({ track, reasons, moodMatch }) => {
         const genre = PARENT_OF[track.subGenre];
@@ -111,6 +124,7 @@ export function RecommendRail({ items }: { items: readonly Recommendation[] }) {
           </article>
         );
       })}
-    </div>
+      </div>
+    </>
   );
 }
