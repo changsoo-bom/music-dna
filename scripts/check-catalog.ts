@@ -4,7 +4,7 @@ import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import { CATALOG } from "@/data/catalog";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
-import { recommend, trackMood } from "@/lib/report/recommend";
+import { playlistUrl, recommend, trackMood } from "@/lib/report/recommend";
 import type { Genre, SubGenre } from "@/types/music";
 
 /**
@@ -121,6 +121,18 @@ assert.ok(
   "제외한 곡이 다시 추천됐다",
 );
 
+
+// 재생목록 URL — 다섯 곡이 순서대로 들어가고, 빈 목록은 null 이다.
+// 링크가 조용히 깨지면 "전체 재생" 이 눌리기는 하는데 아무 곡도 안 나온다.
+const url = playlistUrl(recommend(persona(0)));
+assert.ok(url, "재생목록 URL 이 만들어지지 않았다");
+const listed = new URL(url).searchParams.get("video_ids")?.split(",") ?? [];
+assert.deepEqual(
+  listed,
+  recommend(persona(0)).map((p) => p.track.youtubeId),
+  "재생목록 순서가 화면 순서와 다르다",
+);
+assert.equal(playlistUrl([]), null, "빈 목록에서 URL 이 나왔다");
 console.log(
   `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,

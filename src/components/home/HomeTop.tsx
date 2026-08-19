@@ -4,9 +4,9 @@ import type { ReactNode } from "react";
 
 import { DnaSummary } from "@/components/report/DnaSummary";
 import { RecommendList } from "@/components/report/RecommendList";
-import { Arrow, ButtonLink } from "@/components/ui/Button";
+import { Arrow, ButtonLink, buttonClass } from "@/components/ui/Button";
 import { usePreference } from "@/hooks/use-preference";
-import { recommend } from "@/lib/report/recommend";
+import { playlistUrl, recommend } from "@/lib/report/recommend";
 
 /**
  * 홈 맨 위. 검사를 했으면 결과, 안 했으면 소개.
@@ -32,6 +32,10 @@ export function HomeTop({ children }: { children: ReactNode }) {
     return <div className="home-intro" ref={showIntro}>{children}</div>;
   }
 
+  // 한 번만 고른다. 헤더의 "전체 재생" 과 목록이 같은 다섯 곡을 봐야 한다.
+  const picks = recommend(preference);
+  const listUrl = playlistUrl(picks);
+
   return (
     <>
       <section className="pt-20 max-lg:pt-14 max-sm:pt-10">
@@ -49,17 +53,36 @@ export function HomeTop({ children }: { children: ReactNode }) {
       {/* 지표에서 추천으로 넘어가는 자리. 선 하나로 나눈다 —
           "분석" 과 "그래서 뭘 들을까" 는 성격이 다른 구간이다. */}
       <section className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12">
-        <header>
-          <span className="eyebrow text-ink">추천</span>
-          <h2 className="mt-5 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">
-            그래서 이런 곡은 어떤가요
-          </h2>
-          <p className="mt-5 max-w-[44ch] text-slate">
-            당신이 고른 장르와 답한 분위기에 가장 가까운 다섯 곡입니다.
-          </p>
+        {/* 제목과 전체 재생을 양 끝으로 벌린다. 목록의 주인과 목록으로 할 일이
+            같은 줄에 있어야 "이게 내 것이고, 이렇게 튼다" 가 한 번에 읽힌다. */}
+        <header className="flex items-end justify-between gap-8 max-sm:flex-col max-sm:items-start max-sm:gap-6">
+          <div>
+            <span className="eyebrow text-ink">나의 플레이리스트</span>
+            <h2 className="mt-5 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">
+              그래서 이런 곡은 어떤가요
+            </h2>
+            <p className="mt-5 max-w-[44ch] text-slate">
+              당신이 고른 장르와 답한 분위기에 가장 가까운 다섯 곡입니다.
+            </p>
+          </div>
+
+          {/* 이 페이지가 원하는 단 하나의 행동이라 필 버튼이다.
+              카드의 위성 버튼은 한 곡, 이건 목록 전체 — 무게가 다르다.
+              `group` 은 PILL_BASE 에 없으므로 화살표를 위해 여기서 붙인다. */}
+          {listUrl && (
+            <a
+              href={listUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={`${buttonClass()} group shrink-0 gap-2`}
+            >
+              전체 재생
+              <Arrow out />
+            </a>
+          )}
         </header>
 
-        <RecommendList items={recommend(preference)} />
+        <RecommendList items={picks} />
       </section>
     </>
   );

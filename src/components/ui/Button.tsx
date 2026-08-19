@@ -36,10 +36,17 @@ export function buttonClass(variant: Variant = "primary") {
  * `transform` 만 움직인다 — `margin` 이나 `gap` 을 건드리면 옆 글자가 밀린다.
  * 프로토타입은 외부 링크에 `↗`, 화면 안에서 움직이는 것에 `→` 를 쓴다.
  */
-export function Arrow() {
+export function Arrow({ out = false }: { out?: boolean }) {
   return (
-    <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-1">
-      →
+    <span
+      aria-hidden
+      className={`transition-transform duration-200 ${
+        out
+          ? "group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+          : "group-hover:translate-x-1"
+      }`}
+    >
+      {out ? "↗" : "→"}
     </span>
   );
 }
