@@ -1,3 +1,4 @@
+import { buttonClass } from "@/components/ui/Button";
 import { GENRES } from "@/constants/genres";
 import { PERSONAS } from "@/constants/personas";
 import { nightScore } from "@/lib/quiz/scoring";
@@ -18,7 +19,13 @@ const AXIS_LABELS = [
   { key: "energy", label: "Energy" },
 ] as const;
 
-export function QuizResult({ preference }: { preference: MusicPreference }) {
+export function QuizResult({
+  preference,
+  onRetry,
+}: {
+  preference: MusicPreference;
+  onRetry: () => void;
+}) {
   const { axes, moods, persona } = preference;
   const { title, line } = PERSONAS[persona];
 
@@ -95,6 +102,16 @@ export function QuizResult({ preference }: { preference: MusicPreference }) {
           </ul>
         </section>
       </div>
+
+      <footer className="mt-20 flex items-center gap-6 border-t border-hair pt-10 max-sm:mt-14 max-sm:flex-col max-sm:items-start max-sm:gap-4">
+        <button type="button" onClick={onRetry} className={buttonClass("secondary")}>
+          다시 검사하기
+        </button>
+        {/* 결과가 어디 갔는지 안 알려주면 새로고침하면 사라지는 줄 안다 */}
+        <p className="text-sm text-slate">
+          결과는 이 브라우저에 저장됐습니다. 다시 검사하면 덮어씁니다.
+        </p>
+      </footer>
     </div>
   );
 }

@@ -24,7 +24,15 @@ export function QuizFlow() {
   const [index, setIndex] = useState(0);
   const [result, setResult] = useState<MusicPreference | null>(null);
 
-  if (result) return <QuizResult preference={result} />;
+  // 재검사는 화면만 처음으로 돌린다. 저장된 결과는 지우지 않는다 —
+  // 다시 하다 그만두면 이전 결과가 남아 있어야 한다.
+  function retry() {
+    setAnswers({});
+    setIndex(0);
+    setResult(null);
+  }
+
+  if (result) return <QuizResult preference={result} onRetry={retry} />;
 
   const question = QUESTIONS[index];
   const picked = answers[question.id] ?? [];
