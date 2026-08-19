@@ -35,11 +35,15 @@ for (const track of CATALOG) {
     );
   }
 
-  // youtubeId 는 아직 비어 있는 게 정상이다. 있다면 형식은 맞아야 한다
-  if (track.youtubeId) {
-    assert.match(track.youtubeId, /^[\w-]{11}$/, `${track.id}: youtubeId 가 11자 형식이 아니다`);
-  }
+  // 보강이 끝났으므로 이제 전부 있어야 한다. 빠진 곡은 커버도 재생도 안 된다
+  assert.ok(track.youtubeId, `${track.id} "${track.title}": youtubeId 가 없다 — pnpm enrich 를 돌릴 것`);
+  assert.match(track.youtubeId, /^[\w-]{11}$/, `${track.id}: youtubeId 가 11자 형식이 아니다`);
+  assert.ok(track.duration && track.duration > 30, `${track.id}: duration 이 ${track.duration} 이다`);
 }
+
+// 같은 영상을 두 곡이 가리키면 검색이 엉뚱한 걸 집었다는 뜻이다
+const videoIds = CATALOG.map((t) => t.youtubeId);
+assert.equal(new Set(videoIds).size, videoIds.length, "두 곡이 같은 youtubeId 를 가리킨다");
 
 /* 2. 분포 — 빈 칸이 있으면 그 취향에게 줄 곡이 없다 ────────── */
 

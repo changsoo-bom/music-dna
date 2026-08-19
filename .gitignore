@@ -46,3 +46,6 @@ next-env.d.ts
 # bkit (machine-local runtime/logs; state/ is shared)
 .bkit/runtime/
 .bkit/audit/
+
+# enrich 중간 산출물 (검수용, 커밋하지 않는다)
+scripts/enrich-out.json
