@@ -85,8 +85,8 @@ for (let i = 0; i < 5; i += 1) {
   const preference = persona(i);
   const picks = recommend(preference);
 
-  assert.equal(picks.length, 6, `선택지 ${i}: 추천이 ${picks.length}개다`);
-  assert.equal(new Set(picks.map((p) => p.track.id)).size, 6, `선택지 ${i}: 같은 곡이 두 번 나왔다`);
+  assert.equal(picks.length, 5, `선택지 ${i}: 추천이 ${picks.length}개다`);
+  assert.equal(new Set(picks.map((p) => p.track.id)).size, 5, `선택지 ${i}: 같은 곡이 두 번 나왔다`);
 
   for (const pick of picks) {
     assert.ok(pick.reasons.length >= 2, `${pick.track.id}: 이유가 ${pick.reasons.length}줄이다`);
@@ -115,7 +115,7 @@ assert.equal(genresSeen.size, 5, `추천에 한 번도 안 나온 장르가 있�
 assert.deepEqual(recommend(persona(2)), recommend(persona(2)), "추천이 불안정하다");
 
 // 이미 고른 곡은 빠진다
-const excluded = recommend(persona(0), 6, [recommend(persona(0))[0].track.id]);
+const excluded = recommend(persona(0), 5, [recommend(persona(0))[0].track.id]);
 assert.ok(
   !excluded.some((p) => p.track.id === recommend(persona(0))[0].track.id),
   "제외한 곡이 다시 추천됐다",

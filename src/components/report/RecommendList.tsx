@@ -28,30 +28,34 @@ function thumbnail(youtubeId: string) {
 }
 
 /**
- * 추천 목록. 여섯 곡이 한 줄에 들어간다.
+ * 추천 목록. 다섯 곡이 한 줄에 들어간다.
  *
- * **궤도 호는 길이가 전부 같다.** 전에는 분위기 근접도만큼만 채웠는데,
- * 원 둘레를 부분만 채운 그림은 곧바로 **재생 진행률로 읽힌다** — 재생 버튼이
- * 바로 옆에 붙어 있으니 더 그렇다. 데이터를 그리려다 없는 기능을 광고한 셈이다.
+ * **궤도 호는 길이가 전부 같다** — 둘레의 4/5 가 주황이고 나머지 1/5 은
+ * 회색 트랙이 비친다. 전에는 분위기 근접도만큼 채워서 카드마다 달랐는데,
+ * 그러면 곧바로 **재생 진행률로 읽힌다** — 재생 버튼이 바로 옆에 붙어 있으니
+ * 더 그렇다. 데이터를 그리려다 없는 기능을 광고한 셈이었다.
  * 값은 `reasons` 가 글로 말하고, 호는 원형 초상을 감싸는 테두리로만 남는다.
  *
  * 서버 컴포넌트다. 재생 버튼이 링크라서 클라이언트로 내릴 이유가 없다.
  */
 export function RecommendList({ items }: { items: readonly Recommendation[] }) {
   return (
-    <ul className="mt-14 grid grid-cols-6 gap-x-7 gap-y-14 max-xl:grid-cols-3 max-sm:mt-10 max-sm:grid-cols-2 max-sm:gap-x-5 max-sm:gap-y-10">
+    <ul className="mt-14 grid grid-cols-5 gap-x-7 gap-y-14 max-xl:grid-cols-3 max-sm:mt-10 max-sm:grid-cols-2 max-sm:gap-x-5 max-sm:gap-y-10">
       {items.map(({ track, reasons }) => {
         const genre = PARENT_OF[track.subGenre];
         return (
           <li key={track.id} className="flex flex-col">
             <div className="relative aspect-square w-full">
               <svg viewBox="0 0 160 160" className="absolute inset-0 h-full w-full -rotate-90">
+                {/* 회색 트랙. 주황 호가 덮지 않는 1/5 이 여기서 비친다 */}
+                <circle cx="80" cy="80" r="76" fill="none" strokeWidth="2" className="stroke-ghost" />
                 <circle
                   cx="80"
                   cy="80"
                   r="76"
                   fill="none"
                   strokeWidth="2"
+                  strokeLinecap="round"
                   className="orbit stroke-signal-lt"
                 />
               </svg>

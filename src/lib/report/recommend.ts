@@ -54,7 +54,7 @@ function genreScore(genre: Genre, shares: Record<Genre, number>, topShare: numbe
  */
 export function recommend(
   preference: MusicPreference,
-  limit = 6,
+  limit = 5,
   exclude: readonly string[] = [],
 ): Recommendation[] {
   const shares = preference.axes.genre;

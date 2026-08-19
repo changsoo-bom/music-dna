@@ -55,7 +55,7 @@ export function HomeTop({ children }: { children: ReactNode }) {
             그래서 이런 곡은 어떤가요
           </h2>
           <p className="mt-5 max-w-[44ch] text-slate">
-            당신이 고른 장르와 답한 분위기에 가장 가까운 여섯 곡입니다.
+            당신이 고른 장르와 답한 분위기에 가장 가까운 다섯 곡입니다.
           </p>
         </header>
 
