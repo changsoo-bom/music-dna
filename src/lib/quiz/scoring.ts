@@ -1,4 +1,3 @@
-import { PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import type {
   Genre,
@@ -17,11 +16,18 @@ const GENRE_IDS: readonly Genre[] = ["pop", "rock", "hiphop", "rnb", "electronic
 const TIME_CYCLE: readonly TimeSlot[] = ["morning", "afternoon", "evening", "night", "dawn"];
 
 /**
- * MOOD 7종의 좌표.
+ * 순위별 가중치. 1위에 5를 몰아준다.
  *
- * 7종을 문항으로 직접 묻지 않는다 — 문항이 14개에서 28개가 되고, 서로 겹치는 걸
- * 따로 묻는 게 되어 답이 흔들린다. 대신 3축을 재고 **거리로 환산**한다.
- * 사용자와 곡이 같은 좌표계에 놓이는 것도 이 구조 덕분이다.
+ * 5/2/1 이 아니라 3/2/1 이면 3개를 고른 사람이 전부 50/33/17 로 평평해진다.
+ * 1위를 확실히 띄워야 "당신은 Rock 을 듣는 사람" 이 성립한다.
+ */
+const RANK_WEIGHTS = [5, 2, 1];
+
+/**
+ * MOOD 7종의 좌표. 문항 선택지와 같은 공간에 있다.
+ *
+ * 7종을 직접 묻지 않는다 — 서로 독립이 아니라서 따로 물으면 같은 걸 두 번 묻는 게
+ * 되고 답이 흔들린다. 고른 좌표들의 평균에서 거리로 환산한다.
  */
 const MOOD_ANCHORS: Readonly<Record<Mood, MoodVector>> = {
   melancholic: { energy: 25, valence: 15, dreamy: 55 },
@@ -41,6 +47,9 @@ const MOOD_ANCHORS: Readonly<Record<Mood, MoodVector>> = {
  * 120 이상→0 으로 떨어져 순위가 눈에 보인다.
  */
 const MOOD_REACH = 120;
+
+/** 답이 하나도 없을 때 앉히는 좌표. 정중앙이라 어느 무드로도 기울지 않는다 */
+const NEUTRAL_MOOD: MoodVector = { energy: 50, valence: 50, dreamy: 50 };
 
 /** 소수점을 버리면 합이 100 이 안 된다. 나머지가 큰 칸부터 1 씩 돌려준다 */
 function toPercent<K extends string>(weights: Record<K, number>, keys: readonly K[]): Record<K, number> {
@@ -67,46 +76,55 @@ function toPercent<K extends string>(weights: Record<K, number>, keys: readonly 
 function scoreAxes(answers: QuizAnswers): PreferenceAxes {
   const genre = Object.fromEntries(GENRE_IDS.map((g) => [g, 0])) as Record<Genre, number>;
   const timeOfDay = Object.fromEntries(TIME_CYCLE.map((t) => [t, 0])) as Record<TimeSlot, number>;
-  const scalars: Record<string, number[]> = { energy: [], valence: [], dreamy: [], explorer: [] };
+  const moodPicks: MoodVector[] = [];
+  const explorerPicks: number[] = [];
 
   for (const question of QUESTIONS) {
-    const picked = answers[question.id];
+    const picked = answers[question.id] ?? [];
 
     if (question.axis === "genre") {
-      const option = question.options[picked];
-      if (!option) continue;
-      // 고른 하위 장르의 상위에 3, 걸쳐 있는 장르에 1.
-      // 이 1점이 없으면 장르 분포가 4문항 = 4칸으로 뚝뚝 끊긴다.
-      genre[PARENT_OF[option.subGenre]] += 3;
-      const near = SUB_GENRES[option.subGenre].near;
-      if (near) genre[near] += 1;
+      // 순위가 곧 가중치. 고른 만큼만 점수가 간다 —
+      // 한 장르만 고른 사람에게 억지로 2·3위를 만들어 주지 않는다.
+      picked.forEach((optionIndex, rank) => {
+        const option = question.options[optionIndex];
+        if (option && rank < RANK_WEIGHTS.length) genre[option.genre] += RANK_WEIGHTS[rank];
+      });
     } else if (question.axis === "timeOfDay") {
-      const option = question.options[picked];
+      // 고른 칸에 3, 앞뒤 칸에 1씩.
+      // 문항이 하나뿐이라 이웃 가중치가 없으면 밤 비중이 0 아니면 100 이고,
+      // 페르소나 임계값 50 이 무의미해진다.
+      const option = question.options[picked[0]];
       if (!option) continue;
-      // 고른 시간대에 3, 앞뒤 시간대에 1씩.
-      // 문항이 2개뿐이라 이웃 가중치가 없으면 밤 비중이 0·50·100 세 값밖에 안 나오고,
-      // 페르소나 임계값 50 이 그 값 위에 정확히 걸린다.
       const at = TIME_CYCLE.indexOf(option.slot);
       timeOfDay[option.slot] += 3;
       timeOfDay[TIME_CYCLE[(at + 1) % TIME_CYCLE.length]] += 1;
       timeOfDay[TIME_CYCLE[(at + TIME_CYCLE.length - 1) % TIME_CYCLE.length]] += 1;
+    } else if (question.axis === "mood") {
+      const option = question.options[picked[0]];
+      if (option) moodPicks.push(option.mood);
     } else {
-      const option = question.options[picked];
-      if (!option) continue;
-      scalars[question.axis].push(option.value);
+      const option = question.options[picked[0]];
+      if (option) explorerPicks.push(option.value);
     }
   }
 
-  const mean = (values: number[]) =>
-    values.length === 0 ? 50 : Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+  const centroid = (points: MoodVector[]): MoodVector =>
+    points.length === 0
+      ? NEUTRAL_MOOD
+      : {
+          energy: Math.round(points.reduce((s, p) => s + p.energy, 0) / points.length),
+          valence: Math.round(points.reduce((s, p) => s + p.valence, 0) / points.length),
+          dreamy: Math.round(points.reduce((s, p) => s + p.dreamy, 0) / points.length),
+        };
 
   return {
+    ...centroid(moodPicks),
     genre: toPercent(genre, GENRE_IDS),
     timeOfDay: toPercent(timeOfDay, TIME_CYCLE),
-    energy: mean(scalars.energy),
-    valence: mean(scalars.valence),
-    dreamy: mean(scalars.dreamy),
-    explorer: mean(scalars.explorer),
+    explorer:
+      explorerPicks.length === 0
+        ? 50
+        : Math.round(explorerPicks.reduce((a, b) => a + b, 0) / explorerPicks.length),
   };
 }
 

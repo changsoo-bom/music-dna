@@ -18,7 +18,7 @@ export type SubGenreNode = {
   id: SubGenre;
   label: string;
   ko: string;
-  /** 걸쳐 있는 다른 상위 장르. 성향 검사 점수가 1점 흘러간다 */
+  /** 걸쳐 있는 다른 상위 장르. 추천의 인접성 계산이 쓴다 */
   near?: Genre;
   /** 이 하위 장르의 기본 좌표. 카탈로그에 곡을 넣을 때 여기서 출발해 조정한다 */
   mood: MoodVector;
@@ -79,8 +79,8 @@ export type PersonaId =
  */
 export type MusicPreference = {
   version: 1;
-  /** questionId → 고른 선택지 index */
-  answers: Record<string, number>;
+  /** questionId → 고른 선택지 index 배열. 순위 문항 때문에 배열로 통일했다 */
+  answers: Record<string, readonly number[]>;
   axes: PreferenceAxes;
   /** 0~100. axes 에서 파생 */
   moods: Record<Mood, number>;
