@@ -1,0 +1,225 @@
+import assert from "node:assert/strict";
+
+import { PERSONAS } from "@/constants/personas";
+import { QUESTIONS } from "@/lib/quiz/questions";
+import { computePreference, nightScore, RANK_WEIGHTS, resolvePersona } from "@/lib/quiz/scoring";
+import type { Mood, PersonaId } from "@/types/music";
+import type { QuizAnswers } from "@/types/quiz";
+
+/**
+ * 성향 검사 배점의 자체 점검. `pnpm check:quiz`
+ *
+ * 문항이 5개뿐이라 **문항 하나가 축 전체를 감당한다.** 선택지 좌표를 한 칸만
+ * 옮겨도 도달 못 하는 무드나 페르소나가 생긴다. 화면 열어보고 아는 것보다 빠르다.
+ */
+
+const AT = "2026-08-18T00:00:00.000Z";
+
+/* 1. 문항 구성 ─────────────────────────────────────────────── */
+
+const ids = QUESTIONS.map((q) => q.id);
+assert.equal(new Set(ids).size, ids.length, "문항 id 가 중복이다");
+assert.equal(QUESTIONS.length, 5, `문항이 ${QUESTIONS.length}개다 — 5개를 넘기면 이탈이 붙는다`);
+
+for (const question of QUESTIONS) {
+  assert.equal(question.options.length, 5, `${question.id}: 선택지가 5개가 아니다`);
+  const labels = question.options.map((o) => o.label);
+  assert.equal(new Set(labels).size, labels.length, `${question.id}: 선택지 문구가 중복이다`);
+}
+
+const perAxis = QUESTIONS.reduce<Record<string, number>>((acc, q) => {
+  acc[q.axis] = (acc[q.axis] ?? 0) + 1;
+  return acc;
+}, {});
+assert.deepEqual(
+  perAxis,
+  { genre: 1, timeOfDay: 1, mood: 2, explorer: 1 },
+  "축별 문항 수가 설계와 다르다",
+);
+
+/* 2. 각 문항이 축을 통째로 덮나 ────────────────────────────── */
+
+for (const question of QUESTIONS) {
+  if (question.axis === "genre") {
+    assert.equal(
+      new Set(question.options.map((o) => o.genre)).size,
+      5,
+      `${question.id}: 상위 5장르가 한 번씩 있지 않다 — 빠진 장르는 영원히 안 뽑힌다`,
+    );
+  }
+  if (question.axis === "timeOfDay") {
+    assert.equal(new Set(question.options.map((o) => o.slot)).size, 5, `${question.id}: 시간대 5칸이 아니다`);
+  }
+  if (question.axis === "explorer") {
+    assert.deepEqual(
+      question.options.map((o) => o.value),
+      [100, 75, 50, 25, 0],
+      `${question.id}: 눈금이 100→0 5단계가 아니다`,
+    );
+  }
+  if (question.axis === "mood") {
+    for (const option of question.options) {
+      for (const [axis, value] of Object.entries(option.mood)) {
+        assert.ok(value >= 0 && value <= 100, `${question.id} "${option.label}": ${axis} 가 ${value} 다`);
+      }
+    }
+  }
+}
+
+/* 3. 점수 계산 ─────────────────────────────────────────────── */
+
+/** 모든 문항에서 index 번째 선택지를 고른 사람 */
+function uniform(index: number): QuizAnswers {
+  return Object.fromEntries(QUESTIONS.map((q) => [q.id, [index]]));
+}
+
+for (let i = 0; i < 5; i += 1) {
+  const { axes } = computePreference(uniform(i), AT);
+  const genreSum = Object.values(axes.genre).reduce((a, b) => a + b, 0);
+  const timeSum = Object.values(axes.timeOfDay).reduce((a, b) => a + b, 0);
+  assert.equal(genreSum, 100, `선택지 ${i}: 장르 비중 합이 ${genreSum} 이다`);
+  assert.equal(timeSum, 100, `선택지 ${i}: 시간대 비중 합이 ${timeSum} 이다`);
+}
+
+// 답이 하나도 없어도 깨지지 않아야 한다 — 중간에 이탈한 결과를 읽을 수 있다
+const empty = computePreference({}, AT);
+assert.equal(
+  Object.values(empty.axes.genre).reduce((a, b) => a + b, 0),
+  100,
+  "빈 답에서 장르 비중이 100 이 아니다",
+);
+
+// 같은 답이면 같은 결과. 랜덤 요소가 섞이면 여기서 걸린다
+assert.deepEqual(computePreference(uniform(2), AT), computePreference(uniform(2), AT), "결과가 불안정하다");
+
+/* 4. 순위 배점 ─────────────────────────────────────────────── */
+
+// maxPicks 와 가중치 개수가 어긋나면 UI 는 선택을 받는데 점수는 0 이 된다.
+// 사용자는 자기가 반영 안 되는 답을 고르고 있다는 걸 알 방법이 없다.
+const rankQuestion = QUESTIONS[0];
+assert.equal(rankQuestion.axis, "genre");
+if (rankQuestion.axis === "genre") {
+  assert.equal(
+    rankQuestion.maxPicks,
+    RANK_WEIGHTS.length,
+    `maxPicks(${rankQuestion.maxPicks}) 와 RANK_WEIGHTS(${RANK_WEIGHTS.length}) 가 다르다`,
+  );
+}
+
+const one = computePreference({ q1: [1] }, AT).axes.genre;
+assert.equal(one.rock, 100, `한 장르만 골랐는데 ${one.rock}% 다 — 고른 만큼만 점수가 가야 한다`);
+
+const three = computePreference({ q1: [1, 4, 0] }, AT).axes.genre;
+assert.ok(three.rock > three.electronic, "1위가 2위보다 낮다");
+assert.ok(three.electronic > three.pop, "2위가 3위보다 낮다");
+assert.ok(three.rock >= 60, `1위가 ${three.rock}% 뿐이다 — 3개를 고르면 평평해진다`);
+assert.equal(three.hiphop, 0, "안 고른 장르에 점수가 갔다");
+
+// 4개 이상 골라도 상위 3개만 반영한다
+assert.deepEqual(computePreference({ q1: [1, 4, 0, 2, 3] }, AT).axes.genre, three, "4위 이하가 반영됐다");
+
+/**
+ * 최대잔여법이 실제로 도는 경로를 검사한다.
+ *
+ * uniform·빈 답은 나머지 배분 루프를 거의 안 탄다 — uniform 은 가중치가
+ * [5,0,0,0,0] 이라 short = 0 이고, 빈 답은 total === 0 분기로 빠진다.
+ * short > 0 이 나오는 건 다중 선택뿐이므로 순열 전체를 돈다.
+ */
+for (const first of [0, 1, 2, 3, 4]) {
+  for (const second of [0, 1, 2, 3, 4]) {
+    for (const third of [0, 1, 2, 3, 4]) {
+      if (first === second || second === third || first === third) continue;
+      const { genre } = computePreference({ q1: [first, second, third] }, AT).axes;
+      const sum = Object.values(genre).reduce((a, b) => a + b, 0);
+      assert.equal(sum, 100, `q1=[${first},${second},${third}] 의 장르 비중 합이 ${sum} 이다`);
+    }
+  }
+}
+
+/**
+ * 범위 밖 index 는 **조용히 균등 분포가 된다.** 여기서 고치지 않고 못 박아 둔다.
+ *
+ * 저장된 답을 다시 계산할 때(문항이나 선택지가 줄었을 때) 실제로 발생하는 경로다.
+ * 예외도 경고도 없이 "당신은 모든 장르를 똑같이 듣습니다" 라는 결과가 나온다.
+ *
+ * 지금은 읽기 경로가 없어서(쓰기 한 곳뿐) 터지지 않는다. **읽기를 붙일 때**
+ * Zod safeParse + `version` 확인 + index 범위 검사를 넣고 이 단언을 뒤집어야 한다.
+ * 그때까지 이 단언이 "알고 있는 구멍" 을 코드에 남겨 둔다.
+ */
+assert.deepEqual(
+  computePreference({ q1: [99] }, AT).axes.genre,
+  { pop: 20, rock: 20, hiphop: 20, rnb: 20, electronic: 20 },
+  "범위 밖 index 의 동작이 바뀌었다 — 의도한 변경이면 이 단언을 갱신할 것",
+);
+
+/* 5. MOOD — 7종이 전부 1위로 올라올 수 있어야 한다 ─────────── */
+
+const q3 = QUESTIONS[2];
+const q4 = QUESTIONS[3];
+const topMoods = new Set<Mood>();
+
+for (let a = 0; a < q3.options.length; a += 1) {
+  for (let b = 0; b < q4.options.length; b += 1) {
+    const { moods } = computePreference({ q3: [a], q4: [b] }, AT);
+    const ranked = (Object.entries(moods) as [Mood, number][]).sort((x, y) => y[1] - x[1]);
+    topMoods.add(ranked[0][0]);
+    assert.ok(
+      ranked[0][1] - ranked[6][1] > 25,
+      `q3[${a}]·q4[${b}]: 무드가 ${ranked[6][1]}~${ranked[0][1]} 로 평평하다 — MOOD_REACH 를 조정할 것`,
+    );
+  }
+}
+
+assert.equal(
+  topMoods.size,
+  7,
+  `1위로 올라올 수 있는 무드가 ${topMoods.size}종뿐이다: ${[...topMoods].join(", ")}` +
+    " — 선택지 좌표가 한쪽에 몰려 있다",
+);
+
+/* 6. 페르소나 — 5 유형이 전부 나올 수 있어야 한다 ──────────── */
+
+// mood 두 문항에 같은 index 만 넣으면 25개 혼합 조합이 도달성 검사를 안 거친다
+const reached = new Set<PersonaId>();
+for (let time = 0; time < 5; time += 1) {
+  for (const explorer of [0, 2, 4]) {
+    for (let a = 0; a < 5; a += 1) {
+      for (let b = 0; b < 5; b += 1) {
+        reached.add(computePreference({ q2: [time], q5: [explorer], q3: [a], q4: [b] }, AT).persona);
+      }
+    }
+  }
+}
+assert.equal(reached.size, 5, `도달 가능한 페르소나가 ${reached.size} 종뿐이다: ${[...reached].join(", ")}`);
+assert.deepEqual([...reached].sort(), Object.keys(PERSONAS).sort(), "PERSONAS 와 판정 결과가 어긋난다");
+
+/**
+ * 밤 성향의 눈금.
+ *
+ * 전에는 `night + dawn` 을 그냥 더해서 `0 · 20 · 80` 세 값뿐이었다.
+ * 20 과 80 사이가 비어 있으면 임계값 50 은 21~80 어디에 놔도 판정이 같은,
+ * **조정할 수 없는 손잡이**다. 화면의 `80%` 도 백분율의 외양만 갖게 된다.
+ */
+const nightValues = new Set<number>();
+for (let time = 0; time < 5; time += 1) {
+  nightValues.add(nightScore(computePreference({ q2: [time] }, AT).axes.timeOfDay));
+}
+assert.equal(
+  nightValues.size,
+  5,
+  `nightScore 가 ${nightValues.size}값뿐이다: {${[...nightValues].sort((a, b) => a - b).join(", ")}}` +
+    " — 임계값을 옮겨도 판정이 안 바뀐다",
+);
+
+// 새벽·밤은 임계값 위, 한낮은 아래. 저녁은 경계 근처라 임계값 조정의 손잡이가 된다
+const dawnAxes = computePreference({ q2: [4], q5: [0], q3: [3], q4: [4] }, AT).axes;
+assert.ok(nightScore(dawnAxes.timeOfDay) >= 50, "새벽을 골랐는데 밤 성향이 50 미만이다");
+assert.equal(resolvePersona(dawnAxes), "dawn-explorer");
+assert.ok(
+  nightScore(computePreference({ q2: [1] }, AT).axes.timeOfDay) < 50,
+  "한낮을 골랐는데 밤 성향이 50 이상이다",
+);
+
+console.log(
+  `✓ 문항 ${QUESTIONS.length}개 · 무드 1위 ${topMoods.size}종 도달 · 페르소나 ${reached.size}종 도달`,
+);
