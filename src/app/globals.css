@@ -68,6 +68,15 @@ body {
   font-weight: 450;
   line-height: 1.4;
   font-variant-numeric: tabular-nums;
+
+  /* 어절 안에서 줄을 끊지 않는다.
+     한글은 기본값(normal)이면 글자 단위로 끊긴다 — "만드는 쪽입니 / 다" 처럼
+     한 단어가 두 줄에 걸쳐서 읽는 속도가 떨어진다.
+
+     overflow-wrap 을 같이 둔다. keep-all 만 두면 띄어쓰기 없는 긴 덩어리
+     (URL, 영어 합성어)가 상자를 뚫고 나간다 — 그때만 끊는다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 h1,
