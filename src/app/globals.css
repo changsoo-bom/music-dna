@@ -141,21 +141,21 @@ h3 {
   animation: q-enter 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* 궤도 호가 채워진다. 값은 `--orbit-gap` 이 정한다.
+/* 궤도 호가 한 바퀴 감긴다. 길이는 모든 카드가 같다 —
+   부분만 채운 원은 곧바로 재생 진행률로 읽힌다. 옆에 재생 버튼이 있으면 더 그렇다.
+   r=76 의 둘레 2·pi·76 = 477.5 를 그대로 적는다. 반지름이 바뀌면 여기도 바꾼다.
    `stroke-dashoffset` 은 paint 단계만 건드린다 — 레이아웃을 다시 잡지 않으므로
-   transform/opacity 규칙의 취지 안에 있다. width 를 늘리는 것과는 다르다.
-   시차를 주면 호 여섯 개가 왼쪽부터 차례로 감긴다. */
+   transform/opacity 규칙의 취지 안에 있다. width 를 늘리는 것과는 다르다. */
 @keyframes orbit-draw {
   from {
-    stroke-dashoffset: var(--orbit-len);
+    stroke-dashoffset: 477.5;
   }
   to {
-    stroke-dashoffset: var(--orbit-gap);
+    stroke-dashoffset: 0;
   }
 }
 .orbit {
-  stroke-dasharray: var(--orbit-len);
-  stroke-dashoffset: var(--orbit-gap);
+  stroke-dasharray: 477.5;
   animation: orbit-draw 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 

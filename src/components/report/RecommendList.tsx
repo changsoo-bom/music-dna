@@ -1,6 +1,5 @@
 import { Play } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
-import type { CSSProperties } from "react";
 
 import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import type { Recommendation } from "@/lib/report/recommend";
@@ -17,10 +16,6 @@ const GENRE_DOT: Record<Genre, string> = {
 
 const GENRE_LABEL = Object.fromEntries(GENRES.map((g) => [g.id, g.label])) as Record<Genre, string>;
 
-/** 궤도 호의 반지름과 둘레. 스트로크가 잘리지 않게 뷰박스 안쪽으로 물린다 */
-const R = 76;
-const CIRCUMFERENCE = 2 * Math.PI * R;
-
 /**
  * 썸네일은 `mqdefault` 를 쓴다.
  *
@@ -33,45 +28,31 @@ function thumbnail(youtubeId: string) {
 }
 
 /**
- * 추천 목록.
+ * 추천 목록. 여섯 곡이 한 줄에 들어간다.
  *
- * **가로 레일을 걷어내고 격자로 편다.** 레일은 여섯 곡 중 다섯 곡만 보여 주고
- * 나머지 하나를 화면 밖에 숨겼다. 목록 전체가 한눈에 들어오는 게 낫다 —
- * 옆 카드와 호 길이를 비교하는 게 이 화면의 요점인데, 비교하려면 같이 보여야 한다.
- * 미는 버튼도 같이 사라진다. 밀 것이 없으면 버튼도 없다.
- *
- * **근접도를 글자가 아니라 궤도 호로 그린다.**
- * 점수를 크게 박으면 "87 이 뭔가" 라는 질문만 남는다. 호는 값을 말하지 않고
- * 보여준다 — 얼마나 찼는지가 곧 답이고, 옆 카드와 비교가 눈으로 된다.
- * `--signal-lt` 는 시스템이 궤도 호에 예약해 둔 색이다(`docs/design-reference.md`).
+ * **궤도 호는 길이가 전부 같다.** 전에는 분위기 근접도만큼만 채웠는데,
+ * 원 둘레를 부분만 채운 그림은 곧바로 **재생 진행률로 읽힌다** — 재생 버튼이
+ * 바로 옆에 붙어 있으니 더 그렇다. 데이터를 그리려다 없는 기능을 광고한 셈이다.
+ * 값은 `reasons` 가 글로 말하고, 호는 원형 초상을 감싸는 테두리로만 남는다.
  *
  * 서버 컴포넌트다. 재생 버튼이 링크라서 클라이언트로 내릴 이유가 없다.
  */
 export function RecommendList({ items }: { items: readonly Recommendation[] }) {
   return (
-    <ul className="mt-14 grid grid-cols-3 gap-x-14 gap-y-16 max-lg:grid-cols-2 max-sm:mt-10 max-sm:grid-cols-1 max-sm:gap-y-12">
-      {items.map(({ track, reasons, moodMatch }) => {
+    <ul className="mt-14 grid grid-cols-6 gap-x-7 gap-y-14 max-xl:grid-cols-3 max-sm:mt-10 max-sm:grid-cols-2 max-sm:gap-x-5 max-sm:gap-y-10">
+      {items.map(({ track, reasons }) => {
         const genre = PARENT_OF[track.subGenre];
         return (
           <li key={track.id} className="flex flex-col">
-            <div className="relative aspect-square w-full max-w-[264px]">
+            <div className="relative aspect-square w-full">
               <svg viewBox="0 0 160 160" className="absolute inset-0 h-full w-full -rotate-90">
-                <circle cx="80" cy="80" r={R} fill="none" strokeWidth="2" className="stroke-ghost" />
-                {/* 채워진 만큼이 분위기 근접도다. 값은 섹션 헤더가 한 번만 설명한다 */}
                 <circle
                   cx="80"
                   cy="80"
-                  r={R}
+                  r="76"
                   fill="none"
                   strokeWidth="2"
-                  strokeLinecap="round"
                   className="orbit stroke-signal-lt"
-                  style={
-                    {
-                      "--orbit-len": CIRCUMFERENCE,
-                      "--orbit-gap": CIRCUMFERENCE * (1 - moodMatch / 100),
-                    } as CSSProperties
-                  }
                 />
               </svg>
 
@@ -81,7 +62,7 @@ export function RecommendList({ items }: { items: readonly Recommendation[] }) {
                     src={thumbnail(track.youtubeId)}
                     alt=""
                     fill
-                    sizes="264px"
+                    sizes="200px"
                     className="object-cover"
                   />
                 )}
@@ -97,25 +78,25 @@ export function RecommendList({ items }: { items: readonly Recommendation[] }) {
                   target="_blank"
                   rel="noreferrer"
                   aria-label={`${track.artist} ${track.title} — YouTube 에서 재생`}
-                  className="absolute top-[84%] left-[84%] grid h-13 w-13 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-ink shadow-lift transition-colors hover:bg-ink hover:text-canvas focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none"
+                  className="absolute top-[84%] left-[84%] grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-ink shadow-lift transition-colors hover:bg-ink hover:text-canvas focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none"
                 >
                   {/* 재생 삼각형은 광학 중심이 기하 중심보다 오른쪽이다. 1px 민다 */}
-                  <Play size={20} weight="fill" aria-hidden className="translate-x-px" />
+                  <Play size={17} weight="fill" aria-hidden className="translate-x-px" />
                 </a>
               )}
             </div>
 
-            <p className="mt-7 flex items-center gap-2 text-[13px] font-bold text-slate">
-              <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${GENRE_DOT[genre]}`} />
+            <p className="mt-6 flex items-center gap-1.5 text-[13px] font-bold text-slate">
+              <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${GENRE_DOT[genre]}`} />
               {SUB_GENRES[track.subGenre].ko}
             </p>
 
-            <h3 className="mt-2.5 text-[21px] leading-tight tracking-[-0.01em]">{track.title}</h3>
-            <p className="mt-1 text-[15px] text-slate">{track.artist}</p>
+            <h3 className="mt-2 text-[19px] leading-tight tracking-[-0.01em]">{track.title}</h3>
+            <p className="mt-1 text-sm text-slate">{track.artist}</p>
 
-            {/* 호가 못 보여주는 것 하나만 남긴다 — 장르가 취향의 어디에 있는지.
-                두 번째 이유(근접도)는 호가 이미 그렸으므로 글로 반복하지 않는다. */}
-            <p className="mt-5 text-sm leading-snug text-slate">
+            {/* 이 장르가 당신 취향의 어디에 있는지. 호가 값을 그리지 않게 된 뒤로
+                근접도를 말하는 건 이 줄뿐이다. */}
+            <p className="mt-4 text-[13px] leading-snug text-slate">
               {GENRE_LABEL[genre]} · {reasons[0]}
             </p>
           </li>

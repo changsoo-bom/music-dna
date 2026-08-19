@@ -54,9 +54,8 @@ export function HomeTop({ children }: { children: ReactNode }) {
           <h2 className="mt-5 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">
             그래서 이런 곡은 어떤가요
           </h2>
-          {/* 호가 무엇인지 여기서 한 번만 말한다. 카드마다 반복하면 그게 곧 잡음이다 */}
           <p className="mt-5 max-w-[44ch] text-slate">
-            바깥 호가 길수록 당신이 답한 분위기에 가깝습니다.
+            당신이 고른 장르와 답한 분위기에 가장 가까운 여섯 곡입니다.
           </p>
         </header>
 
