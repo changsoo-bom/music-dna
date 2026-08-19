@@ -4,9 +4,11 @@ import { Play } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
 
 import { DnaSummary } from "@/components/report/DnaSummary";
+import { MoodMap } from "@/components/report/MoodMap";
 import { RecommendList } from "@/components/report/RecommendList";
 import { Arrow, ButtonLink, buttonClass } from "@/components/ui/Button";
 import { usePreference } from "@/hooks/use-preference";
+import { moodQuadrant } from "@/lib/report/mood-map";
 import { recommend } from "@/lib/report/recommend";
 import { isPlayable, usePlayerStore } from "@/lib/use-player-store";
 
@@ -40,6 +42,7 @@ export function HomeTop({ children }: { children: ReactNode }) {
   // 한 번만 고른다. 헤더의 "전체 재생" 과 목록이 같은 다섯 곡을 봐야 한다.
   const picks = recommend(preference);
   const queue = picks.map((pick) => pick.track).filter(isPlayable);
+  const quadrant = moodQuadrant(preference.axes);
 
   return (
     <>
@@ -53,6 +56,23 @@ export function HomeTop({ children }: { children: ReactNode }) {
             </ButtonLink>
           }
         />
+      </section>
+
+      {/* 지표 다음, 추천 앞. 순서가 곧 문장이다 —
+          "당신은 이렇다" → "지도의 여기다" → "그래서 이 곡들이다". */}
+      <section className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12">
+        <header>
+          <span className="eyebrow text-ink">분위기</span>
+          <h2 className="mt-5 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">
+            {quadrant ? `${quadrant} 자리에 있습니다` : "지도의 한가운데에 있습니다"}
+          </h2>
+          <p className="mt-5 max-w-[46ch] text-slate">
+            카탈로그 40곡을 밝기와 에너지 두 축에 놓고 당신의 자리를 찍었습니다. 아래 다섯 곡은
+            여기서 가장 가까운 곡들입니다. 세 번째 축인 몽환은 이 그림에 없습니다.
+          </p>
+        </header>
+
+        <MoodMap mood={preference.axes} pickedIds={picks.map((pick) => pick.track.id)} />
       </section>
 
       {/* 지표에서 추천으로 넘어가는 자리. 선 하나로 나눈다 —
