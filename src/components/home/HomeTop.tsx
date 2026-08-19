@@ -25,12 +25,10 @@ export function HomeTop({ children }: { children: ReactNode }) {
     <section className="pt-20 max-lg:pt-14 max-sm:pt-10">
       <DnaSummary
         preference={preference}
-        footer={
-          <footer className="mt-20 flex flex-wrap items-center gap-3 border-t border-hair pt-10 max-sm:mt-14">
-            <ButtonLink href="/quiz" variant="secondary">
-              Retry
-            </ButtonLink>
-          </footer>
+        action={
+          <ButtonLink href="/quiz" variant="secondary">
+            Retry
+          </ButtonLink>
         }
       />
     </section>

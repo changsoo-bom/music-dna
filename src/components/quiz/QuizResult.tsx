@@ -20,11 +20,13 @@ export function QuizResult({
     <DnaSummary
       preference={preference}
       autoFocus
+      action={
+        <button type="button" onClick={onRetry} className={buttonClass("secondary")}>
+          Retry
+        </button>
+      }
       footer={
-        <footer className="mt-20 flex items-center gap-6 border-t border-hair pt-10 max-sm:mt-14 max-sm:flex-col max-sm:items-start max-sm:gap-4">
-          <button type="button" onClick={onRetry} className={buttonClass("secondary")}>
-            Retry
-          </button>
+        <footer className="mt-20 border-t border-hair pt-10 max-sm:mt-14">
           <p className="text-sm text-slate">
             이 브라우저에는 결과를 저장할 수 없었습니다. 창을 닫으면 사라집니다.
           </p>

@@ -52,12 +52,18 @@ type DnaSummaryProps = {
    * 때마다 포커스를 빼앗아 스크롤이 튀고, 헤더로 가려던 Tab 이 먹히지 않는다.
    */
   autoFocus?: boolean;
-  /** 화면마다 다음 행동이 다르다. 홈은 링크, 검사 화면은 되돌리기 버튼 */
+  /**
+   * 제목 오른쪽에 붙는 행동. 화면마다 다르다 — 홈은 링크, 검사 화면은 버튼.
+   *
+   * 아래가 아니라 위에 둔다. 결과를 다 읽고 나서 찾는 게 아니라
+   * **결과가 마음에 안 들면 바로 다시 하는** 동선이다.
+   */
+  action?: ReactNode;
   footer?: ReactNode;
 };
 
 /** 검사 결과 한 벌. 검사 화면과 홈이 같은 것을 본다 */
-export function DnaSummary({ preference, autoFocus = false, footer }: DnaSummaryProps) {
+export function DnaSummary({ preference, autoFocus = false, action, footer }: DnaSummaryProps) {
   const { axes, moods, persona } = preference;
   const { title, line } = PERSONAS[persona];
 
@@ -81,19 +87,23 @@ export function DnaSummary({ preference, autoFocus = false, footer }: DnaSummary
 
   return (
     <div className="q-enter">
-      {/* 정체성 블록만 오른쪽에 붙인다. 비대칭 배치가 이 디자인 언어의 축이고,
-          왼쪽이 비어 있는 만큼 이름이 더 크게 들린다. */}
-      <header className="flex flex-col items-end text-right">
-        <span className="eyebrow text-ink">당신의 음악 DNA</span>
+      {/* 이름은 왼쪽, 행동은 오른쪽 위. 큰 제목 옆의 빈 자리에 버튼을 앉힌다 —
+          아래로 내리면 결과를 다 읽고 나서야 찾게 된다. */}
+      <header className="flex items-start justify-between gap-10 max-sm:flex-col max-sm:gap-6">
+        <div className="min-w-0">
+          <span className="eyebrow text-ink">당신의 음악 DNA</span>
 
-        <h1
-          ref={autoFocus ? focusOnMount : undefined}
-          tabIndex={autoFocus ? -1 : undefined}
-          className="mt-5 text-[clamp(40px,6vw,72px)] leading-[1.05] outline-none"
-        >
-          {title}
-        </h1>
-        <p className="mt-6 max-w-[46ch] text-lg text-slate max-sm:text-base">{line}</p>
+          <h1
+            ref={autoFocus ? focusOnMount : undefined}
+            tabIndex={autoFocus ? -1 : undefined}
+            className="mt-5 text-[clamp(40px,6vw,72px)] leading-[1.05] outline-none"
+          >
+            {title}
+          </h1>
+          <p className="mt-6 max-w-[46ch] text-lg text-slate max-sm:text-base">{line}</p>
+        </div>
+
+        {action && <div className="shrink-0">{action}</div>}
       </header>
 
       <dl className="mt-14 grid grid-cols-3 gap-px overflow-hidden rounded-btn bg-hair max-sm:grid-cols-1">
