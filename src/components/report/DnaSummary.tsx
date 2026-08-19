@@ -148,11 +148,14 @@ export function DnaSummary({ preference, autoFocus = false, action, footer }: Dn
               <li key={mood} className="flex items-center gap-4">
                 <span className="w-24 shrink-0 text-[15px] font-medium capitalize">{mood}</span>
                 {/* Mood 는 배타적 분류가 아니라 같은 축 위의 순위다.
-                    색을 나누면 "다른 종류" 라는 잘못된 신호를 준다 → 단색 시퀀셜 */}
+                    색을 나누면 "다른 종류" 라는 잘못된 신호를 준다 → **단색 시퀀셜**.
+                    잉크로 칠하면 값이 낮을수록 회색이 되어 화면이 칙칙해진다.
+                    보라 하나를 골라 진하기만 바꾼다 — 순위는 그대로 읽히고 색이 산다.
+                    바닥을 0.55 로 잡은 건 그 아래로 내려가면 크림 위에서 안 보여서다. */}
                 <span className="h-2.5 flex-1 overflow-hidden rounded-pill bg-ghost">
                   <span
-                    className="bar-fill block h-full rounded-pill bg-ink"
-                    style={{ ...fillStyle(score / 100, index), opacity: 0.35 + (score / 100) * 0.65 }}
+                    className="bar-fill block h-full rounded-pill bg-chart-5"
+                    style={{ ...fillStyle(score / 100, index), opacity: 0.55 + (score / 100) * 0.45 }}
                   />
                 </span>
                 <CountUp

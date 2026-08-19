@@ -16,10 +16,19 @@ import { usePreference } from "@/hooks/use-preference";
  * 하이드레이션 직후 결과로 바뀐다. 계정을 두지 않기로 한 결정의 대가고,
  * 이걸 없애려면 서버에 세션을 둬야 한다.
  */
+/** 모듈 스코프에 둔다 — 인라인 화살표면 렌더마다 detach/attach 한다 */
+function showIntro(el: HTMLElement | null) {
+  if (el) document.documentElement.removeAttribute("data-dna");
+}
+
 export function HomeTop({ children }: { children: ReactNode }) {
   const preference = usePreference();
 
-  if (!preference) return <>{children}</>;
+  if (!preference) {
+    // 저장값이 있는 줄 알고 스크립트가 숨겨 놨을 수 있다 — 깨진 값이었거나
+    // 다른 탭에서 지웠거나. 소개 화면이 실제로 렌더되는 지금이 표시를 지울 때다.
+    return <div className="home-intro" ref={showIntro}>{children}</div>;
+  }
 
   return (
     <section className="pt-20 max-lg:pt-14 max-sm:pt-10">
@@ -27,7 +36,7 @@ export function HomeTop({ children }: { children: ReactNode }) {
         preference={preference}
         action={
           <ButtonLink href="/quiz" variant="text">
-            다시 검사하기
+            Retake the test
             <Arrow />
           </ButtonLink>
         }

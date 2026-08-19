@@ -141,6 +141,13 @@ h3 {
   animation: q-enter 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* 검사 이력이 있으면 소개 화면을 첫 페인트부터 감춘다.
+   layout.tsx 의 인라인 스크립트가 표시를 남기고, 여기서 받는다.
+   `visibility` 가 아니라 `display` 다 — 자리를 차지하면 결과가 아래로 밀린다. */
+html[data-dna="1"] .home-intro {
+  display: none;
+}
+
 /* 막대가 왼쪽에서 채워진다.
    width 가 아니라 scaleX 다 — width 애니메이션은 매 프레임 레이아웃을 다시 잡는다.
    목표값을 --fill 로 받는 건 인라인 transform 과 keyframe 이 서로 덮어쓰지 않게

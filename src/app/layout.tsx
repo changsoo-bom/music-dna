@@ -32,11 +32,29 @@ export const metadata: Metadata = {
     "지난 1년의 재생 기록을 장르, 템포, 분위기, 시간대로 분해해 한 장의 리포트로 돌려드립니다.",
 };
 
+/**
+ * 첫 페인트 전에 검사 이력이 있는지만 확인해 표시를 남긴다.
+ *
+ * 서버는 Local Storage 를 못 보므로 홈은 항상 소개 화면으로 그려진다.
+ * 검사를 마친 사람은 하이드레이션 직후 결과로 바뀌는데, 그 사이에
+ * **소개 화면이 한 번 번쩍인다.** 새로고침할 때마다 안 본 페이지가 스치는 셈이다.
+ *
+ * 값을 파싱하지 않는다 — 키가 있는지만 본다. 실제 검증은
+ * `parsePreference` 가 하이드레이션 후에 한다. 여기서 하는 일은
+ * **CSS 가 소개 화면을 먼저 숨기게 하는 것뿐**이다.
+ *
+ * 소개 화면이 실제로 렌더되면(저장값이 깨진 경우) 그쪽 ref 가 이 표시를 지운다.
+ */
+const HIDE_INTRO_BEFORE_PAINT = `try{if(localStorage.getItem('musicdna:musicPreference:v1'))document.documentElement.dataset.dna='1'}catch(e){}`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: HIDE_INTRO_BEFORE_PAINT }} />
+      </head>
       <body className={`${sofia.variable} ${pretendard.variable}`}>
         {children}
       </body>

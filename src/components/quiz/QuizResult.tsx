@@ -22,7 +22,7 @@ export function QuizResult({
       autoFocus
       action={
         <button type="button" onClick={onRetry} className={buttonClass("text")}>
-          다시 검사하기
+          Retake the test
           <Arrow />
         </button>
       }
