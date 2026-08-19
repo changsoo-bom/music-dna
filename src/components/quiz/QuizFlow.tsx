@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { QuizRadioOption, QuizRankOption } from "@/components/quiz/QuizOption";
@@ -24,7 +25,7 @@ export function QuizFlow() {
   const [answers, setAnswers] = useState<QuizAnswers>({});
   const [index, setIndex] = useState(0);
   const [result, setResult] = useState<MusicPreference | null>(null);
-  const [saved, setSaved] = useState(false);
+  const router = useRouter();
 
   // 재검사는 화면만 처음으로 돌린다. 저장된 결과는 지우지 않는다 —
   // 다시 하다 그만두면 이전 결과가 남아 있어야 한다.
@@ -32,10 +33,9 @@ export function QuizFlow() {
     setAnswers({});
     setIndex(0);
     setResult(null);
-    setSaved(false);
   }
 
-  if (result) return <QuizResult preference={result} saved={saved} onRetry={retry} />;
+  if (result) return <QuizResult preference={result} onRetry={retry} />;
 
   const question = QUESTIONS[index];
   const picked = answers[question.id] ?? [];
@@ -72,18 +72,20 @@ export function QuizFlow() {
     // useEffect 에서 하면 React Compiler 의 set-state-in-effect 와 부딪힌다.
     const preference = computePreference(answers, new Date().toISOString());
 
-    // **결과 표시가 먼저다.** 저장은 부수효과다.
     // setItem 은 사생활 보호 모드(QuotaExceededError)나 사이트 데이터 차단
     // (localStorage 접근 자체가 SecurityError)에서 던진다. 이벤트 핸들러 안의
-    // 동기 예외라 error.tsx 도 에러 바운더리도 안 잡는다 — 순서가 반대면
-    // 5문항을 다 채우고도 "결과 보기" 가 아무 반응 없는 버튼이 된다.
-    setResult(preference);
+    // 동기 예외라 error.tsx 도 에러 바운더리도 안 잡는다.
     try {
       window.localStorage.setItem(STORAGE_KEYS.preference, JSON.stringify(preference));
-      setSaved(true);
     } catch {
-      setSaved(false);
+      // 홈은 저장된 값을 읽어서 그린다. 저장이 안 됐으면 홈에 보내 봐야
+      // 빈 화면이다. **여기서 붙잡고 결과를 보여준다.**
+      setResult(preference);
+      return;
     }
+
+    // 결과는 홈 맨 위에 있다. 같은 것을 두 번 보여주지 않는다.
+    router.push("/");
   }
 
   return (

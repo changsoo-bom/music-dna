@@ -140,3 +140,19 @@ h3 {
 .q-enter {
   animation: q-enter 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* 헤더가 위에서 내려온다.
+   translateY 만 움직인다 — top 을 애니메이션하면 sticky 계산이 매 프레임 다시 돈다.
+   시작점은 -100% 가 아니라 -150% 다. 헤더가 뷰포트 상단에서 24px 떨어져 떠 있어서
+   -100% 로는 자기 높이만큼만 올라가 필의 아랫부분이 처음부터 보인다. */
+@keyframes header-drop {
+  from {
+    transform: translateY(-150%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.header-drop {
+  animation: header-drop 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
