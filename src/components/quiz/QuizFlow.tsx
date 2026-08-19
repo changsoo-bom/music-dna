@@ -36,11 +36,30 @@ export function QuizFlow() {
 
   const question = QUESTIONS[index];
   const picked = answers[question.id] ?? [];
+  const isRank = question.axis === "genre";
   const isLast = index + 1 === QUESTIONS.length;
 
-  function advance(next: QuizAnswers) {
-    setAnswers(next);
+  /**
+   * 고르는 것과 넘어가는 것을 분리한다.
+   *
+   * 자동으로 넘기면 버튼 한 번을 아끼지만 **고른 게 맞는지 확인할 틈이 없다.**
+   * 손이 미끄러지면 이미 다음 문항이고, 되돌리려면 이전 버튼을 눌러야 한다.
+   */
+  function select(optionIndex: number) {
+    setAnswers({ ...answers, [question.id]: [optionIndex] });
+  }
 
+  /** 순위 문항: 누르면 담기고 다시 누르면 빠진다. 다 차면 더 안 담긴다 */
+  function toggleRank(optionIndex: number, maxPicks: number) {
+    if (picked.includes(optionIndex)) {
+      setAnswers({ ...answers, [question.id]: picked.filter((i) => i !== optionIndex) });
+      return;
+    }
+    if (picked.length >= maxPicks) return;
+    setAnswers({ ...answers, [question.id]: [...picked, optionIndex] });
+  }
+
+  function advance() {
     if (!isLast) {
       setIndex(index + 1);
       return;
@@ -48,25 +67,10 @@ export function QuizFlow() {
 
     // 계산은 순수 함수이고, 저장은 이벤트 핸들러 안에서 끝낸다 —
     // useEffect 에서 하면 React Compiler 의 set-state-in-effect 와 부딪힌다.
-    const preference = computePreference(next, new Date().toISOString());
+    const preference = computePreference(answers, new Date().toISOString());
     window.localStorage.setItem(STORAGE_KEYS.preference, JSON.stringify(preference));
     setResult(preference);
   }
-
-  /** 순위 문항: 누르면 담기고 다시 누르면 빠진다. 다 채우면 알아서 넘어간다 */
-  function toggleRank(optionIndex: number, maxPicks: number) {
-    const next = picked.includes(optionIndex)
-      ? picked.filter((i) => i !== optionIndex)
-      : [...picked, optionIndex];
-
-    if (next.length === maxPicks) {
-      advance({ ...answers, [question.id]: next });
-      return;
-    }
-    setAnswers({ ...answers, [question.id]: next });
-  }
-
-  const isRank = question.axis === "genre";
 
   return (
     <div className="mx-auto max-w-[720px]">
@@ -100,29 +104,33 @@ export function QuizFlow() {
                     label={option.label}
                     badge={String(optionIndex + 1)}
                     selected={picked[0] === optionIndex}
-                    onClick={() => advance({ ...answers, [question.id]: [optionIndex] })}
+                    onClick={() => select(optionIndex)}
                   />
                 </li>
               ))}
         </ul>
       </div>
 
-      <div className="mt-10 flex gap-3">
+      <div className="mt-12 flex items-center gap-3 max-sm:mt-8">
         {index > 0 && (
           <button type="button" onClick={() => setIndex(index - 1)} className={buttonClass("secondary")}>
             이전
           </button>
         )}
-        {/* 순위 문항은 3개를 다 안 골라도 넘어갈 수 있다.
-            한 장르만 듣는 사람에게 억지로 2·3위를 만들게 하지 않는다. */}
+        {/* 답이 없으면 눌리지 않는다. 숨기지 않는 건 레이아웃이 흔들리지 않게 하려는 것도
+            있지만, 다음 칸이 비어 있는 게 "아직 안 골랐다" 를 말해 주기 때문이다. */}
+        <button
+          type="button"
+          onClick={advance}
+          disabled={picked.length === 0}
+          className={buttonClass()}
+        >
+          {isLast ? "결과 보기" : "다음"}
+        </button>
         {isRank && picked.length > 0 && picked.length < question.maxPicks && (
-          <button
-            type="button"
-            onClick={() => advance({ ...answers, [question.id]: picked })}
-            className={buttonClass()}
-          >
-            {picked.length}개로 계속
-          </button>
+          <p className="text-sm text-slate">
+            {picked.length}개 선택 — 더 고르거나 이대로 넘어가도 됩니다
+          </p>
         )}
       </div>
     </div>

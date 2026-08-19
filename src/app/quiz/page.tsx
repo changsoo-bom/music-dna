@@ -14,7 +14,7 @@ export const metadata = {
  */
 export default function QuizPage() {
   return (
-    <main className="shell pb-28 pt-28 max-sm:pb-16 max-sm:pt-16">
+    <main className="shell pb-28 pt-22 max-sm:pb-16 max-sm:pt-16">
       <QuizFlow />
     </main>
   );

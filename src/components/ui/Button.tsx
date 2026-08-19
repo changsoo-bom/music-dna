@@ -4,7 +4,7 @@ import type { ComponentProps } from "react";
 type Variant = "primary" | "secondary";
 
 const BASE =
-  "inline-flex items-center justify-center h-12 px-6 text-base font-medium tracking-[-0.02em] whitespace-nowrap rounded-btn border-[1.5px] border-ink transition-opacity active:translate-y-px";
+  "inline-flex items-center justify-center h-12 px-6 text-base font-medium tracking-[-0.02em] whitespace-nowrap rounded-btn border-[1.5px] border-ink transition-opacity active:translate-y-px disabled:pointer-events-none disabled:opacity-30";
 
 const VARIANTS: Record<Variant, string> = {
   // 주 CTA 는 예외 없이 잉크 블랙. --signal 은 예약색이라 여기 쓰지 않는다.
