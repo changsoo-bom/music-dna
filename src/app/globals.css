@@ -141,6 +141,26 @@ h3 {
   animation: q-enter 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* 막대가 왼쪽에서 채워진다.
+   width 가 아니라 scaleX 다 — width 애니메이션은 매 프레임 레이아웃을 다시 잡는다.
+   목표값을 --fill 로 받는 건 인라인 transform 과 keyframe 이 서로 덮어쓰지 않게
+   하려는 것이다. 순서대로 차게 하려면 style 에 animation-delay 를 준다.
+   prefers-reduced-motion 은 위 전역 블록이 duration·delay 를 0 으로 만들어
+   즉시 최종 상태로 앉힌다 — CSS 로 만든 모션이라 공짜로 따라온다. */
+@keyframes bar-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(var(--fill));
+  }
+}
+.bar-fill {
+  transform-origin: left center;
+  transform: scaleX(var(--fill));
+  animation: bar-fill 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* 헤더가 위에서 내려온다.
    translateY 만 움직인다 — top 을 애니메이션하면 sticky 계산이 매 프레임 다시 돈다.
    시작점은 -100% 가 아니라 -150% 다. 헤더가 뷰포트 상단에서 24px 떨어져 떠 있어서

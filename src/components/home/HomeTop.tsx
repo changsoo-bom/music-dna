@@ -28,7 +28,7 @@ export function HomeTop({ children }: { children: ReactNode }) {
         footer={
           <footer className="mt-20 flex flex-wrap items-center gap-3 border-t border-hair pt-10 max-sm:mt-14">
             <ButtonLink href="/quiz" variant="secondary">
-              다시 검사하기
+              Retry
             </ButtonLink>
           </footer>
         }

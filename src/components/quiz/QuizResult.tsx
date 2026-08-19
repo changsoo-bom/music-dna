@@ -23,7 +23,7 @@ export function QuizResult({
       footer={
         <footer className="mt-20 flex items-center gap-6 border-t border-hair pt-10 max-sm:mt-14 max-sm:flex-col max-sm:items-start max-sm:gap-4">
           <button type="button" onClick={onRetry} className={buttonClass("secondary")}>
-            다시 검사하기
+            Retry
           </button>
           <p className="text-sm text-slate">
             이 브라우저에는 결과를 저장할 수 없었습니다. 창을 닫으면 사라집니다.

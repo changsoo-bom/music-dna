@@ -1,9 +1,11 @@
+import type { CSSProperties, ReactNode } from "react";
+
+import { CountUp } from "@/components/report/CountUp";
 import { GENRES } from "@/constants/genres";
 import { PERSONAS } from "@/constants/personas";
 import { nightScore } from "@/lib/quiz/scoring";
 import { focusOnMount } from "@/lib/utils";
 import type { Genre, MusicPreference } from "@/types/music";
-import type { ReactNode } from "react";
 
 /** slot → 검증된 차트 색. Tailwind 는 클래스명을 정적으로 읽으므로 조립하지 않는다 */
 const GENRE_COLOR: Record<Genre, string> = {
@@ -23,6 +25,17 @@ const GENRE_COLOR: Record<Genre, string> = {
  * 두 번째 대문자 스타일이 생긴다. 자간도 같이 뺐다 — 대문자용 보정이었다.
  */
 const SECTION_LABEL = "text-[13px] font-bold text-slate";
+
+/**
+ * 막대의 목표 비율과 순서.
+ *
+ * 한 줄씩 시차를 두면 목록이 위에서 아래로 차오른다. 다 같이 차면
+ * 값이 다르다는 게 안 읽히고 그냥 화면이 한 번 번쩍인 것처럼 보인다.
+ * 마지막 줄까지 0.36초 안에 끝나게 잡았다 — 더 늘리면 기다리는 게 느껴진다.
+ */
+function fillStyle(fill: number, index: number): CSSProperties {
+  return { "--fill": fill, animationDelay: `${index * 0.09}s` } as CSSProperties;
+}
 
 const AXIS_LABELS = [
   { key: "night", label: "Night Listener" },
@@ -68,23 +81,27 @@ export function DnaSummary({ preference, autoFocus = false, footer }: DnaSummary
 
   return (
     <div className="q-enter">
-      <span className="eyebrow text-ink">당신의 음악 DNA</span>
+      {/* 정체성 블록만 오른쪽에 붙인다. 비대칭 배치가 이 디자인 언어의 축이고,
+          왼쪽이 비어 있는 만큼 이름이 더 크게 들린다. */}
+      <header className="flex flex-col items-end text-right">
+        <span className="eyebrow text-ink">당신의 음악 DNA</span>
 
-      <h1
-        ref={autoFocus ? focusOnMount : undefined}
-        tabIndex={autoFocus ? -1 : undefined}
-        className="mt-5 text-[clamp(40px,6vw,72px)] leading-[1.05] outline-none"
-      >
-        {title}
-      </h1>
-      <p className="mt-6 max-w-[52ch] text-lg text-slate max-sm:text-base">{line}</p>
+        <h1
+          ref={autoFocus ? focusOnMount : undefined}
+          tabIndex={autoFocus ? -1 : undefined}
+          className="mt-5 text-[clamp(40px,6vw,72px)] leading-[1.05] outline-none"
+        >
+          {title}
+        </h1>
+        <p className="mt-6 max-w-[46ch] text-lg text-slate max-sm:text-base">{line}</p>
+      </header>
 
       <dl className="mt-14 grid grid-cols-3 gap-px overflow-hidden rounded-btn bg-hair max-sm:grid-cols-1">
         {AXIS_LABELS.map(({ key, label }) => (
           <div key={key} className="px-7 py-6 bg-lifted">
             <dt className={SECTION_LABEL}>{label}</dt>
             <dd className="mt-2 text-[32px] font-medium tabular-nums tracking-[-0.03em]">
-              {scores[key]}
+              <CountUp value={scores[key]} />
               <span className="ml-0.5 text-lg text-slate">%</span>
             </dd>
           </div>
@@ -95,18 +112,20 @@ export function DnaSummary({ preference, autoFocus = false, footer }: DnaSummary
         <section>
           <h2 className={SECTION_LABEL}>장르</h2>
           <ul className="mt-6 flex flex-col gap-4">
-            {genres.map((genre) => (
+            {genres.map((genre, index) => (
               <li key={genre.id} className="flex items-center gap-4">
                 <span className="w-24 shrink-0 text-[15px] font-medium">{genre.label}</span>
-                <span className="h-2.5 flex-1 rounded-pill bg-ghost">
+                <span className="h-2.5 flex-1 overflow-hidden rounded-pill bg-ghost">
                   <span
-                    className={`block h-full origin-left rounded-pill ${GENRE_COLOR[genre.id]}`}
-                    style={{ transform: `scaleX(${genre.share / topShare})` }}
+                    className={`bar-fill block h-full rounded-pill ${GENRE_COLOR[genre.id]}`}
+                    style={fillStyle(genre.share / topShare, index)}
                   />
                 </span>
-                <span className="w-11 shrink-0 text-right text-sm tabular-nums text-slate">
-                  {genre.share}%
-                </span>
+                <CountUp
+                  value={genre.share}
+                  suffix="%"
+                  className="w-11 shrink-0 text-right text-sm tabular-nums text-slate"
+                />
               </li>
             ))}
           </ul>
@@ -115,18 +134,21 @@ export function DnaSummary({ preference, autoFocus = false, footer }: DnaSummary
         <section>
           <h2 className={SECTION_LABEL}>분위기</h2>
           <ul className="mt-6 flex flex-col gap-4">
-            {topMoods.map(([mood, score]) => (
+            {topMoods.map(([mood, score], index) => (
               <li key={mood} className="flex items-center gap-4">
                 <span className="w-24 shrink-0 text-[15px] font-medium capitalize">{mood}</span>
                 {/* Mood 는 배타적 분류가 아니라 같은 축 위의 순위다.
                     색을 나누면 "다른 종류" 라는 잘못된 신호를 준다 → 단색 시퀀셜 */}
-                <span className="h-2.5 flex-1 rounded-pill bg-ghost">
+                <span className="h-2.5 flex-1 overflow-hidden rounded-pill bg-ghost">
                   <span
-                    className="block h-full origin-left rounded-pill bg-ink"
-                    style={{ transform: `scaleX(${score / 100})`, opacity: 0.35 + (score / 100) * 0.65 }}
+                    className="bar-fill block h-full rounded-pill bg-ink"
+                    style={{ ...fillStyle(score / 100, index), opacity: 0.35 + (score / 100) * 0.65 }}
                   />
                 </span>
-                <span className="w-11 shrink-0 text-right text-sm tabular-nums text-slate">{score}</span>
+                <CountUp
+                  value={score}
+                  className="w-11 shrink-0 text-right text-sm tabular-nums text-slate"
+                />
               </li>
             ))}
           </ul>
