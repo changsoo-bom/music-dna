@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 
 import { PERSONAS } from "@/constants/personas";
 import { QUESTIONS } from "@/lib/quiz/questions";
-import { computePreference, nightScore, resolvePersona } from "@/lib/quiz/scoring";
+import { computePreference, nightScore, RANK_WEIGHTS, resolvePersona } from "@/lib/quiz/scoring";
 import type { Mood, PersonaId } from "@/types/music";
 import type { QuizAnswers } from "@/types/quiz";
 
@@ -94,6 +94,18 @@ assert.deepEqual(computePreference(uniform(2), AT), computePreference(uniform(2)
 
 /* 4. 순위 배점 ─────────────────────────────────────────────── */
 
+// maxPicks 와 가중치 개수가 어긋나면 UI 는 선택을 받는데 점수는 0 이 된다.
+// 사용자는 자기가 반영 안 되는 답을 고르고 있다는 걸 알 방법이 없다.
+const rankQuestion = QUESTIONS[0];
+assert.equal(rankQuestion.axis, "genre");
+if (rankQuestion.axis === "genre") {
+  assert.equal(
+    rankQuestion.maxPicks,
+    RANK_WEIGHTS.length,
+    `maxPicks(${rankQuestion.maxPicks}) 와 RANK_WEIGHTS(${RANK_WEIGHTS.length}) 가 다르다`,
+  );
+}
+
 const one = computePreference({ q1: [1] }, AT).axes.genre;
 assert.equal(one.rock, 100, `한 장르만 골랐는데 ${one.rock}% 다 — 고른 만큼만 점수가 가야 한다`);
 
@@ -105,6 +117,40 @@ assert.equal(three.hiphop, 0, "안 고른 장르에 점수가 갔다");
 
 // 4개 이상 골라도 상위 3개만 반영한다
 assert.deepEqual(computePreference({ q1: [1, 4, 0, 2, 3] }, AT).axes.genre, three, "4위 이하가 반영됐다");
+
+/**
+ * 최대잔여법이 실제로 도는 경로를 검사한다.
+ *
+ * uniform·빈 답은 나머지 배분 루프를 거의 안 탄다 — uniform 은 가중치가
+ * [5,0,0,0,0] 이라 short = 0 이고, 빈 답은 total === 0 분기로 빠진다.
+ * short > 0 이 나오는 건 다중 선택뿐이므로 순열 전체를 돈다.
+ */
+for (const first of [0, 1, 2, 3, 4]) {
+  for (const second of [0, 1, 2, 3, 4]) {
+    for (const third of [0, 1, 2, 3, 4]) {
+      if (first === second || second === third || first === third) continue;
+      const { genre } = computePreference({ q1: [first, second, third] }, AT).axes;
+      const sum = Object.values(genre).reduce((a, b) => a + b, 0);
+      assert.equal(sum, 100, `q1=[${first},${second},${third}] 의 장르 비중 합이 ${sum} 이다`);
+    }
+  }
+}
+
+/**
+ * 범위 밖 index 는 **조용히 균등 분포가 된다.** 여기서 고치지 않고 못 박아 둔다.
+ *
+ * 저장된 답을 다시 계산할 때(문항이나 선택지가 줄었을 때) 실제로 발생하는 경로다.
+ * 예외도 경고도 없이 "당신은 모든 장르를 똑같이 듣습니다" 라는 결과가 나온다.
+ *
+ * 지금은 읽기 경로가 없어서(쓰기 한 곳뿐) 터지지 않는다. **읽기를 붙일 때**
+ * Zod safeParse + `version` 확인 + index 범위 검사를 넣고 이 단언을 뒤집어야 한다.
+ * 그때까지 이 단언이 "알고 있는 구멍" 을 코드에 남겨 둔다.
+ */
+assert.deepEqual(
+  computePreference({ q1: [99] }, AT).axes.genre,
+  { pop: 20, rock: 20, hiphop: 20, rnb: 20, electronic: 20 },
+  "범위 밖 index 의 동작이 바뀌었다 — 의도한 변경이면 이 단언을 갱신할 것",
+);
 
 /* 5. MOOD — 7종이 전부 1위로 올라올 수 있어야 한다 ─────────── */
 
@@ -133,21 +179,46 @@ assert.equal(
 
 /* 6. 페르소나 — 5 유형이 전부 나올 수 있어야 한다 ──────────── */
 
+// mood 두 문항에 같은 index 만 넣으면 25개 혼합 조합이 도달성 검사를 안 거친다
 const reached = new Set<PersonaId>();
 for (let time = 0; time < 5; time += 1) {
-  for (const explorer of [0, 4]) {
-    for (let mood = 0; mood < 5; mood += 1) {
-      reached.add(computePreference({ q2: [time], q5: [explorer], q3: [mood], q4: [mood] }, AT).persona);
+  for (const explorer of [0, 2, 4]) {
+    for (let a = 0; a < 5; a += 1) {
+      for (let b = 0; b < 5; b += 1) {
+        reached.add(computePreference({ q2: [time], q5: [explorer], q3: [a], q4: [b] }, AT).persona);
+      }
     }
   }
 }
 assert.equal(reached.size, 5, `도달 가능한 페르소나가 ${reached.size} 종뿐이다: ${[...reached].join(", ")}`);
 assert.deepEqual([...reached].sort(), Object.keys(PERSONAS).sort(), "PERSONAS 와 판정 결과가 어긋난다");
 
-// 새벽을 고르면 밤 성향이 임계값을 넘는다
-const night = computePreference({ q2: [4], q5: [0], q3: [3], q4: [4] }, AT);
-assert.ok(nightScore(night.axes.timeOfDay) >= 50, "새벽을 골랐는데 밤 성향이 50 미만이다");
-assert.equal(resolvePersona(night.axes), "dawn-explorer");
+/**
+ * 밤 성향의 눈금.
+ *
+ * 전에는 `night + dawn` 을 그냥 더해서 `0 · 20 · 80` 세 값뿐이었다.
+ * 20 과 80 사이가 비어 있으면 임계값 50 은 21~80 어디에 놔도 판정이 같은,
+ * **조정할 수 없는 손잡이**다. 화면의 `80%` 도 백분율의 외양만 갖게 된다.
+ */
+const nightValues = new Set<number>();
+for (let time = 0; time < 5; time += 1) {
+  nightValues.add(nightScore(computePreference({ q2: [time] }, AT).axes.timeOfDay));
+}
+assert.equal(
+  nightValues.size,
+  5,
+  `nightScore 가 ${nightValues.size}값뿐이다: {${[...nightValues].sort((a, b) => a - b).join(", ")}}` +
+    " — 임계값을 옮겨도 판정이 안 바뀐다",
+);
+
+// 새벽·밤은 임계값 위, 한낮은 아래. 저녁은 경계 근처라 임계값 조정의 손잡이가 된다
+const dawnAxes = computePreference({ q2: [4], q5: [0], q3: [3], q4: [4] }, AT).axes;
+assert.ok(nightScore(dawnAxes.timeOfDay) >= 50, "새벽을 골랐는데 밤 성향이 50 미만이다");
+assert.equal(resolvePersona(dawnAxes), "dawn-explorer");
+assert.ok(
+  nightScore(computePreference({ q2: [1] }, AT).axes.timeOfDay) < 50,
+  "한낮을 골랐는데 밤 성향이 50 이상이다",
+);
 
 console.log(
   `✓ 문항 ${QUESTIONS.length}개 · 무드 1위 ${topMoods.size}종 도달 · 페르소나 ${reached.size}종 도달`,

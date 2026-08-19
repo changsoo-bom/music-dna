@@ -1,3 +1,4 @@
+import { GENRES } from "@/constants/genres";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import type {
   Genre,
@@ -10,7 +11,12 @@ import type {
 } from "@/types/music";
 import type { QuizAnswers } from "@/types/quiz";
 
-const GENRE_IDS: readonly Genre[] = ["pop", "rock", "hiphop", "rnb", "electronic"];
+/**
+ * 손으로 다시 적지 않는다. `readonly Genre[]` 는 부분 목록을 거부하지 못하고
+ * 아래 `as Record<Genre, number>` 단언이 빠진 키를 덮는다 —
+ * 장르를 추가하고 여기만 빼먹으면 `NaN` 이 되어 그 장르가 조용히 사라진다.
+ */
+const GENRE_IDS: readonly Genre[] = GENRES.map((g) => g.id);
 
 /** 시간대는 원형이다. 새벽 다음이 아침이다. */
 const TIME_CYCLE: readonly TimeSlot[] = ["morning", "afternoon", "evening", "night", "dawn"];
@@ -20,8 +26,31 @@ const TIME_CYCLE: readonly TimeSlot[] = ["morning", "afternoon", "evening", "nig
  *
  * 5/2/1 이 아니라 3/2/1 이면 3개를 고른 사람이 전부 50/33/17 로 평평해진다.
  * 1위를 확실히 띄워야 "당신은 Rock 을 듣는 사람" 이 성립한다.
+ *
+ * **export 하는 이유** — 문항의 `maxPicks` 와 길이가 같아야 한다.
+ * 다르면 UI 는 4번째 선택을 받는데 점수는 0 이 되고, 사용자는 반영 안 되는
+ * 답을 고르고 있다는 걸 모른다. `check:quiz` 가 이 둘을 맞춰 본다.
  */
-const RANK_WEIGHTS = [5, 2, 1];
+export const RANK_WEIGHTS = [5, 2, 1];
+
+/**
+ * 시간대별 "밤스러움". `Night Listener` 지표가 이 가중합이다.
+ *
+ * 전에는 `night + dawn` 비중을 그냥 더했다. 문항이 하나뿐이라 그 값이
+ * **`0 · 20 · 80` 세 개**밖에 안 나왔다 — 밤과 새벽이 둘 다 80, 아침과 저녁이
+ * 둘 다 20 이고 그 사이가 통째로 비었다. 그래서 임계값 50 은 21~80 어디에 놔도
+ * 판정이 같은, 조정할 수 없는 손잡이였고 화면의 `80%` 는 백분율의 외양만 갖고 있었다.
+ *
+ * 칸마다 밤스러움을 주고 가중합으로 바꾸면 `15 · 35 · 49 · 84 · 87` 다섯 값이 된다.
+ * 저녁이 49 로 경계에 붙는 게 중요하다 — **임계값을 옮기는 게 실제로 의미가 생긴다.**
+ */
+const NIGHTNESS: Readonly<Record<TimeSlot, number>> = {
+  morning: 0.25,
+  afternoon: 0,
+  evening: 0.5,
+  night: 0.95,
+  dawn: 1,
+};
 
 /**
  * MOOD 7종의 좌표. 문항 선택지와 같은 공간에 있다.
@@ -142,16 +171,20 @@ function deriveMoods(axes: MoodVector): Record<Mood, number> {
   >;
 }
 
-/** 밤 성향 = 밤 + 새벽 비중. MY DNA 의 `Night Listener` 가 이 값이다 */
+/** 밤 성향 0~100. MY DNA 의 `Night Listener` 가 이 값이다 */
 export function nightScore(timeOfDay: Record<TimeSlot, number>): number {
-  return timeOfDay.night + timeOfDay.dawn;
+  return Math.round(
+    (Object.keys(NIGHTNESS) as TimeSlot[]).reduce((sum, slot) => sum + timeOfDay[slot] * NIGHTNESS[slot], 0),
+  );
 }
 
 /**
  * 4분면 + 예외 1개.
  *
- * 임계값 50 은 고정이 아니라 **조정 대상**이다. 실제 답변이 한쪽으로 몰리면
- * (예: 다들 밤을 고른다) 여기 숫자를 옮긴다. 문항이나 배점을 건드리지 않는다.
+ * 임계값 50 은 고정이 아니라 **조정 대상**이다. `nightScore` 가 실제로 갖는 값은
+ * `15 · 35 · 49 · 84 · 87` 이라, 50 을 45 로 내리면 저녁(49)이 밤 쪽으로 넘어온다.
+ * 답변이 한쪽으로 몰리면 여기 숫자를 옮긴다 — 문항이나 배점은 건드리지 않는다.
+ * `check:quiz` 가 이 눈금이 무너지지 않는지 본다.
  */
 export function resolvePersona(axes: PreferenceAxes): PersonaId {
   // 밝고 강한 쪽은 시간대와 무관하게 성격이 다르다. 4분면보다 먼저 본다

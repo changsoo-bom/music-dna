@@ -13,6 +13,12 @@ const GENRE_COLOR: Record<Genre, string> = {
   electronic: "bg-chart-5",
 };
 
+/**
+ * 섹션 라벨. `.eyebrow`(14px/700/0.04em + 시그널 점)의 조용한 사촌이다.
+ * **한 군데에만 적는다** — 세 곳에 복붙하면 그게 두 번째 아이브로우 스타일이 된다.
+ */
+const SECTION_LABEL = "text-[13px] font-bold uppercase tracking-[0.04em] text-slate";
+
 const AXIS_LABELS = [
   { key: "night", label: "Night Listener" },
   { key: "explorer", label: "Genre Explorer" },
@@ -21,9 +27,12 @@ const AXIS_LABELS = [
 
 export function QuizResult({
   preference,
+  saved,
   onRetry,
 }: {
   preference: MusicPreference;
+  /** Local Storage 에 실제로 들어갔나. 사생활 보호 모드·용량 초과에서 실패한다 */
+  saved: boolean;
   onRetry: () => void;
 }) {
   const { axes, moods, persona } = preference;
@@ -39,8 +48,13 @@ export function QuizResult({
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4);
 
-  const genres = GENRES.map((g) => ({ ...g, share: axes.genre[g.id] })).filter((g) => g.share > 0);
-  const topShare = genres[0]?.share ?? 1;
+  // 큰 값이 위로 온다. 정렬하지 않고 `genres[0]` 을 최대값으로 쓰면
+  // GENRES 선언 순서(pop 먼저)가 기준이 되어 막대가 컨테이너를 뚫는다 —
+  // Rock 을 1위로 고른 사람은 scaleX(2.45) 짜리 막대를 본다.
+  const genres = GENRES.map((g) => ({ ...g, share: axes.genre[g.id] }))
+    .filter((g) => g.share > 0)
+    .sort((a, b) => b.share - a.share);
+  const topShare = Math.max(1, ...genres.map((g) => g.share));
 
   return (
     <div className="q-enter">
@@ -52,7 +66,7 @@ export function QuizResult({
       <dl className="mt-14 grid grid-cols-3 gap-px overflow-hidden rounded-btn bg-hair max-sm:grid-cols-1">
         {AXIS_LABELS.map(({ key, label }) => (
           <div key={key} className="px-7 py-6 bg-lifted">
-            <dt className="text-[13px] font-bold uppercase tracking-[0.04em] text-slate">{label}</dt>
+            <dt className={SECTION_LABEL}>{label}</dt>
             <dd className="mt-2 text-[32px] font-medium tabular-nums tracking-[-0.03em]">
               {scores[key]}
               <span className="ml-0.5 text-lg text-slate">%</span>
@@ -63,7 +77,7 @@ export function QuizResult({
 
       <div className="mt-16 grid grid-cols-2 gap-16 max-md:grid-cols-1 max-md:gap-12">
         <section>
-          <h2 className="text-[13px] font-bold uppercase tracking-[0.04em] text-slate">장르</h2>
+          <h2 className={SECTION_LABEL}>장르</h2>
           <ul className="mt-6 flex flex-col gap-4">
             {genres.map((genre) => (
               <li key={genre.id} className="flex items-center gap-4">
@@ -83,7 +97,7 @@ export function QuizResult({
         </section>
 
         <section>
-          <h2 className="text-[13px] font-bold uppercase tracking-[0.04em] text-slate">분위기</h2>
+          <h2 className={SECTION_LABEL}>분위기</h2>
           <ul className="mt-6 flex flex-col gap-4">
             {topMoods.map(([mood, score]) => (
               <li key={mood} className="flex items-center gap-4">
@@ -107,9 +121,12 @@ export function QuizResult({
         <button type="button" onClick={onRetry} className={buttonClass("secondary")}>
           다시 검사하기
         </button>
-        {/* 결과가 어디 갔는지 안 알려주면 새로고침하면 사라지는 줄 안다 */}
+        {/* 결과가 어디 갔는지 안 알려주면 새로고침하면 사라지는 줄 안다.
+            저장이 실패했는데 저장됐다고 하면 그게 더 나쁘다. */}
         <p className="text-sm text-slate">
-          결과는 이 브라우저에 저장됐습니다. 다시 검사하면 덮어씁니다.
+          {saved
+            ? "결과는 이 브라우저에 저장됐습니다. 다시 검사하면 덮어씁니다."
+            : "이 브라우저에는 결과를 저장할 수 없었습니다. 창을 닫으면 사라집니다."}
         </p>
       </footer>
     </div>

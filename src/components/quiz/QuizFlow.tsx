@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { QuizOption } from "@/components/quiz/QuizOption";
+import { QuizRadioOption, QuizRankOption } from "@/components/quiz/QuizOption";
 import { QuizProgress } from "@/components/quiz/QuizProgress";
 import { QuizResult } from "@/components/quiz/QuizResult";
 import { buttonClass } from "@/components/ui/Button";
@@ -23,6 +23,7 @@ export function QuizFlow() {
   const [answers, setAnswers] = useState<QuizAnswers>({});
   const [index, setIndex] = useState(0);
   const [result, setResult] = useState<MusicPreference | null>(null);
+  const [saved, setSaved] = useState(false);
 
   // 재검사는 화면만 처음으로 돌린다. 저장된 결과는 지우지 않는다 —
   // 다시 하다 그만두면 이전 결과가 남아 있어야 한다.
@@ -30,9 +31,10 @@ export function QuizFlow() {
     setAnswers({});
     setIndex(0);
     setResult(null);
+    setSaved(false);
   }
 
-  if (result) return <QuizResult preference={result} onRetry={retry} />;
+  if (result) return <QuizResult preference={result} saved={saved} onRetry={retry} />;
 
   const question = QUESTIONS[index];
   const picked = answers[question.id] ?? [];
@@ -68,8 +70,19 @@ export function QuizFlow() {
     // 계산은 순수 함수이고, 저장은 이벤트 핸들러 안에서 끝낸다 —
     // useEffect 에서 하면 React Compiler 의 set-state-in-effect 와 부딪힌다.
     const preference = computePreference(answers, new Date().toISOString());
-    window.localStorage.setItem(STORAGE_KEYS.preference, JSON.stringify(preference));
+
+    // **결과 표시가 먼저다.** 저장은 부수효과다.
+    // setItem 은 사생활 보호 모드(QuotaExceededError)나 사이트 데이터 차단
+    // (localStorage 접근 자체가 SecurityError)에서 던진다. 이벤트 핸들러 안의
+    // 동기 예외라 error.tsx 도 에러 바운더리도 안 잡는다 — 순서가 반대면
+    // 5문항을 다 채우고도 "결과 보기" 가 아무 반응 없는 버튼이 된다.
     setResult(preference);
+    try {
+      window.localStorage.setItem(STORAGE_KEYS.preference, JSON.stringify(preference));
+      setSaved(true);
+    } catch {
+      setSaved(false);
+    }
   }
 
   return (
@@ -78,7 +91,18 @@ export function QuizFlow() {
 
       {/* key 로 리마운트해서 진입 애니메이션을 다시 태운다 */}
       <div key={question.id} className="q-enter mt-16 max-sm:mt-10">
-        <h1 className="text-[clamp(28px,4vw,44px)] leading-[1.15]">{question.prompt}</h1>
+        {/* 문항이 바뀌면 제목으로 포커스를 옮긴다. 세 가지가 같이 해결된다 —
+            (1) "다음" 이 disabled 로 바뀌면서 포커스가 body 로 튕기는 문제
+            (2) 스크린리더에 화면이 바뀐 신호가 전혀 안 가던 문제
+            (3) 모바일에서 목록 하단의 "다음" 을 누르면 새 제목이 화면 밖이던 문제
+            프로그램 포커스 대상이라 링을 지운다. Tab 순서에는 안 들어간다. */}
+        <h1
+          ref={(el) => el?.focus()}
+          tabIndex={-1}
+          className="text-[clamp(28px,4vw,44px)] leading-[1.15] outline-none"
+        >
+          {question.prompt}
+        </h1>
         {isRank && <p className="mt-4 text-base text-slate">{question.hint}</p>}
 
         {/* 그림자가 서로 겹치면 탁해진다. 테두리일 때보다 간격을 벌린다 */}
@@ -88,33 +112,41 @@ export function QuizFlow() {
                 const rank = picked.indexOf(optionIndex);
                 return (
                   <li key={option.label}>
-                    <QuizOption
+                    <QuizRankOption
                       label={option.label}
                       sub={option.sub}
                       badge={rank >= 0 ? String(rank + 1) : "+"}
                       selected={rank >= 0}
-                      onClick={() => toggleRank(optionIndex, question.maxPicks)}
+                      rank={rank}
+                      // 한도에 닿으면 미선택 카드를 죽인다. 전에는 활성 버튼인 채로
+                      // 클릭만 무시돼서 "왜 안 눌리지" 를 겪었다.
+                      disabled={rank < 0 && picked.length >= question.maxPicks}
+                      onToggle={() => toggleRank(optionIndex, question.maxPicks)}
                     />
                   </li>
                 );
               })
             : question.options.map((option, optionIndex) => (
                 <li key={option.label}>
-                  <QuizOption
+                  <QuizRadioOption
+                    name={question.id}
                     label={option.label}
                     badge={String(optionIndex + 1)}
                     selected={picked[0] === optionIndex}
-                    onClick={() => select(optionIndex)}
+                    onSelect={() => select(optionIndex)}
                   />
                 </li>
               ))}
         </ul>
 
         {/* 선택 현황은 버튼 옆이 아니라 목록 바로 아래에 둔다.
-            설명하는 대상 옆에 있어야 읽히고, 좁은 화면에서 버튼과 엉키지 않는다. */}
-        {isRank && picked.length > 0 && picked.length < question.maxPicks && (
-          <p className="mt-5 text-sm text-slate">
-            {picked.length}개 선택 — 더 고르거나 이대로 넘어가도 됩니다
+            설명하는 대상 옆에 있어야 읽히고, 좁은 화면에서 버튼과 엉키지 않는다.
+            한도에 닿았을 때도 안내를 유지한다 — 그때가 설명이 제일 필요한 순간이다. */}
+        {isRank && picked.length > 0 && (
+          <p aria-live="polite" className="mt-5 text-sm text-slate">
+            {picked.length < question.maxPicks
+              ? `${picked.length}개 선택 — 더 고르거나 이대로 넘어가도 됩니다`
+              : `${question.maxPicks}개 선택 완료 — 바꾸려면 하나를 해제하세요`}
           </p>
         )}
       </div>
