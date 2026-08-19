@@ -1,5 +1,5 @@
 import { DnaSummary } from "@/components/report/DnaSummary";
-import { buttonClass } from "@/components/ui/Button";
+import { Arrow, buttonClass } from "@/components/ui/Button";
 import type { MusicPreference } from "@/types/music";
 
 /**
@@ -21,8 +21,9 @@ export function QuizResult({
       preference={preference}
       autoFocus
       action={
-        <button type="button" onClick={onRetry} className={buttonClass("secondary")}>
-          Retry
+        <button type="button" onClick={onRetry} className={buttonClass("text")}>
+          다시 검사하기
+          <Arrow />
         </button>
       }
       footer={

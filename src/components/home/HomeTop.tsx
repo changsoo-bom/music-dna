@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 import { DnaSummary } from "@/components/report/DnaSummary";
-import { ButtonLink } from "@/components/ui/Button";
+import { Arrow, ButtonLink } from "@/components/ui/Button";
 import { usePreference } from "@/hooks/use-preference";
 
 /**
@@ -26,8 +26,9 @@ export function HomeTop({ children }: { children: ReactNode }) {
       <DnaSummary
         preference={preference}
         action={
-          <ButtonLink href="/quiz" variant="secondary">
-            Retry
+          <ButtonLink href="/quiz" variant="text">
+            다시 검사하기
+            <Arrow />
           </ButtonLink>
         }
       />
