@@ -24,7 +24,9 @@ function cardClass(selected: boolean, muted = false) {
   const base =
     "group flex w-full items-center gap-5 px-7 py-5 text-left rounded-btn transition-[box-shadow,background-color,color,opacity] duration-200 max-sm:gap-4 max-sm:px-5";
   if (selected) return `${base} bg-ink text-canvas shadow-float`;
-  if (muted) return `${base} bg-white text-ink shadow-lift opacity-40`;
+  // 한도에 닿아 죽은 카드. 너무 흐리면 안 된다 — 무엇을 해제할지 고르려면
+  // 남은 선택지를 읽어야 하는데, 그게 필요한 순간이 바로 지금이다.
+  if (muted) return `${base} bg-white text-ink shadow-lift opacity-60`;
   return `${base} bg-white text-ink shadow-lift hover:shadow-float cursor-pointer`;
 }
 
@@ -89,9 +91,13 @@ export function QuizRadioOption({
 /**
  * 순위 문항. 순서가 곧 가중치(5/2/1)라 라디오도 체크박스도 아니다.
  *
- * **순위를 `aria-label` 에 넣는다.** 순위를 담은 유일한 요소인 badge 가
- * `aria-hidden` 이라, 넣지 않으면 스크린리더 사용자는 1위와 3위를 구별할 수 없다.
- * 그 둘은 점수가 5배 차이다.
+ * 순위를 담은 유일한 요소인 badge 가 `aria-hidden` 이라, 그냥 두면 스크린리더
+ * 사용자는 1위와 3위를 구별할 수 없다. 그 둘은 점수가 5배 차이다.
+ *
+ * **`aria-label` 로 붙이지 않는다.** `aria-label` 은 자손 텍스트를 전부 덮어서
+ * 하위 장르 부제(`sub`)가 통째로 안 읽힌다 — 하필 `sub` 를 가진 유일한 문항이
+ * 이 순위 문항이고, 그 부제가 "뭘 고르는 건지" 를 말해 주는 정보다.
+ * 시각적으로만 숨긴 `<span>` 을 앞에 두면 라벨·부제·순위가 전부 살아 있다.
  */
 export function QuizRankOption({
   rank,
@@ -105,9 +111,9 @@ export function QuizRankOption({
       onClick={onToggle}
       disabled={disabled}
       aria-pressed={body.selected}
-      aria-label={rank >= 0 ? `${body.label}, ${rank + 1}순위로 선택됨` : body.label}
       className={`${cardClass(body.selected, disabled)} focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none disabled:cursor-not-allowed`}
     >
+      {rank >= 0 && <span className="sr-only">{rank + 1}순위,</span>}
       <Body {...body} />
     </button>
   );

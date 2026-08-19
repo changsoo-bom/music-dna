@@ -10,7 +10,10 @@ export function QuizProgress({ current, total }: { current: number; total: numbe
     <div
       role="progressbar"
       aria-valuenow={current}
-      aria-valuemin={1}
+      // 0 이다. 1 로 두면 보조기술이 (current-1)/(total-1) 로 계산해서
+      // 0·25·50·75·100% 가 되는데, 눈에 보이는 막대는 scaleX(current/total) 라
+      // 20·40·60·80·100% 다. 두 값이 어긋난다.
+      aria-valuemin={0}
       aria-valuemax={total}
       aria-valuetext={`${total}문항 중 ${current}번째`}
       aria-label="검사 진행률"

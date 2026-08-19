@@ -2,6 +2,7 @@ import { buttonClass } from "@/components/ui/Button";
 import { GENRES } from "@/constants/genres";
 import { PERSONAS } from "@/constants/personas";
 import { nightScore } from "@/lib/quiz/scoring";
+import { focusOnMount } from "@/lib/utils";
 import type { Genre, MusicPreference } from "@/types/music";
 
 /** slot → 검증된 차트 색. Tailwind 는 클래스명을 정적으로 읽으므로 조립하지 않는다 */
@@ -14,10 +15,14 @@ const GENRE_COLOR: Record<Genre, string> = {
 };
 
 /**
- * 섹션 라벨. `.eyebrow`(14px/700/0.04em + 시그널 점)의 조용한 사촌이다.
- * **한 군데에만 적는다** — 세 곳에 복붙하면 그게 두 번째 아이브로우 스타일이 된다.
+ * 섹션 라벨.
+ *
+ * **`uppercase` 를 쓰지 않는다.** `styling.md` 는 대문자 변환을 14px 아이브로우
+ * 라벨 하나로 묶어 뒀다. 13px 에 `uppercase` + `700` + `+0.04em` 을 얹으면
+ * 아이브로우의 타이포 서명을 1px 작게 복제한 것이고, 그 순간 시스템에
+ * 두 번째 대문자 스타일이 생긴다. 자간도 같이 뺐다 — 대문자용 보정이었다.
  */
-const SECTION_LABEL = "text-[13px] font-bold uppercase tracking-[0.04em] text-slate";
+const SECTION_LABEL = "text-[13px] font-bold text-slate";
 
 const AXIS_LABELS = [
   { key: "night", label: "Night Listener" },
@@ -60,7 +65,17 @@ export function QuizResult({
     <div className="q-enter">
       <span className="eyebrow text-ink">결과</span>
 
-      <h1 className="mt-5 text-[clamp(40px,6vw,72px)] leading-[1.05]">{title}</h1>
+      {/* 문항 화면과 같은 이유로 제목이 포커스를 받는다. 여기가 빠져 있으면
+          "결과 보기" 버튼이 사라지면서 포커스가 body 로 떨어지고,
+          결과가 나왔다는 신호가 스크린리더에 전혀 안 간다.
+          재검사 경로만 되고 정방향이 안 되면 비대칭이라 더 이상하다. */}
+      <h1
+        ref={focusOnMount}
+        tabIndex={-1}
+        className="mt-5 text-[clamp(40px,6vw,72px)] leading-[1.05] outline-none"
+      >
+        {title}
+      </h1>
       <p className="mt-6 max-w-[52ch] text-lg text-slate max-sm:text-base">{line}</p>
 
       <dl className="mt-14 grid grid-cols-3 gap-px overflow-hidden rounded-btn bg-hair max-sm:grid-cols-1">

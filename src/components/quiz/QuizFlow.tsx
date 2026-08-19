@@ -9,6 +9,7 @@ import { buttonClass } from "@/components/ui/Button";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { focusOnMount } from "@/lib/utils";
 import type { MusicPreference } from "@/types/music";
 import type { QuizAnswers } from "@/types/quiz";
 
@@ -95,9 +96,10 @@ export function QuizFlow() {
             (1) "다음" 이 disabled 로 바뀌면서 포커스가 body 로 튕기는 문제
             (2) 스크린리더에 화면이 바뀐 신호가 전혀 안 가던 문제
             (3) 모바일에서 목록 하단의 "다음" 을 누르면 새 제목이 화면 밖이던 문제
-            프로그램 포커스 대상이라 링을 지운다. Tab 순서에는 안 들어간다. */}
+            프로그램 포커스 대상이라 링을 지운다. Tab 순서에는 안 들어간다.
+            ref 를 모듈 스코프 함수로 두는 이유는 focusOnMount 주석에 있다. */}
         <h1
-          ref={(el) => el?.focus()}
+          ref={focusOnMount}
           tabIndex={-1}
           className="text-[clamp(28px,4vw,44px)] leading-[1.15] outline-none"
         >
@@ -141,12 +143,18 @@ export function QuizFlow() {
 
         {/* 선택 현황은 버튼 옆이 아니라 목록 바로 아래에 둔다.
             설명하는 대상 옆에 있어야 읽히고, 좁은 화면에서 버튼과 엉키지 않는다.
-            한도에 닿았을 때도 안내를 유지한다 — 그때가 설명이 제일 필요한 순간이다. */}
-        {isRank && picked.length > 0 && (
-          <p aria-live="polite" className="mt-5 text-sm text-slate">
-            {picked.length < question.maxPicks
-              ? `${picked.length}개 선택 — 더 고르거나 이대로 넘어가도 됩니다`
-              : `${question.maxPicks}개 선택 완료 — 바꾸려면 하나를 해제하세요`}
+            한도에 닿았을 때도 안내를 유지한다 — 그때가 설명이 제일 필요한 순간이다.
+
+            live region 은 **내용보다 먼저 DOM 에 있어야** 고지된다. 영역과 첫 텍스트를
+            같이 삽입하면 대부분의 스크린리더가 첫 선택을 안 읽고 두 번째부터 읽는다.
+            그래서 문항이 뜨는 순간부터 빈 채로 자리를 잡아 둔다. */}
+        {isRank && (
+          <p aria-live="polite" className="mt-5 min-h-5 text-sm text-slate">
+            {picked.length === 0
+              ? ""
+              : picked.length < question.maxPicks
+                ? `${picked.length}개 선택 — 더 고르거나 이대로 넘어가도 됩니다`
+                : `${question.maxPicks}개 선택 완료 — 바꾸려면 하나를 해제하세요`}
           </p>
         )}
       </div>
