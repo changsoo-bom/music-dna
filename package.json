@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "check:quiz": "tsx scripts/check-quiz.ts"
+    "check:quiz": "tsx scripts/check-quiz.ts",
+    "check:catalog": "tsx scripts/check-catalog.ts",
+    "check": "pnpm check:quiz && pnpm check:catalog"
   },
   "dependencies": {
     "next": "16.3.1",

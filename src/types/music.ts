@@ -95,11 +95,19 @@ export type CatalogTrack = {
   title: string;
   artist: string;
   subGenre: SubGenre;
-  /** 곡의 분위기 좌표. 하위 장르 기본값에서 출발해 곡별로 손본다 */
-  mood: MoodVector;
-  /** 초. videos.list 의 contentDetails.duration 에서 채운다 */
-  duration: number;
-  youtubeId: string;
+  /**
+   * 하위 장르 기본 좌표에서 **달라지는 축만** 적는다.
+   * 40곡 × 3개를 전부 손으로 적으면 대부분이 기본값의 복사본이 되고,
+   * 그러면 어느 값이 실제 판단인지 구별할 수 없다. 비어 있으면 기본값 그대로다.
+   */
+  mood?: Partial<MoodVector>;
+  /**
+   * 아래 둘은 `videos.list` 보강 전까지 비어 있다.
+   * 없는 값을 지어내면 재생되지 않는 곡이 카탈로그에 조용히 섞인다.
+   */
+  youtubeId?: string;
+  /** 초 */
+  duration?: number;
 };
 
 /** 사용자가 고르거나 플레이리스트에 담은 곡. 시각은 처음부터 넣는다 */
