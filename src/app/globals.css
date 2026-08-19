@@ -86,35 +86,3 @@ h3 {
     transition-duration: 0.001ms !important;
   }
 }
-
-/* 페이지 컨테이너. 반응형 거터가 세 단계라 유틸로 뺀다. */
-.shell {
-  width: min(1280px, 100% - 96px);
-  margin-inline: auto;
-}
-@media (max-width: 1023px) {
-  .shell {
-    width: min(1280px, 100% - 48px);
-  }
-}
-@media (max-width: 640px) {
-  .shell {
-    width: min(1280px, 100% - 32px);
-  }
-}
-
-/* 청취 지문 진입 애니메이션. transform 만 건드린다.
-   prefers-reduced-motion 은 위 전역 블록이 duration·delay 를 0 으로 만들어
-   즉시 최종 상태로 앉힌다. */
-@keyframes fp-grow {
-  from {
-    transform: scaleY(0);
-  }
-  to {
-    transform: scaleY(1);
-  }
-}
-.fp-bar {
-  transform-origin: center bottom;
-  animation: fp-grow 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-}

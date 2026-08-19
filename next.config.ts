@@ -3,8 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactCompiler: true,
   images: {
-    /** YouTube 썸네일. `youtubeId` 에서 URL 을 규칙으로 만들어 쓴다. */
-    remotePatterns: [{ protocol: "https", hostname: "i.ytimg.com" }],
+    /**
+     * 프로토타입 단계의 커버 이미지는 picsum 시드로 받는다.
+     * Spotify 연동이 들어오면 앨범 아트 호스트(`i.scdn.co`)를 여기에 추가한다.
+     */
+    remotePatterns: [{ protocol: "https", hostname: "picsum.photos" }],
   },
 };
 
