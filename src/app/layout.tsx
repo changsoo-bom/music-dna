@@ -51,11 +51,17 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko">
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: HIDE_INTRO_BEFORE_PAINT }} />
-      </head>
+    // 스크립트가 하이드레이션 전에 `<html>` 에 data-dna 를 붙인다. 서버 마크업에는
+    // 없는 속성이라 React 가 불일치로 잡는데 **의도한 차이다** — 첫 페인트를
+    // 앞지르는 게 이 스크립트의 목적이다. suppressHydrationWarning 은 이 요소의
+    // 속성 한 겹에만 걸리므로 안쪽 트리의 진짜 불일치는 그대로 보고된다.
+    <html lang="ko" suppressHydrationWarning>
       <body className={`${sofia.variable} ${pretendard.variable}`}>
+        {/* `<head>` 를 직접 렌더하지 않는다 — Next 가 메타데이터를 넣는 자리라
+            섞이면 서로 덮어쓴다. body 첫 자식이면 본문이 파싱되기 전에 돌아서
+            첫 페인트를 앞지르는 목적은 그대로 달성된다.
+            인라인 스크립트는 React 19 의 head 호이스팅 대상이 아니라 여기 남는다. */}
+        <script dangerouslySetInnerHTML={{ __html: HIDE_INTRO_BEFORE_PAINT }} />
         {children}
       </body>
     </html>
