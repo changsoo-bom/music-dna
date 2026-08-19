@@ -62,7 +62,7 @@ export function HomeTop({ children }: { children: ReactNode }) {
             같은 줄에 있어야 "이게 내 것이고, 이렇게 튼다" 가 한 번에 읽힌다. */}
         <header className="flex items-end justify-between gap-8 max-sm:flex-col max-sm:items-start max-sm:gap-6">
           <div>
-            <span className="eyebrow text-ink">나의 플레이리스트</span>
+            <span className="eyebrow text-ink">추천 플레이리스트</span>
             <h2 className="mt-5 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">
               그래서 이런 곡은 어떤가요
             </h2>
