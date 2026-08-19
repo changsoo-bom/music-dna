@@ -109,8 +109,19 @@ export function QuizFlow() {
                 </li>
               ))}
         </ul>
+
+        {/* 선택 현황은 버튼 옆이 아니라 목록 바로 아래에 둔다.
+            설명하는 대상 옆에 있어야 읽히고, 좁은 화면에서 버튼과 엉키지 않는다. */}
+        {isRank && picked.length > 0 && picked.length < question.maxPicks && (
+          <p className="mt-5 text-sm text-slate">
+            {picked.length}개 선택 — 더 고르거나 이대로 넘어가도 됩니다
+          </p>
+        )}
       </div>
 
+      {/* 이전은 왼쪽, 다음은 오른쪽 끝. 진행 방향과 버튼 위치를 맞춘다.
+          첫 문항엔 이전이 없으므로 justify-between 대신 다음에 ml-auto 를 준다 —
+          그래야 혼자 남아도 오른쪽에 붙는다. */}
       <div className="mt-12 flex items-center gap-3 max-sm:mt-8">
         {index > 0 && (
           <button type="button" onClick={() => setIndex(index - 1)} className={buttonClass("secondary")}>
@@ -123,15 +134,10 @@ export function QuizFlow() {
           type="button"
           onClick={advance}
           disabled={picked.length === 0}
-          className={buttonClass()}
+          className={`${buttonClass()} ml-auto`}
         >
           {isLast ? "결과 보기" : "다음"}
         </button>
-        {isRank && picked.length > 0 && picked.length < question.maxPicks && (
-          <p className="text-sm text-slate">
-            {picked.length}개 선택 — 더 고르거나 이대로 넘어가도 됩니다
-          </p>
-        )}
       </div>
     </div>
   );
