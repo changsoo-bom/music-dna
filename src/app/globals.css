@@ -77,6 +77,11 @@ body {
      (URL, 영어 합성어)가 상자를 뚫고 나간다 — 그때만 끊는다. */
   word-break: keep-all;
   overflow-wrap: break-word;
+
+  /* 워터마크처럼 셸 밖으로 빠져나가는 요소가 가로 스크롤을 만들지 않게 자른다.
+     `hidden` 이 아니라 `clip` 이다 — `hidden` 은 스크롤 컨테이너를 만들어서
+     헤더의 `sticky` 가 그 안에 갇힌다. `clip` 은 자르기만 한다. */
+  overflow-x: clip;
 }
 
 h1,

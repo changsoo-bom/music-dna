@@ -74,7 +74,7 @@ export function HomeTop() {
 
       {/* 선언 다음에 내역. 위에서 "당신은 이런 사람" 이라고 말했으니
           여기서는 그 판정이 어느 값에서 나왔는지를 편다. */}
-      <section className="mt-8">
+      <section className="mt-16 max-sm:mt-10">
         <DnaSummary
           preference={preference}
           action={

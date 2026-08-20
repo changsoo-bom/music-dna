@@ -50,13 +50,19 @@ export function Verdict({ preference }: { preference: MusicPreference }) {
   };
 
   return (
-    <section className="relative overflow-hidden pt-20 pb-[clamp(72px,13vw,180px)] max-lg:pt-14 max-sm:pt-10">
-      {/* 잉크가 아니라 --ghost 다. 읽으라고 둔 글자가 아니라 바닥의 결이라,
+    <section className="relative pt-20 pb-[clamp(96px,15vw,220px)] max-lg:pt-14 max-sm:pt-10">
+      {/* **셸을 빠져나가 화면 왼쪽 끝에서 시작한다.** 프로토타입에서 이 글자는
+          섹션 전체 폭(=뷰포트)에 앉는데, 여기서는 셸(1280px) 안이라 그대로 두면
+          오른쪽이 잘려 "MUSIC DN" 이 된다. 잘린 글자는 배경이 아니라 사고로 보인다.
+          `left: calc(50% - 50vw)` + `w-screen` 이 컨테이너를 무시하고 화면 폭을 잡고,
+          `body { overflow-x: clip }` 이 그 때문에 생길 가로 스크롤을 막는다.
+
+          잉크가 아니라 --ghost 다. 읽으라고 둔 글자가 아니라 바닥의 결이라,
           내용보다 진하면 그 순간 배경이 아니라 또 하나의 제목이 된다.
           DOM 에서 먼저 그리고 내용은 뒤에 온다 — z-index 를 안 쓰고 겹치는 법이다. */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -bottom-[0.16em] block text-[clamp(96px,20vw,260px)] leading-[0.8] font-medium tracking-[-0.05em] whitespace-nowrap text-ghost select-none"
+        className="pointer-events-none absolute bottom-0 left-[calc(50%-50vw)] block w-screen text-[clamp(96px,20vw,260px)] leading-[0.8] font-medium tracking-[-0.05em] whitespace-nowrap text-ghost select-none"
       >
         MUSIC DNA
       </span>
