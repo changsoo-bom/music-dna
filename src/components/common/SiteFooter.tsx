@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 /**
  * 잉크 블랙 푸터. **시스템이 규정한 세 번째 표면이지 다크 모드가 아니다**
  * (`docs/design-reference.md`). 위쪽 두 모서리만 스타디움 반경으로 깎여
@@ -21,15 +23,20 @@ export function SiteFooter() {
         {/* 좁아지면 세로로 쌓는다. 한 줄로 두면 워드마크 옆에서
             안내 문장이 한 글자씩 끊긴다 */}
         <div className="flex max-lg:flex-col max-lg:gap-5">
-          <span className="flex items-center gap-2.5 text-[15px] font-bold tracking-[0.02em]">
+          {/* w-fit 이 없으면 세로로 쌓일 때 링크가 한 줄을 통째로 차지한다 —
+              워드마크 오른쪽 빈 자리를 눌러도 홈으로 간다 */}
+          <Link
+            href="/"
+            className="flex w-fit items-center gap-2.5 text-[15px] font-bold tracking-[0.02em] transition-opacity hover:opacity-70"
+          >
             <span aria-hidden className="relative block h-5 w-[34px]">
               <span className="absolute top-0 left-0 h-5 w-5 rounded-full bg-chart-2" />
               <span className="absolute top-0 right-0 h-5 w-5 rounded-full bg-chart-1" />
             </span>
             MY MUSIC DNA
-          </span>
+          </Link>
 
-          <p className="ml-auto max-w-180 text-[13px] leading-relaxed text-canvas/70 max-lg:ml-0">
+          <p className="ml-auto text-[13px] leading-relaxed text-canvas/70 max-lg:ml-0">
             검사 결과와 재생 이력은 이 브라우저에만 저장됩니다. 계정이 없고, 서버로 보내지 않습니다.
             곡 정보와 앨범 이미지는 YouTube 에서 가져옵니다.
           </p>
