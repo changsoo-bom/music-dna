@@ -42,6 +42,9 @@ const FILL_ALPHA = "2e";
  */
 export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const valueRef = useRef<HTMLSpanElement>(null);
 
   // 배열은 렌더마다 새로 만들어진다. 그대로 의존성에 넣으면 New Search 를
   // 누를 때마다 차트를 부수고 다시 만들면서 애니메이션이 처음부터 돈다.
@@ -94,21 +97,42 @@ export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
         interaction: { mode: "nearest", intersect: true },
         plugins: {
           legend: { display: false },
-          // 시스템의 툴팁 모양을 캔버스로 옮긴 것이다 — 흰 표면, 잉크 글자,
-          // 필 반경. 그림자는 캔버스로 못 그려서 hair 테두리로 대신한다.
+          /**
+           * **캔버스가 아니라 DOM 으로 그린다.**
+           *
+           * 내장 툴팁을 시스템 모양으로 맞추려다 두 가지에 부딪혔다.
+           * `cornerRadius: 999` 는 Chart.js 가 상자 크기로 클램프하지 않아서
+           * 호가 서로 겹친 찌그러진 도형이 나오고, 위쪽 꼭짓점에서는 툴팁이
+           * **캔버스 경계에서 잘린다** — 캔버스 밖으로는 아무것도 못 나간다.
+           * 그림자도 못 그린다.
+           *
+           * DOM 이면 셋 다 없는 문제다. `rounded-pill` 도 `shadow-lift` 도
+           * 본문 폰트도 그냥 쓰던 것을 쓴다.
+           *
+           * state 를 안 쓴다. 포인터가 움직일 때마다 setState 하면 차트가
+           * 통째로 다시 그려진다 — `CountUp` 이 숫자를 직접 쓰는 것과 같은 이유다.
+           */
           tooltip: {
-            backgroundColor: token("--white"),
-            titleColor: token("--ink"),
-            bodyColor: token("--slate"),
-            borderColor: token("--hair"),
-            borderWidth: 1,
-            cornerRadius: 999,
-            padding: { top: 9, bottom: 9, left: 18, right: 18 },
-            // 계열이 하나뿐이라 색 상자가 무엇을 구분해 주지 않는다.
-            displayColors: false,
-            titleFont: { size: 14, weight: 500 },
-            bodyFont: { size: 14 },
-            callbacks: { label: (item) => ` ${item.parsed.r}` },
+            enabled: false,
+            external: ({ tooltip }) => {
+              const tip = tipRef.current;
+              const label = labelRef.current;
+              const value = valueRef.current;
+              if (!tip || !label || !value) return;
+
+              if (tooltip.opacity === 0) {
+                tip.style.opacity = "0";
+                return;
+              }
+
+              const point = tooltip.dataPoints[0];
+              label.textContent = point.label;
+              value.textContent = String(point.parsed.r);
+              // `left`/`top` 이 아니라 `transform` 이다. 포인터가 움직일 때마다
+              // 레이아웃을 다시 잡지 않는다. → `.claude/rules/react.md`
+              tip.style.transform = `translate(${tooltip.caretX}px, ${tooltip.caretY}px) translate(-50%, -175%)`;
+              tip.style.opacity = "1";
+            },
           },
         },
         scales: {
@@ -139,6 +163,17 @@ export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
         role="img"
         aria-label={`다섯 지표의 균형. ${axes.map((a) => `${a.label} ${a.value}`).join(", ")}`}
       />
+
+      {/* 포인터를 따라다니는 표시다. 값은 이미 옆 필에 글로 있으므로
+          스크린리더에는 숨긴다 — 같은 걸 두 번 읽어 줄 이유가 없다. */}
+      <div
+        ref={tipRef}
+        aria-hidden
+        className="pointer-events-none absolute top-0 left-0 rounded-pill bg-white px-4.5 py-2 text-sm whitespace-nowrap opacity-0 shadow-float transition-opacity duration-100"
+      >
+        <span ref={labelRef} className="font-medium" />
+        <span ref={valueRef} className="ml-2.5 tabular-nums text-slate" />
+      </div>
     </div>
   );
 }
