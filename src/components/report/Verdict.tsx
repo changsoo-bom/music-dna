@@ -1,20 +1,23 @@
 import type { CSSProperties } from "react";
 
 import { CountUp } from "@/components/report/CountUp";
+import { RadarChart } from "@/components/report/RadarChart";
 import { PERSONAS } from "@/constants/personas";
 import { nightScore } from "@/lib/quiz/scoring";
 import type { MusicPreference } from "@/types/music";
 
 /**
- * 스탯 필에 올릴 축. 프로토타입의 verdict 은 넷을 놓는다.
+ * 지표 다섯. 필과 오각형이 같은 배열을 본다.
  *
- * `dreamy` 가 넷째다 — 검사에서 재는 세 좌표 중 하나인데
+ * 프로토타입의 verdict 은 넷이지만 오각형에는 꼭짓점이 다섯 필요하고,
+ * 마침 검사가 재는 축이 정확히 다섯이다. `valence` 와 `dreamy` 는
  * 분위기 지도를 걷어낸 뒤로 화면 어디에도 안 나오고 있었다.
  */
 const STATS = [
   { key: "night", label: "야간 청취" },
   { key: "explorer", label: "탐험 성향" },
   { key: "energy", label: "에너지" },
+  { key: "valence", label: "밝기" },
   { key: "dreamy", label: "몽환" },
 ] as const;
 
@@ -46,6 +49,7 @@ export function Verdict({ preference }: { preference: MusicPreference }) {
     night: nightScore(axes.timeOfDay),
     explorer: axes.explorer,
     energy: axes.energy,
+    valence: axes.valence,
     dreamy: axes.dreamy,
   };
 
@@ -67,32 +71,48 @@ export function Verdict({ preference }: { preference: MusicPreference }) {
         MUSIC DNA
       </span>
 
-      <div className="relative">
-        <span className="eyebrow text-ink">당신의 음악 DNA</span>
-        <h1 className="mt-5 max-w-[14ch] text-[clamp(34px,6vw,64px)] leading-[1.06]">
-          당신은 {title}입니다
-        </h1>
-        <p className="mt-6 max-w-[46ch] text-lg text-slate max-sm:text-base">{line}</p>
+      {/* 왼쪽은 말, 오른쪽은 그림. 필은 값을 말하고 오각형은 균형을 말한다 —
+          같은 데이터의 반복이 아니라 **읽는 방식이 다르다.**
+          좁아지면 세로로 쌓는다. 도형을 줄여 가며 옆에 붙여 두면 라벨부터 뭉갠다. */}
+      <div className="relative grid grid-cols-[1fr_auto] items-center gap-16 max-lg:grid-cols-1 max-lg:gap-12">
+        <div>
+          <span className="eyebrow text-ink">당신의 음악 DNA</span>
+          <h1 className="mt-5 max-w-[18ch] text-[clamp(34px,6vw,64px)] leading-[1.06]">
+            당신은 {title} 입니다
+          </h1>
+          <p className="mt-6 max-w-[46ch] text-lg text-slate max-sm:text-base">{line}</p>
 
-        {/* 떠 있는 필. 크림 캔버스 위에 뜬 요소라 표면은 흰색이고 그림자는
+          {/* 떠 있는 필. 크림 캔버스 위에 뜬 요소라 표면은 흰색이고 그림자는
             `shadow-lift` 다 — 시스템이 칩·스탯 필에 정해 둔 조합 그대로다.
             숫자에 % 를 안 붙인다. 아래 선이 이미 100 중 얼마인지를 그린다. */}
-        <dl className="mt-11 flex flex-wrap gap-3 max-sm:mt-8">
-          {STATS.map(({ key, label }, index) => (
-            <div key={key} className="min-w-43 rounded-pill bg-white px-[30px] py-4 shadow-lift">
-              <dd className="text-[32px] leading-[1.1] font-medium tabular-nums tracking-[-0.03em]">
-                <CountUp value={scores[key]} />
-              </dd>
-              <dt className="mt-0.5 text-sm text-slate">{label}</dt>
-              <span aria-hidden className="mt-3 block h-0.5 overflow-hidden rounded-pill bg-ghost">
+          <dl className="mt-11 flex flex-wrap gap-3 max-sm:mt-8">
+            {STATS.map(({ key, label }, index) => (
+              <div key={key} className="min-w-43 rounded-pill bg-white px-[30px] py-4 shadow-lift">
+                <dd className="text-[32px] leading-[1.1] font-medium tabular-nums tracking-[-0.03em]">
+                  <CountUp value={scores[key]} />
+                </dd>
+                <dt className="mt-0.5 text-sm text-slate">{label}</dt>
                 <span
-                  className="bar-fill block h-full rounded-pill bg-ink"
-                  style={fillStyle(scores[key] / 100, index)}
-                />
-              </span>
-            </div>
-          ))}
-        </dl>
+                  aria-hidden
+                  className="mt-3 block h-0.5 overflow-hidden rounded-pill bg-ghost"
+                >
+                  <span
+                    className="bar-fill block h-full rounded-pill bg-ink"
+                    style={fillStyle(scores[key] / 100, index)}
+                  />
+                </span>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        <RadarChart
+          axes={STATS.map(({ key, label }) => ({
+            key,
+            label,
+            value: scores[key],
+          }))}
+        />
       </div>
     </section>
   );
