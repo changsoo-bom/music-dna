@@ -2,7 +2,6 @@
 
 import { Shuffle } from "@phosphor-icons/react/dist/ssr";
 import { useState } from "react";
-import type { ReactNode } from "react";
 
 import { DnaSummary } from "@/components/report/DnaSummary";
 import { MyPlaylist } from "@/components/report/MyPlaylist";
@@ -10,34 +9,59 @@ import { RecommendList } from "@/components/report/RecommendList";
 import { Arrow, ButtonLink, buttonClass } from "@/components/ui/Button";
 import { usePreference } from "@/hooks/use-preference";
 import { nextExclusions, recommend } from "@/lib/report/recommend";
+import { parsePreference } from "@/lib/schemas/preference";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 
 /**
- * 홈 맨 위. 검사를 했으면 결과, 안 했으면 소개.
+ * 소개 자리의 표시를 지운다. **저장값이 실제로 깨졌을 때만.**
  *
- * 소개는 `children` 으로 받는다. 여기서 직접 import 하면 랜딩 마크업이 통째로
- * 클라이언트 번들에 실린다 — **서버에서 그린 것을 그대로 통과시킨다.**
+ * 이 ref 는 하이드레이션 첫 렌더에서도 돈다 — 서버가 Local Storage 를 못 봐서
+ * 항상 "결과 없음" 으로 그려지기 때문이다. 그때 표시를 지우면 첫 페인트에
+ * 숨겨 뒀던 안내가 한 프레임 드러나고, 그게 **새로고침할 때마다 스치던 화면**이다.
  *
- * 서버는 Local Storage 를 못 보므로 첫 렌더는 항상 소개다. 검사한 사람은
+ * 그래서 여기서 저장값을 직접 다시 읽는다. 성한 값이 있으면 곧 결과로 바뀔
+ * 것이므로 그대로 숨겨 둔다. 없거나 깨졌으면 그때 드러낸다 —
+ * 안 그러면 빈 화면만 남는다.
+ *
+ * 모듈 스코프에 둔다. 인라인 화살표면 렌더마다 detach/attach 한다.
+ */
+function revealIfNoResult(el: HTMLElement | null) {
+  if (!el) return;
+  if (parsePreference(window.localStorage.getItem(STORAGE_KEYS.preference))) return;
+  document.documentElement.removeAttribute("data-dna");
+}
+
+/**
+ * 홈 맨 위. 검사를 했으면 결과, 안 했으면 검사로 보내는 안내.
+ *
+ * 서버는 Local Storage 를 못 보므로 첫 렌더는 항상 안내다. 검사한 사람은
  * 하이드레이션 직후 결과로 바뀐다. 계정을 두지 않기로 한 결정의 대가고,
  * 이걸 없애려면 서버에 세션을 둬야 한다.
  */
-/** 모듈 스코프에 둔다 — 인라인 화살표면 렌더마다 detach/attach 한다 */
-function showIntro(el: HTMLElement | null) {
-  if (el) document.documentElement.removeAttribute("data-dna");
-}
-
-export function HomeTop({ children }: { children: ReactNode }) {
+export function HomeTop() {
   const preference = usePreference();
-  // 훅은 조기 반환보다 위에 있어야 한다. 소개 화면에서는 안 쓰지만
+  // 훅은 조기 반환보다 위에 있어야 한다. 안내 화면에서는 안 쓰지만
   // 호출 순서가 렌더마다 달라지면 React 가 훅을 짝지을 수 없다.
   //
   // 이미 본 곡. New Search 를 누를 때마다 쌓이고, 카탈로그를 한 바퀴 돌면 비워진다.
   const [seen, setSeen] = useState<readonly string[]>([]);
 
   if (!preference) {
-    // 저장값이 있는 줄 알고 스크립트가 숨겨 놨을 수 있다 — 깨진 값이었거나
-    // 다른 탭에서 지웠거나. 소개 화면이 실제로 렌더되는 지금이 표시를 지울 때다.
-    return <div className="home-intro" ref={showIntro}>{children}</div>;
+    return (
+      <section ref={revealIfNoResult} className="home-intro pt-28 pb-24 max-sm:pt-16 max-sm:pb-14">
+        <span className="eyebrow text-ink">시작</span>
+        <h1 className="mt-5 text-[clamp(32px,5vw,56px)] leading-[1.1]">
+          당신의 취향에는 지문이 있습니다
+        </h1>
+        <p className="mt-6 max-w-[44ch] text-lg text-slate max-sm:text-base">
+          다섯 문항이면 됩니다. 장르와 분위기를 골라 두면 그 좌표에 가장 가까운 곡을 찾아
+          드립니다.
+        </p>
+        <ButtonLink href="/quiz" className="mt-9">
+          취향 분석하기
+        </ButtonLink>
+      </section>
+    );
   }
 
   // 한 번만 고른다. 목록과 New Search 가 같은 다섯 곡을 봐야 한다.
