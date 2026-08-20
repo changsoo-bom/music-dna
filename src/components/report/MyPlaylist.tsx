@@ -17,12 +17,10 @@ import { currentTrack, isPlayable, usePlayerStore } from "@/lib/use-player-store
  * 없는데 44px 과녁을 따로 두면, 카드의 나머지 부분은 눌러도 아무 일이 안 나는
  * 죽은 영역이 된다. 과녁은 클수록 좋다.
  *
- * 추천은 원형, 여기는 사각형이다. 같은 모양으로 두 번 그리면 무엇이 시스템이
- * 고른 것이고 무엇이 내가 들은 것인지가 흐려진다.
- *
- * **6열인 이유는 썸네일 원본 크기다.** `mqdefault` 는 320×180 이라 정사각으로
- * 자르면 180px 짜리 조각이 남는다. 1280px 폭에서 6열이면 셀이 186px 이고
- * 거의 등배다. 4열(296px)로 그렸을 때는 1.6배로 늘어나 눈에 띄게 뭉갰다.
+ * 추천은 큰 원 격자, 여기는 **작은 원 + 옆으로 붙은 글자**다. 셋씩 세 줄로
+ * 접히니 같은 자리에서 더 많은 곡을 보여 주고, 커버가 56px 이라 썸네일
+ * 원본(320×180 을 정사각으로 자르면 180px)을 늘리지 않는다 —
+ * 정사각 카드로 크게 그렸을 때는 1.6배로 늘어나 눈에 띄게 뭉갰다.
  */
 export function MyPlaylist() {
   const played = usePlayedTracks();
@@ -44,7 +42,7 @@ export function MyPlaylist() {
   }
 
   return (
-    <ul className="mt-12 grid grid-cols-6 gap-x-6 gap-y-8 max-xl:grid-cols-4 max-sm:mt-8 max-sm:grid-cols-3 max-sm:gap-x-4">
+    <ul className="mt-10 grid grid-cols-3 gap-x-6 gap-y-2 max-lg:grid-cols-2 max-sm:mt-6 max-sm:grid-cols-1">
       {queue.map((track, index) => {
         const sounding = soundingId === track.id;
         const Icon = sounding ? Pause : Play;
@@ -55,14 +53,14 @@ export function MyPlaylist() {
               type="button"
               onClick={() => play(queue, index)}
               aria-label={`${track.artist} ${track.title} ${sounding ? "일시정지" : "재생"}`}
-              className="group w-full text-left focus-visible:outline-none"
+              className="group flex w-full items-center gap-4 rounded-btn px-3 py-3 text-left transition-colors hover:bg-lifted focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none"
             >
-              <div className="relative aspect-square w-full overflow-hidden rounded-btn bg-ghost group-focus-visible:ring-2 group-focus-visible:ring-ink group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-canvas">
+              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-ghost">
                 <Image
                   src={`https://i.ytimg.com/vi/${track.youtubeId}/mqdefault.jpg`}
                   alt=""
                   fill
-                  sizes="(max-width: 640px) 30vw, 200px"
+                  sizes="56px"
                   className="object-cover"
                 />
 
@@ -70,23 +68,23 @@ export function MyPlaylist() {
                     지금 나는 곡은 계속 보이고, 나머지는 포인터가 올라올 때만 보인다.
                     opacity 만 움직인다 — 커버는 사진이라 아이콘이 그냥 얹히면 안 읽힌다. */}
                 <div
-                  className={`absolute inset-0 grid place-items-center bg-ink/35 transition-opacity duration-200 ${
+                  className={`absolute inset-0 grid place-items-center bg-ink/45 text-white transition-opacity duration-200 ${
                     sounding ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                   }`}
                 >
-                  <span className="grid h-10 w-10 place-items-center rounded-full bg-white text-ink shadow-float">
-                    <Icon
-                      size={16}
-                      weight="fill"
-                      aria-hidden
-                      className={sounding ? "" : "translate-x-px"}
-                    />
-                  </span>
+                  <Icon
+                    size={18}
+                    weight="fill"
+                    aria-hidden
+                    className={sounding ? "" : "translate-x-px"}
+                  />
                 </div>
               </div>
 
-              <p className="mt-3.5 truncate text-[15px] tracking-[-0.01em]">{track.title}</p>
-              <p className="mt-1 truncate text-[13px] text-slate">{track.artist}</p>
+              <div className="min-w-0">
+                <p className="truncate text-[17px] tracking-[-0.01em]">{track.title}</p>
+                <p className="mt-0.5 truncate text-sm text-slate">{track.artist}</p>
+              </div>
             </button>
           </li>
         );

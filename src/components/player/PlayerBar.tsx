@@ -62,9 +62,12 @@ export function PlayerBar() {
           videoId,
           playerVars: { autoplay: 1, playsinline: 1, controls: 0 },
           events: {
+            // 플레이어가 뜨는 데 1~2초 걸린다. 그 사이에 멈춘 사람이 있으면
+            // 여기서 그냥 틀지 않는다 — 껐는데 저절로 켜지는 것으로 보인다.
             onReady: (event) => {
               setReady(true);
-              event.target.playVideo();
+              setFailed(false);
+              if (usePlayerStore.getState().isPlaying) event.target.playVideo();
             },
             // 상태는 플레이어가 알려 준 것만 적는다. 우리가 playVideo() 를
             // 불렀다고 소리가 난다는 보장이 없다 — 광고·버퍼링·자동재생 차단.

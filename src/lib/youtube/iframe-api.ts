@@ -17,18 +17,27 @@ export function loadIframeApi(): Promise<YouTubeApi> {
   if (window.YT?.Player) return Promise.resolve(window.YT);
   if (pending) return pending;
 
+  let script: HTMLScriptElement;
+
   pending = new Promise<YouTubeApi>((resolve, reject) => {
     window.onYouTubeIframeAPIReady = () => {
       if (window.YT?.Player) resolve(window.YT);
       else reject(new Error("YT.Player 가 없다"));
     };
 
-    const script = document.createElement("script");
+    script = document.createElement("script");
     script.src = "https://www.youtube.com/iframe_api";
     // 스크립트가 막히면(차단기·오프라인) 콜백이 영영 안 온다.
     // 거부해 두면 부르는 쪽이 조용히 멈추는 대신 실패를 안다.
     script.onerror = () => reject(new Error("iframe_api 를 받지 못했다"));
     document.head.append(script);
+  }).catch((error: unknown) => {
+    // **실패한 약속을 캐시에 남기지 않는다.** 남기면 잠깐의 네트워크 끊김
+    // 한 번으로 그 세션 내내 재생 버튼이 죽는다 — 눌러도 아무 일이 안 나고,
+    // 새로고침 전에는 회복할 방법이 없다. 지우면 다음 클릭이 다시 시도한다.
+    pending = null;
+    script?.remove();
+    throw error;
   });
 
   return pending;

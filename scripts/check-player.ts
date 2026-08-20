@@ -64,4 +64,29 @@ store.getState().play(QUEUE, 0);
 store.setState({ blocked: new Set(["b", "c"]) });
 store.getState().skip(1);
 assert.equal(store.getState().isPlaying, false, "갈 곳이 없는데 재생 중이다");
-console.log(`✓ 재생 큐 — 시작·토글·앞뒤·끝 정지·막힌 곡 건너뛰기`);
+
+// 다른 목록에서 같은 곡을 눌러도 멈추지 않는다.
+// 곡 id 만 비교하면 추천 목록과 빠른 선곡에 같은 곡이 있을 때
+// 재생하려고 누른 것이 정지가 된다 — 화면에서는 "안 눌린다" 로 보인다.
+reset();
+store.getState().play(QUEUE, 0);
+const otherList = [QUEUE[0], QUEUE[2]];
+store.getState().play(otherList, 0);
+assert.equal(store.getState().isPlaying, true, "다른 목록에서 같은 곡을 눌렀는데 멈췄다");
+assert.equal(store.getState().queue.length, 2, "큐가 누른 목록으로 바뀌지 않았다");
+
+// 같은 목록의 같은 곡은 토글이다
+store.getState().play(otherList, 0);
+assert.equal(store.getState().isPlaying, false, "같은 목록의 같은 곡이 토글되지 않았다");
+
+// 막혔던 곡을 다시 고르면 한 번 더 시도한다.
+// 영영 무시하면 눌러도 아무 일이 안 나는 카드가 된다.
+reset();
+store.getState().play(QUEUE, 0);
+store.getState().reportBlocked("b");
+store.getState().play(QUEUE, 1);
+assert.equal(currentTrack(store.getState())?.id, "b", "막혔던 곡을 다시 고를 수 없다");
+assert.equal(store.getState().blocked.has("b"), false, "다시 고른 곡이 막힌 채로 남았다");
+assert.equal(store.getState().isPlaying, true, "다시 고른 곡이 재생되지 않았다");
+
+console.log(`✓ 재생 큐 — 시작·토글·앞뒤·끝 정지·막힌 곡 건너뛰기·목록 전환`);

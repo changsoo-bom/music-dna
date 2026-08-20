@@ -45,13 +45,26 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   play: (queue, index) => {
     const current = get();
-    // 이미 그 곡이면 껐다 켜는 토글로 쓴다. 같은 버튼을 두 번 누르는 사람은
-    // 처음부터 다시 듣고 싶은 게 아니라 멈추고 싶은 것이다.
-    if (current.queue[current.index]?.id === queue[index]?.id) {
+    const track = queue[index];
+    if (!track) return;
+
+    // **같은 목록의 같은 곡**일 때만 토글이다. 곡 id 만 보면, 추천 목록과
+    // 빠른 선곡에 같은 곡이 있을 때 다른 목록에서 눌러도 재생이 멈춘다 —
+    // 누른 사람은 "이 목록을 틀어 줘" 라고 한 건데 화면은 조용해진다.
+    const sameQueue =
+      current.queue.length === queue.length &&
+      current.queue.every((item, i) => item.id === queue[i].id);
+    if (sameQueue && current.index === index) {
       current.toggle();
       return;
     }
-    set({ queue, index, isPlaying: true });
+
+    // 막혔던 곡을 다시 고르면 한 번 더 시도한다. 그냥 무시하면 눌러도
+    // 아무 일이 안 나는 카드가 된다. 또 막히면 onError 가 다시 표시한다.
+    const blocked = new Set(current.blocked);
+    blocked.delete(track.id);
+
+    set({ queue, index, isPlaying: true, blocked });
   },
 
   toggle: () => set((s) => ({ isPlaying: !s.isPlaying })),
