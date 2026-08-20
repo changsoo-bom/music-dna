@@ -121,6 +121,7 @@ export function HomeTop() {
       <section className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12">
         <DnaSummary
           preference={preference}
+          eyebrow="지표"
           action={
             <ButtonLink href="/quiz" variant="text">
               Retake the test

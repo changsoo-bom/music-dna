@@ -46,6 +46,14 @@ const AXIS_LABELS = [
 type DnaSummaryProps = {
   preference: MusicPreference;
   /**
+   * 섹션 아이브로우.
+   *
+   * 검사 직후 화면에서는 이게 결과 그 자체라 기본값이 맞다. 홈에서는 위에
+   * `Verdict` 이 같은 이름을 달고 먼저 나오므로 **같은 라벨이 한 페이지에
+   * 두 번 생긴다** — 아이브로우는 섹션의 이름표라서 겹치면 목차가 무너진다.
+   */
+  eyebrow?: string;
+  /**
    * 마운트 시 제목으로 포커스를 옮길지.
    *
    * 검사 직후처럼 **화면이 방금 바뀐 경우에만** 켠다. 홈에서 켜면 페이지를 열
@@ -63,7 +71,13 @@ type DnaSummaryProps = {
 };
 
 /** 검사 결과 한 벌. 검사 화면과 홈이 같은 것을 본다 */
-export function DnaSummary({ preference, autoFocus = false, action, footer }: DnaSummaryProps) {
+export function DnaSummary({
+  preference,
+  eyebrow = "당신의 음악 DNA",
+  autoFocus = false,
+  action,
+  footer,
+}: DnaSummaryProps) {
   const { axes, moods, persona } = preference;
   const { title, line } = PERSONAS[persona];
 
@@ -91,7 +105,7 @@ export function DnaSummary({ preference, autoFocus = false, action, footer }: Dn
           아래로 내리면 결과를 다 읽고 나서야 찾게 된다. */}
       <header className="flex items-start justify-between gap-10 max-sm:flex-col max-sm:gap-6">
         <div className="min-w-0">
-          <span className="eyebrow text-ink">당신의 음악 DNA</span>
+          <span className="eyebrow text-ink">{eyebrow}</span>
 
           <h1
             ref={autoFocus ? focusOnMount : undefined}

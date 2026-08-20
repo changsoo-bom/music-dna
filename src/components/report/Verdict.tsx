@@ -68,7 +68,7 @@ export function Verdict({ preference }: { preference: MusicPreference }) {
       </span>
 
       <div className="relative">
-        <span className="eyebrow text-ink">결과</span>
+        <span className="eyebrow text-ink">당신의 음악 DNA</span>
         <h1 className="mt-5 max-w-[14ch] text-[clamp(34px,6vw,64px)] leading-[1.06]">
           당신은 {title}입니다
         </h1>
