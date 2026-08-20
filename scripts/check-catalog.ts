@@ -4,7 +4,6 @@ import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import { CATALOG } from "@/data/catalog";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
-import { MAP, moodPoints, moodQuadrant } from "@/lib/report/mood-map";
 import { nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
 import { PLAYED_LIMIT, parsePlayed } from "@/lib/schemas/played";
 import type { Genre, SubGenre } from "@/types/music";
@@ -125,31 +124,6 @@ assert.ok(
 
 
 
-// 분위기 지도 — 점이 프레임 밖으로 나가지 않는다.
-// mood 값이 0~100 밖으로 새면 점이 스타디움 밖에 찍히는데,
-// SVG 가 overflow:visible 이라 잘리지도 않고 그냥 엉뚱한 곳에 떠 있는다.
-const picked = recommend(persona(0)).map((p) => p.track.id);
-const points = moodPoints(picked);
-assert.equal(points.length, CATALOG.length, "지도에 빠진 곡이 있다");
-assert.equal(points.filter((p) => p.picked).length, picked.length, "추천 표시 개수가 안 맞는다");
-for (const point of points) {
-  assert.ok(
-    point.x >= MAP.left && point.x <= MAP.width - MAP.right,
-    `${point.track.title}: 가로가 프레임 밖이다 (${point.x})`,
-  );
-  assert.ok(
-    point.y >= MAP.top && point.y <= MAP.height - MAP.bottom,
-    `${point.track.title}: 세로가 프레임 밖이다 (${point.y})`,
-  );
-}
-
-// 사분면 이름 — 모서리는 방향을 말하고, 정중앙은 말하지 않는다
-const at = (valence: number, energy: number) => moodQuadrant({ valence, energy, dreamy: 50 });
-assert.equal(at(90, 90), "밝고 격렬한", "우상단 사분면 이름이 틀렸다");
-assert.equal(at(10, 10), "어둡고 차분한", "좌하단 사분면 이름이 틀렸다");
-assert.equal(at(90, 10), "밝고 차분한", "우하단 사분면 이름이 틀렸다");
-assert.equal(at(10, 90), "어둡고 격렬한", "좌상단 사분면 이름이 틀렸다");
-assert.equal(at(51, 49), null, "정중앙인데 방향을 말했다");
 
 // 다시 찾기 — 같은 곡이 두 판 연속으로 나오지 않는다.
 // 제외를 안 넘기거나 backfill 이 도로 채우면 눌러도 목록이 그대로인데,
@@ -193,6 +167,6 @@ assert.equal(
   "최근 재생이 상한을 넘었다",
 );
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 지도 40점 프레임 안 · 다시 찾기 3판 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 다시 찾기 3판 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );

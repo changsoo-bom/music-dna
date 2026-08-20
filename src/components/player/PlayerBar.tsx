@@ -45,6 +45,10 @@ export function PlayerBar() {
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const arcRef = useRef<SVGCircleElement>(null);
+  /** 플레이어에 실제로 걸려 있는 영상 id. 같은 곡을 두 번 걸지 않기 위한 것 */
+  const loadedRef = useRef<string | null>(null);
+  /** 갈아 끼우는 중. 나가는 영상이 흘리는 정지·종료 신호를 무시한다 */
+  const switchingRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -58,6 +62,7 @@ export function PlayerBar() {
     loadIframeApi()
       .then((YT) => {
         if (cancelled || !hostRef.current || playerRef.current) return;
+        loadedRef.current = videoId;
         playerRef.current = new YT.Player(hostRef.current, {
           videoId,
           playerVars: { autoplay: 1, playsinline: 1, controls: 0 },
@@ -73,18 +78,32 @@ export function PlayerBar() {
             // 불렀다고 소리가 난다는 보장이 없다 — 광고·버퍼링·자동재생 차단.
             onStateChange: (event) => {
               const store = usePlayerStore.getState();
-              if (event.data === PLAYER_STATE.ended) store.skip(1);
-              else if (event.data === PLAYER_STATE.paused) store.reportPlaying(false);
-              else if (event.data === PLAYER_STATE.playing) {
+
+              if (event.data === PLAYER_STATE.playing) {
+                switchingRef.current = false;
                 store.reportPlaying(true);
                 // 실제로 소리가 난 곡만 이력에 남는다. playVideo() 를 부른 시점이 아니다 —
                 // 임베드가 막힌 곡을 "들었다" 고 기록하면 목록이 거짓말이 된다.
                 const sounding = currentTrack(store);
                 if (sounding) recordPlayed(sounding.id);
+                return;
               }
+
+              // **곡을 갈아 끼우는 동안 오는 신호는 나가는 영상의 것이다.**
+              // loadVideoById 는 틀고 있던 영상을 먼저 세우면서 정지(2)를,
+              // 때로는 종료(0)를 흘린다. 그걸 받아 적으면 isPlaying 이 false 로
+              // 뒤집히고, 그러면 아래 효과가 방금 시작한 새 곡을 멈춘다 —
+              // "재생 중에 다른 곡을 누르면 음악이 꺼진다" 가 정확히 이것이었다.
+              // 종료 신호를 믿으면 한 곡을 통째로 건너뛰기까지 한다.
+              if (switchingRef.current) return;
+
+              if (event.data === PLAYER_STATE.ended) store.skip(1);
+              else if (event.data === PLAYER_STATE.paused) store.reportPlaying(false);
             },
             // 101·150 은 "다른 사이트에서 재생 금지" 다. 공식 뮤직비디오에 흔하다.
             onError: () => {
+              // 갈아 끼우기가 끝났다 — 실패로. 안 풀면 이후 정지·종료가 전부 무시된다.
+              switchingRef.current = false;
               const store = usePlayerStore.getState();
               const playing = currentTrack(store);
               if (playing) store.reportBlocked(playing.id);
@@ -101,8 +120,14 @@ export function PlayerBar() {
 
   // 곡이 바뀌면 갈아 끼운다. 플레이어를 다시 만들지 않는다 —
   // 만들 때마다 iframe 이 새로 뜨면서 소리가 끊긴다.
+  //
+  // 이미 걸려 있는 곡은 다시 안 건다. `ready` 가 켜지는 순간 이 효과가 도는데,
+  // 그때 걸려 있는 건 플레이어를 만들 때 넣은 바로 그 곡이라 다시 부르면
+  // 시작한 지 1초 만에 처음으로 되감긴다.
   useEffect(() => {
-    if (!ready || !videoId) return;
+    if (!ready || !videoId || loadedRef.current === videoId) return;
+    loadedRef.current = videoId;
+    switchingRef.current = true;
     playerRef.current?.loadVideoById(videoId);
   }, [ready, videoId]);
 
