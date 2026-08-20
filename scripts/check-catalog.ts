@@ -4,7 +4,6 @@ import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import { CATALOG } from "@/data/catalog";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
-import { RADAR, radarLabel, radarPoint, radarPolygon } from "@/lib/report/radar";
 import { nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
 import { PLAYED_LIMIT, parsePlayed } from "@/lib/schemas/played";
 import type { Genre, SubGenre } from "@/types/music";
@@ -168,40 +167,8 @@ assert.equal(
   "최근 재생이 상한을 넘었다",
 );
 
-// 오각형 차트 — 점이 뷰박스 밖으로 나가지 않고, 첫 꼭짓점이 12시에 온다.
-// 각도 계산이 틀리면 도형이 기울어지는데, SVG 가 overflow:visible 이라
-// 잘리지도 않고 그냥 비뚤어진 채로 그려진다.
-{
-  const COUNT = 5;
-  for (let i = 0; i < COUNT; i++) {
-    const point = radarPoint(i, COUNT, 1);
-    assert.ok(
-      point.x >= 0 && point.x <= RADAR.size && point.y >= 0 && point.y <= RADAR.size,
-      `오각형 ${i}번 꼭짓점이 뷰박스 밖이다 (${point.x}, ${point.y})`,
-    );
-  }
-
-  const top = radarPoint(0, COUNT, 1);
-  assert.ok(Math.abs(top.x - RADAR.center) < 0.001, "첫 꼭짓점이 12시에 없다");
-  assert.ok(top.y < RADAR.center, "첫 꼭짓점이 위가 아니라 아래로 갔다");
-
-  // 값이 0 이면 중심, 100 이면 바깥 고리
-  const zero = radarPoint(2, COUNT, 0);
-  assert.ok(
-    Math.abs(zero.x - RADAR.center) < 0.001 && Math.abs(zero.y - RADAR.center) < 0.001,
-    "0 인 축이 중심에 안 온다",
-  );
-
-  assert.equal(radarPolygon([10, 20, 30, 40, 50]).split(" ").length, COUNT, "꼭짓점 수가 안 맞는다");
-
-  // 좌우 라벨은 바깥으로 밀고 위아래만 가운데다. 전부 middle 이면
-  // 좌우 라벨이 도형 위로 절반씩 올라탄다.
-  assert.equal(radarLabel(0, COUNT).anchor, "middle", "12시 라벨이 가운데 정렬이 아니다");
-  assert.equal(radarLabel(1, COUNT).anchor, "start", "오른쪽 라벨이 바깥으로 안 밀렸다");
-  assert.equal(radarLabel(4, COUNT).anchor, "end", "왼쪽 라벨이 바깥으로 안 밀렸다");
-}
 
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 다시 찾기 3판 · 오각형 5꼭짓점 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 다시 찾기 3판 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );

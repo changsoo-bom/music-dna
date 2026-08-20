@@ -84,8 +84,12 @@ export function Verdict({ preference }: { preference: MusicPreference }) {
 
           {/* 떠 있는 필. 크림 캔버스 위에 뜬 요소라 표면은 흰색이고 그림자는
             `shadow-lift` 다 — 시스템이 칩·스탯 필에 정해 둔 조합 그대로다.
-            숫자에 % 를 안 붙인다. 아래 선이 이미 100 중 얼마인지를 그린다. */}
-          <dl className="mt-11 flex flex-wrap gap-3 max-sm:mt-8">
+            숫자에 % 를 안 붙인다. 아래 선이 이미 100 중 얼마인지를 그린다.
+
+            3열 격자다. 다섯 개를 한 줄로 늘어놓으면 900px 를 먹어서 옆의
+            오각형을 밀어낸다. 3 + 2 로 접으면 폭이 절반이고, 마지막 줄이
+            비는 게 아니라 **빈 자리가 도형 쪽으로 열린다.** */}
+          <dl className="mt-11 grid w-fit grid-cols-3 gap-3 max-sm:mt-8 max-sm:grid-cols-2">
             {STATS.map(({ key, label }, index) => (
               <div key={key} className="min-w-43 rounded-pill bg-white px-[30px] py-4 shadow-lift">
                 <dd className="text-[32px] leading-[1.1] font-medium tabular-nums tracking-[-0.03em]">
