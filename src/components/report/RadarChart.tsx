@@ -70,8 +70,9 @@ export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
             pointBorderColor: accent,
             pointRadius: 4,
             pointHoverRadius: 7,
-            pointHoverBorderWidth: 3,
-            pointHoverBorderColor: token("--canvas"),
+            // **보이는 점은 4px, 잡히는 범위는 18px.** 그려진 크기를 키우지 않고
+            // 과녁만 넓힌다 — 점이 커지면 도형의 선이 점에 먹힌다.
+            pointHitRadius: 18,
             fill: true,
           },
         ],
@@ -80,15 +81,17 @@ export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
         responsive: true,
         maintainAspectRatio: false,
         // 라벨이 도형 바깥에 앉으므로 여백이 없으면 가장자리에서 잘린다.
-        layout: { padding: 6 },
+        layout: { padding: 12 },
         // `prefers-reduced-motion` 은 `globals.css` 의 전역 블록이 CSS 만 막는다.
         // 캔버스 애니메이션은 여기서 직접 봐야 한다. → `.claude/rules/react.md`
         animation: window.matchMedia("(prefers-reduced-motion: reduce)").matches
           ? false
           : { duration: 900, easing: "easeOutQuart" },
-        // 점 위가 아니라 **가까이만 가도** 잡는다. 꼭짓점은 7px 짜리 과녁이라
-        // 정확히 올려야 뜨면 안 뜨는 것과 다를 바가 없다.
-        interaction: { mode: "nearest", intersect: false },
+        // **`intersect: false` 를 쓰면 안 된다.** 그러면 캔버스 어디를 가리켜도
+        // "가장 가까운 점" 이 잡혀서 툴팁이 항상 떠 있고, 빈 구석에서도 값이
+        // 뜬다. 과녁은 위의 `pointHitRadius` 로 넓히고 여기서는 점에 닿아야만
+        // 잡히게 둔다.
+        interaction: { mode: "nearest", intersect: true },
         plugins: {
           legend: { display: false },
           // 시스템의 툴팁 모양을 캔버스로 옮긴 것이다 — 흰 표면, 잉크 글자,
@@ -130,7 +133,7 @@ export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
   }, [labels, values]);
 
   return (
-    <div className="relative aspect-square w-[clamp(320px,34vw,540px)] max-lg:w-[min(420px,100%)]">
+    <div className="relative aspect-square w-[clamp(340px,40vw,620px)] max-lg:w-[min(480px,100%)]">
       <canvas
         ref={canvasRef}
         role="img"

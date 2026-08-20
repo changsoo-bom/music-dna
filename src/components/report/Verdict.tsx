@@ -60,7 +60,7 @@ export function Verdict({ preference }: { preference: MusicPreference }) {
       {/* 왼쪽은 말, 오른쪽은 그림. 필은 값을 말하고 오각형은 균형을 말한다 —
           같은 데이터의 반복이 아니라 **읽는 방식이 다르다.**
           좁아지면 세로로 쌓는다. 도형을 줄여 가며 옆에 붙여 두면 라벨부터 뭉갠다. */}
-      <div className="grid grid-cols-[1fr_auto] items-center gap-16 max-lg:grid-cols-1 max-lg:gap-12">
+      <div className="grid grid-cols-[1fr_auto] items-center gap-12 max-lg:grid-cols-1">
         <div>
           <span className="eyebrow text-ink">당신의 음악 DNA</span>
           <h1 className="mt-5 max-w-[18ch] text-[clamp(34px,6vw,64px)] leading-[1.06]">
