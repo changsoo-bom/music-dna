@@ -1,5 +1,6 @@
 import { CATALOG } from "@/data/catalog";
 import { GENRES, PARENT_OF } from "@/constants/genres";
+import { NAV_FORWARD } from "@/constants/nav";
 import { PERSONAS } from "@/constants/personas";
 import { ButtonLink } from "@/components/ui/Button";
 import { moodAffinity, nightScore } from "@/lib/quiz/scoring";
@@ -122,7 +123,7 @@ export function RetakeCta({ preference }: { preference: MusicPreference }) {
             취향은 한 번 재고 끝나지 않습니다. 다섯 문항이면 다시 잽니다. 이전 결과는 새 결과가
             나올 때까지 그대로 남습니다.
           </p>
-          <ButtonLink href="/quiz" className="mt-8">
+          <ButtonLink href="/quiz" transitionTypes={NAV_FORWARD} className="mt-8">
             다시 검사하기
           </ButtonLink>
         </div>

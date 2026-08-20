@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { NAV_FORWARD } from "@/constants/nav";
 import { QuizRadioOption, QuizRankOption } from "@/components/quiz/QuizOption";
 import { QuizProgress } from "@/components/quiz/QuizProgress";
 import { QuizResult } from "@/components/quiz/QuizResult";
@@ -85,7 +86,11 @@ export function QuizFlow() {
     }
 
     // 결과는 홈 맨 위에 있다. 같은 것을 두 번 보여주지 않는다.
-    router.push("/");
+    //
+    // 돌아가는 길이지만 `nav-forward` 다. 검사를 마치고 결과를 받는 건
+    // 되돌아가는 게 아니라 도착이다 — 뒤로 미는 애니메이션을 쓰면
+    // 방금 한 일이 취소된 것처럼 읽힌다.
+    router.push("/", { transitionTypes: NAV_FORWARD });
   }
 
   return (

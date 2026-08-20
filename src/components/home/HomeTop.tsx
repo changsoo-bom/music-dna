@@ -3,6 +3,7 @@
 import { Shuffle } from "@phosphor-icons/react/dist/ssr";
 import { useState } from "react";
 
+import { NAV_FORWARD } from "@/constants/nav";
 import { MyPlaylist } from "@/components/report/MyPlaylist";
 import { RecommendList } from "@/components/report/RecommendList";
 import { RetakeCta } from "@/components/report/RetakeCta";
@@ -58,7 +59,7 @@ export function HomeTop() {
           다섯 문항이면 됩니다. 장르와 분위기를 골라 두면 그 좌표에 가장 가까운 곡을 찾아
           드립니다.
         </p>
-        <ButtonLink href="/quiz" className="mt-9">
+        <ButtonLink href="/quiz" transitionTypes={NAV_FORWARD} className="mt-9">
           취향 분석하기
         </ButtonLink>
       </section>

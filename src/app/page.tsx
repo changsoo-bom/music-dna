@@ -1,3 +1,6 @@
+import { ViewTransition } from "react";
+
+import { SiteFooter } from "@/components/common/SiteFooter";
 import { SiteHeader } from "@/components/common/SiteHeader";
 import { HomeTop } from "@/components/home/HomeTop";
 
@@ -11,14 +14,25 @@ import { HomeTop } from "@/components/home/HomeTop";
  *
  * 결과가 없을 때 남는 것은 "검사하러 가자" 한 줄이면 충분하다.
  * 그 정도 크기는 스쳐도 화면이 흔들리지 않는다.
+ *
+ * **전환 래퍼는 레이아웃이 아니라 여기에 둔다.** 레이아웃은 라우트가 바뀌어도
+ * 살아남아서 enter/exit 가 아예 안 걸린다. 애니메이션 정의는 `globals.css`.
  */
 export default function HomePage() {
   return (
-    <>
-      <SiteHeader />
-      <main className="shell pb-28 max-sm:pb-16">
-        <HomeTop />
-      </main>
-    </>
+    <ViewTransition
+      enter={{ "nav-forward": "nav-forward", default: "none" }}
+      exit={{ "nav-forward": "nav-forward", default: "none" }}
+      default="none"
+    >
+      <div className="flex flex-1 flex-col">
+        <SiteHeader />
+        <main className="shell flex-1 pb-28 max-sm:pb-16">
+          <HomeTop />
+        </main>
+        {/* 루트 레이아웃이 아니라 여기서 붙인다. 검사 화면에는 헤더도 푸터도 없다 */}
+        <SiteFooter />
+      </div>
+    </ViewTransition>
   );
 }

@@ -3,7 +3,6 @@ import { Sofia_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 
-import { SiteFooter } from "@/components/common/SiteFooter";
 import { PlayerBar } from "@/components/player/PlayerBar";
 
 // 라틴 디스플레이·본문. 가변 폰트라 본문 450 weight 가 실제로 렌더된다.
@@ -66,11 +65,12 @@ export default function RootLayout({
             인라인 스크립트는 React 19 의 head 호이스팅 대상이 아니라 여기 남는다. */}
         <script dangerouslySetInnerHTML={{ __html: HIDE_INTRO_BEFORE_PAINT }} />
         {children}
-        {/* 푸터는 모든 라우트에 같다. 페이지마다 붙이면 한 곳을 빠뜨린다 */}
-        <SiteFooter />
+        {/* 푸터는 여기 없다. **검사 화면에는 안 나와야 한다** — 헤더를 뺀 것과
+            같은 이유다. 5문항짜리 흐름 아래에 저작권·안내 판이 붙으면
+            "둘러보는 페이지" 로 읽히고, 끝까지 가야 할 화면에 나갈 곳이 생긴다.
+            푸터가 필요한 라우트가 직접 붙인다. */}
         {/* 라우트 밖에 둔다 — 검사하러 갔다 와도 듣던 곡이 끊기지 않는다.
-            큐가 비어 있으면 아무것도 그리지 않으므로 첫 화면에는 없다.
-            자리 만드는 spacer 가 푸터 뒤에 와야 바가 푸터를 안 덮는다. */}
+            큐가 비어 있으면 아무것도 그리지 않으므로 첫 화면에는 없다. */}
         <PlayerBar />
       </body>
     </html>

@@ -62,6 +62,14 @@
 }
 
 body {
+  /* 푸터를 바닥에 붙인다. 내용이 짧은 화면(검사 이력이 없는 홈)에서 푸터가
+     화면 중간에 떠 있으면 페이지가 잘린 것처럼 보인다.
+     본문 래퍼가 `flex-1` 로 남는 높이를 먹고 푸터는 그 아래로 밀린다.
+     `100vh` 가 아니라 `100dvh` 다 — iOS 주소창이 접힐 때 높이가 튄다. */
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+
   background: var(--canvas);
   color: var(--ink);
   font-family: var(--font-sans);
@@ -227,4 +235,64 @@ html[data-dna="1"] .home-intro {
 }
 .header-drop {
   animation: header-drop 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 페이지 전환. React 의 `<ViewTransition>` 이 붙이는 클래스를 CSS 로 받는다.
+   → `src/app/page.tsx`, `src/app/quiz/page.tsx`
+
+   방향은 하나뿐이다. 이 사이트에서 화면을 옮기는 길은 "검사하러 간다" 와
+   "검사를 마치고 결과로 돌아온다" 둘인데 **둘 다 앞으로 가는 길이다.**
+   뒤로 미는 애니메이션을 쓸 자리가 없어서 만들지 않았다 — 브라우저
+   뒤로가기는 타입을 안 실어 보내므로 `default: "none"` 으로 즉시 바뀐다.
+
+   나가는 쪽이 빠르고(150ms) 들어오는 쪽이 느리다(210ms, 나갈 때까지 대기).
+   지나간 화면이 시선을 끌면 안 되고, 새 화면은 읽을 틈을 줘야 한다.
+   60px 은 방향이 읽히는 최소치다 — 더 밀면 눈이 화면을 따라가야 한다. */
+::view-transition-old(.nav-forward) {
+  --vt-slide: -60px;
+  animation:
+    150ms ease-in both vt-fade reverse,
+    400ms ease-in-out both vt-slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --vt-slide: 60px;
+  animation:
+    210ms ease-out 150ms both vt-fade,
+    400ms ease-in-out both vt-slide;
+}
+
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* `transform` 이 아니라 `translate` 다. 스냅샷에 이미 걸려 있는
+   변환을 덮어쓰지 않는다. 둘 다 합성 단계에서 처리된다 */
+@keyframes vt-slide {
+  from {
+    translate: var(--vt-slide);
+  }
+  to {
+    translate: 0;
+  }
+}
+
+/* 전환 중에 덮이는 오버레이가 클릭을 먹는다. 통과시킨다 */
+::view-transition {
+  pointer-events: none;
+}
+
+/* 위의 전역 reduced-motion 블록은 `*` 라서 이 의사 요소들에 안 닿는다.
+   문서 트리 밖에 따로 생기는 트리다 — 여기서 다시 막는다.
+   화면이 즉시 바뀌는 게 브라우저의 기본 동작이다. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }
