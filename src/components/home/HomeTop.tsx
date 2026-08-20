@@ -72,20 +72,6 @@ export function HomeTop() {
     <>
       <Verdict preference={preference} />
 
-      {/* 선언 다음에 내역. 위에서 "당신은 이런 사람" 이라고 말했으니
-          여기서는 그 판정이 어느 값에서 나왔는지를 편다. */}
-      <section className="mt-16 max-sm:mt-10">
-        <DnaSummary
-          preference={preference}
-          action={
-            <ButtonLink href="/quiz" variant="text">
-              Retake the test
-              <Arrow />
-            </ButtonLink>
-          }
-        />
-      </section>
-
       {/* 내가 들은 것이 시스템이 고른 것보다 앞이다. 아직 비어 있어도 그렇다 —
           자리를 뒤에 두면 자기 목록이 부록처럼 읽힌다. */}
       <section className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12">
@@ -127,6 +113,21 @@ export function HomeTop() {
         </header>
 
         <RecommendList items={picks} />
+      </section>
+
+      {/* 맨 아래가 내역이다. 위에서 "당신은 이런 사람" 이라고 선언하고 들을 것을
+          다 준 다음, 그 판정이 어느 값에서 나왔는지를 마지막에 편다 —
+          **먼저 보고 싶은 건 결론과 곡이지 계산 과정이 아니다.** */}
+      <section className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12">
+        <DnaSummary
+          preference={preference}
+          action={
+            <ButtonLink href="/quiz" variant="text">
+              Retake the test
+              <Arrow />
+            </ButtonLink>
+          }
+        />
       </section>
     </>
   );

@@ -50,7 +50,7 @@ export function Verdict({ preference }: { preference: MusicPreference }) {
   };
 
   return (
-    <section className="relative pt-20 pb-[clamp(96px,15vw,220px)] max-lg:pt-14 max-sm:pt-10">
+    <section className="relative pt-20 pb-[clamp(72px,10vw,130px)] max-lg:pt-14 max-sm:pt-10">
       {/* **셸을 빠져나가 화면 왼쪽 끝에서 시작한다.** 프로토타입에서 이 글자는
           섹션 전체 폭(=뷰포트)에 앉는데, 여기서는 셸(1280px) 안이라 그대로 두면
           오른쪽이 잘려 "MUSIC DN" 이 된다. 잘린 글자는 배경이 아니라 사고로 보인다.
