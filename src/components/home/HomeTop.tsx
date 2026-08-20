@@ -3,11 +3,11 @@
 import { Shuffle } from "@phosphor-icons/react/dist/ssr";
 import { useState } from "react";
 
-import { DnaSummary } from "@/components/report/DnaSummary";
 import { MyPlaylist } from "@/components/report/MyPlaylist";
 import { RecommendList } from "@/components/report/RecommendList";
+import { RetakeCta } from "@/components/report/RetakeCta";
 import { Verdict } from "@/components/report/Verdict";
-import { Arrow, ButtonLink, buttonClass } from "@/components/ui/Button";
+import { ButtonLink, buttonClass } from "@/components/ui/Button";
 import { usePreference } from "@/hooks/use-preference";
 import { nextExclusions, recommend } from "@/lib/report/recommend";
 import { parsePreference } from "@/lib/schemas/preference";
@@ -115,21 +115,7 @@ export function HomeTop() {
         <RecommendList items={picks} />
       </section>
 
-      {/* 맨 아래가 내역이다. 위에서 "당신은 이런 사람" 이라고 선언하고 들을 것을
-          다 준 다음, 그 판정이 어느 값에서 나왔는지를 마지막에 편다 —
-          **먼저 보고 싶은 건 결론과 곡이지 계산 과정이 아니다.** */}
-      <section className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12">
-        <DnaSummary
-          preference={preference}
-          eyebrow="지표"
-          action={
-            <ButtonLink href="/quiz" variant="text">
-              Retake the test
-              <Arrow />
-            </ButtonLink>
-          }
-        />
-      </section>
+      <RetakeCta preference={preference} />
     </>
   );
 }
