@@ -46,11 +46,15 @@ export function RecommendList({ items }: { items: readonly Recommendation[] }) {
 
   return (
     <ul className="mt-14 grid grid-cols-5 gap-x-7 gap-y-14 max-xl:grid-cols-3 max-sm:mt-10 max-sm:grid-cols-2 max-sm:gap-x-5 max-sm:gap-y-10">
-      {items.map(({ track, reasons }) => {
+      {items.map(({ track, reasons }, index) => {
         const genre = PARENT_OF[track.subGenre];
         const queueIndex = queue.findIndex((t) => t.id === track.id);
         return (
-          <li key={track.id} className="flex flex-col">
+          <li
+            key={track.id}
+            className="card-enter flex flex-col"
+            style={{ animationDelay: `${index * 0.06}s` }}
+          >
             <div className="relative aspect-square w-full">
               <svg viewBox="0 0 160 160" className="absolute inset-0 h-full w-full -rotate-90">
                 {/* 회색 트랙. 주황 호가 덮지 않는 1/5 이 여기서 비친다 */}

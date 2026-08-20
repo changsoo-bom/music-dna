@@ -8,7 +8,7 @@
  */
 import assert from "node:assert/strict";
 
-import { currentTrack, shuffled, usePlayerStore } from "@/lib/use-player-store";
+import { currentTrack, usePlayerStore } from "@/lib/use-player-store";
 import type { PlayableTrack } from "@/lib/use-player-store";
 
 const QUEUE: PlayableTrack[] = ["a", "b", "c"].map((id) => ({
@@ -64,25 +64,4 @@ store.getState().play(QUEUE, 0);
 store.setState({ blocked: new Set(["b", "c"]) });
 store.getState().skip(1);
 assert.equal(store.getState().isPlaying, false, "갈 곳이 없는데 재생 중이다");
-
-// 셔플 — 곡이 사라지거나 늘지 않고, 실제로 섞인다.
-// Fisher-Yates 를 잘못 쓰면 (i+1 대신 length 를 쓰는 흔한 실수) 순열이 편향되는데
-// 화면에서는 "왜 늘 비슷한 순서지" 정도로만 느껴져서 눈치채기 어렵다.
-const ids = (list: readonly PlayableTrack[]) => list.map((t) => t.id);
-const orders = new Set<string>();
-for (let i = 0; i < 200; i++) {
-  const mixed = shuffled(QUEUE);
-  assert.deepEqual([...ids(mixed)].sort(), [...ids(QUEUE)].sort(), "셔플이 곡을 잃거나 만들었다");
-  orders.add(ids(mixed).join(","));
-}
-assert.ok(orders.size > 1, "셔플이 항상 같은 순서를 준다");
-// 3곡의 순열은 6가지다. 200번이면 전부 나와야 한다 — 안 나오면 편향이다.
-assert.equal(orders.size, 6, `순열이 ${orders.size}가지만 나왔다`);
-
-// 셔플 재생은 토글이 아니다. 이미 그 곡을 틀고 있어도 처음부터 다시 시작한다
-reset();
-store.getState().play(QUEUE, 0);
-store.getState().playShuffled(QUEUE);
-assert.equal(store.getState().isPlaying, true, "셔플 재생이 재생을 멈췄다");
-assert.equal(store.getState().index, 0, "셔플 재생이 처음부터 시작하지 않았다");
-console.log(`✓ 재생 큐 — 시작·토글·앞뒤·끝 정지·막힌 곡 건너뛰기·셔플 6순열`);
+console.log(`✓ 재생 큐 — 시작·토글·앞뒤·끝 정지·막힌 곡 건너뛰기`);

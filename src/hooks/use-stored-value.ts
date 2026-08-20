@@ -2,9 +2,41 @@
 
 import { useSyncExternalStore } from "react";
 
+/**
+ * 같은 탭에서 쓴 값을 알리는 신호.
+ *
+ * **`storage` 이벤트는 쓴 탭에는 안 온다.** 다른 탭에 알리라고 있는 것이라
+ * 이걸로만 구독하면 방금 내가 저장한 값이 화면에 안 나타난다.
+ * 쓰기를 `writeStoredValue` 하나로 모으고 여기서 직접 알린다.
+ */
+const SAME_TAB = "musicdna:stored-value";
+
 function subscribe(onChange: () => void) {
   window.addEventListener("storage", onChange);
-  return () => window.removeEventListener("storage", onChange);
+  window.addEventListener(SAME_TAB, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(SAME_TAB, onChange);
+  };
+}
+
+/**
+ * Local Storage 에 쓰고 같은 탭에 알린다.
+ *
+ * 읽기와 한 파일에 둔다 — 신호 이름이 둘 사이의 계약이고, 떨어져 있으면
+ * 한쪽만 고쳐서 화면이 조용히 안 갱신되는 일이 생긴다.
+ *
+ * 사생활 보호 모드나 사이트 데이터 차단에서 `setItem` 은 던진다.
+ * **저장이 안 되는 것은 이 앱에서 치명적이지 않으므로 삼킨다** — 이번 세션에
+ * 안 남을 뿐이고, 이걸로 재생을 막을 이유는 없다.
+ */
+export function writeStoredValue(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    return;
+  }
+  window.dispatchEvent(new Event(SAME_TAB));
 }
 
 /**

@@ -38,9 +38,13 @@ export function PlayButton({
       type="button"
       onClick={() => play(queue, index)}
       aria-label={`${track.artist} ${track.title} ${sounding ? "일시정지" : "재생"}`}
-      className={`grid place-items-center rounded-full bg-white text-ink shadow-lift transition-colors hover:bg-ink hover:text-canvas focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none ${className}`}
+      className={`grid place-items-center rounded-full bg-white text-ink shadow-float transition-colors hover:bg-ink hover:text-canvas focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none ${className}`}
     >
-      {/* 재생 삼각형은 광학 중심이 기하 중심보다 오른쪽이다. 정지 기호는 대칭이라 안 민다 */}
+      {/* 그림자는 `shadow-float`. 사진 가장자리에 겹치면 `shadow-lift` 의 4% 는
+          아예 안 보여서 버튼이 커버에 파묻힌다. 테두리를 두르는 대신 그림자를
+          올렸다 — 시스템에 그림자는 둘뿐이고 그중 진한 쪽이다.
+
+          재생 삼각형은 광학 중심이 기하 중심보다 오른쪽이다. 정지 기호는 대칭이라 안 민다 */}
       <Icon size={17} weight="fill" aria-hidden className={sounding ? "" : "translate-x-px"} />
     </button>
   );

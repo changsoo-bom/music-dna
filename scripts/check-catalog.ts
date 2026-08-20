@@ -5,7 +5,8 @@ import { CATALOG } from "@/data/catalog";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
 import { MAP, moodPoints, moodQuadrant } from "@/lib/report/mood-map";
-import { recommend, trackMood } from "@/lib/report/recommend";
+import { nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
+import { PLAYED_LIMIT, parsePlayed } from "@/lib/schemas/played";
 import type { Genre, SubGenre } from "@/types/music";
 
 /**
@@ -149,7 +150,49 @@ assert.equal(at(10, 10), "어둡고 차분한", "좌하단 사분면 이름이 �
 assert.equal(at(90, 10), "밝고 차분한", "우하단 사분면 이름이 틀렸다");
 assert.equal(at(10, 90), "어둡고 격렬한", "좌상단 사분면 이름이 틀렸다");
 assert.equal(at(51, 49), null, "정중앙인데 방향을 말했다");
+
+// 다시 찾기 — 같은 곡이 두 판 연속으로 나오지 않는다.
+// 제외를 안 넘기거나 backfill 이 도로 채우면 눌러도 목록이 그대로인데,
+// 화면에서는 "버튼이 안 눌렸나" 로만 보인다.
+{
+  const preference = persona(0);
+  let seen: readonly string[] = [];
+  const rounds: string[][] = [];
+  for (let round = 0; round < 3; round++) {
+    const picks = recommend(preference, 5, seen);
+    assert.equal(picks.length, 5, `${round}번째 다시 찾기에서 ${picks.length}곡만 나왔다`);
+    const ids = picks.map((p) => p.track.id);
+    if (round > 0) {
+      const repeated = ids.filter((id) => rounds[round - 1].includes(id));
+      assert.deepEqual(repeated, [], `다시 찾기에 직전 판의 곡이 남았다: ${repeated.join()}`);
+    }
+    rounds.push(ids);
+    seen = nextExclusions(seen, ids);
+  }
+
+  // 카탈로그를 한 바퀴 돌면 처음으로 돌아간다. 안 그러면 5곡을 못 채운다.
+  const almostAll = CATALOG.slice(0, CATALOG.length - 4).map((t) => t.id);
+  assert.deepEqual(nextExclusions(almostAll, []), [], "남은 곡이 모자란데 제외가 안 비워졌다");
+  assert.equal(new Set(nextExclusions(["t001"], ["t001", "t002"])).size, 2, "제외에 중복이 남았다");
+}
+
+// 최근 재생 — Local Storage 는 신뢰 경계 밖이다
+assert.deepEqual(parsePlayed(null), [], "값이 없는데 목록이 나왔다");
+assert.deepEqual(parsePlayed("{"), [], "깨진 JSON 에서 목록이 나왔다");
+assert.deepEqual(parsePlayed('{"id":"t001"}'), [], "배열이 아닌 값을 받아들였다");
+assert.deepEqual(parsePlayed('[1,2]'), [], "숫자 배열을 받아들였다");
+assert.deepEqual(parsePlayed('["없는곡"]'), [], "카탈로그에 없는 id 가 살아남았다");
+assert.deepEqual(
+  parsePlayed(JSON.stringify(["없는곡", CATALOG[0].id])).map((t) => t.id),
+  [CATALOG[0].id],
+  "성한 id 까지 같이 버렸다",
+);
+assert.equal(
+  parsePlayed(JSON.stringify(CATALOG.map((t) => t.id))).length,
+  PLAYED_LIMIT,
+  "최근 재생이 상한을 넘었다",
+);
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 지도 40점 프레임 안 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 지도 40점 프레임 안 · 다시 찾기 3판 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );

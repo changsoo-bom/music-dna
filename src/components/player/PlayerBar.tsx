@@ -4,6 +4,7 @@ import { ArrowUpRight, Pause, Play, SkipBack, SkipForward, X } from "@phosphor-i
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+import { recordPlayed } from "@/lib/played-tracks";
 import { loadIframeApi } from "@/lib/youtube/iframe-api";
 import { currentTrack, usePlayerStore } from "@/lib/use-player-store";
 import { PLAYER_STATE } from "@/types/youtube";
@@ -70,8 +71,14 @@ export function PlayerBar() {
             onStateChange: (event) => {
               const store = usePlayerStore.getState();
               if (event.data === PLAYER_STATE.ended) store.skip(1);
-              else if (event.data === PLAYER_STATE.playing) store.reportPlaying(true);
               else if (event.data === PLAYER_STATE.paused) store.reportPlaying(false);
+              else if (event.data === PLAYER_STATE.playing) {
+                store.reportPlaying(true);
+                // 실제로 소리가 난 곡만 이력에 남는다. playVideo() 를 부른 시점이 아니다 —
+                // 임베드가 막힌 곡을 "들었다" 고 기록하면 목록이 거짓말이 된다.
+                const sounding = currentTrack(store);
+                if (sounding) recordPlayed(sounding.id);
+              }
             },
             // 101·150 은 "다른 사이트에서 재생 금지" 다. 공식 뮤직비디오에 흔하다.
             onError: () => {

@@ -171,6 +171,21 @@ h3 {
   animation: orbit-draw 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* 목록이 새 곡으로 갈릴 때 카드가 하나씩 올라온다.
+   New Search 는 같은 자리의 글자만 바꾸므로, 애니메이션이 없으면
+   무엇이 바뀌었는지 - 심지어 눌리기는 했는지 - 알 수가 없다.
+   시차는 인라인 animation-delay 로 준다(bar-fill 과 같은 방식).
+   transform 과 opacity 만 움직인다. */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.card-enter {
+  animation: card-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* 검사 이력이 있으면 소개 화면을 첫 페인트부터 감춘다.
    layout.tsx 의 인라인 스크립트가 표시를 남기고, 여기서 받는다.
    `visibility` 가 아니라 `display` 다 — 자리를 차지하면 결과가 아래로 밀린다. */

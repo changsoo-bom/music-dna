@@ -18,8 +18,6 @@ type PlayerState = {
   blocked: ReadonlySet<string>;
 
   play: (queue: readonly PlayableTrack[], index: number) => void;
-  /** 순서를 섞어서 처음부터 튼다. 누를 때마다 다른 순서여야 한다 */
-  playShuffled: (queue: readonly PlayableTrack[]) => void;
   toggle: () => void;
   skip: (direction: 1 | -1) => void;
   /** 플레이어 이벤트를 받아 적는다. 여기서만 `isPlaying` 이 바뀐다 */
@@ -28,20 +26,6 @@ type PlayerState = {
   reportBlocked: (id: string) => void;
   close: () => void;
 };
-
-/**
- * Fisher–Yates. `sort(() => Math.random() - 0.5)` 를 쓰지 않는다 —
- * 짧아 보이지만 **비교 함수가 일관적이지 않아 순열이 고르게 안 나온다.**
- * 다섯 곡이면 편향이 눈에 보인다.
- */
-export function shuffled<T>(items: readonly T[]): T[] {
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
 
 /**
  * 재생 상태.
@@ -69,10 +53,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
     set({ queue, index, isPlaying: true });
   },
-
-  // `play` 와 달리 토글하지 않는다. 셔플은 "같은 것을 다시" 가 아니라
-  // **매번 새 순서**를 뜻하므로, 누르면 항상 처음부터 다시 시작한다.
-  playShuffled: (queue) => set({ queue: shuffled(queue), index: 0, isPlaying: true }),
 
   toggle: () => set((s) => ({ isPlaying: !s.isPlaying })),
 

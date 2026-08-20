@@ -1,28 +1,67 @@
-import { Plus } from "@phosphor-icons/react/dist/ssr";
+"use client";
+
+import Image from "next/image";
+
+import { PlayButton } from "@/components/player/PlayButton";
+import { SUB_GENRES } from "@/constants/genres";
+import { usePlayedTracks } from "@/hooks/use-played-tracks";
+import { isPlayable } from "@/lib/use-player-store";
 
 /**
- * 직접 만든 목록. **지금은 빈 상태 하나뿐이다.**
+ * 최근에 튼 곡. **곡을 재생하면 저절로 여기 쌓인다.**
  *
- * 버튼을 두지 않았다. 누를 곳을 만들어 놓고 아무 일도 안 일어나면
- * 고장 난 화면이 된다 — 재생 없이 재생 버튼만 두지 않았던 것과 같은 이유다.
- * 담는 동작이 생기는 날 이 자리에 버튼이 들어온다.
+ * 담기 버튼을 따로 두지 않는 이유는, 들은 것이 곧 고른 것이기 때문이다.
+ * 버튼을 하나 더 두면 "좋아요" 와 "들었다" 를 사람이 구분해서 눌러야 하는데,
+ * 그 구분을 지금 이 화면이 쓸 데가 없다.
  *
- * 빈 상자는 떠 있지 않다. `shadow-float` 는 안에 뭔가 있는 표면에 준다.
- * 점선 테두리가 "여기는 아직 비어 있고, 채울 자리다" 를 말한다.
+ * 추천은 원형 격자, 여기는 줄이다. 같은 모양으로 두 번 그리면 무엇이
+ * 시스템이 고른 것이고 무엇이 내가 들은 것인지가 흐려진다.
  */
 export function MyPlaylist() {
-  return (
-    <div className="mt-14 grid place-items-center gap-5 rounded-stadium border-2 border-dashed border-hair px-8 py-20 text-center max-sm:mt-10 max-sm:px-6 max-sm:py-14">
-      <span aria-hidden className="grid h-12 w-12 place-items-center rounded-full bg-lifted text-slate">
-        <Plus size={20} />
-      </span>
+  const played = usePlayedTracks();
+  const queue = played.filter(isPlayable);
 
-      <p className="text-lg font-medium tracking-[-0.01em]">
-        새로운 플레이리스트를 추가해보세요!
-      </p>
-      <p className="max-w-[38ch] text-sm text-slate">
-        마음에 든 곡을 모아 두면 여기에 쌓입니다.
-      </p>
-    </div>
+  if (queue.length === 0) {
+    return (
+      <div className="mt-14 grid place-items-center gap-4 rounded-stadium border-2 border-dashed border-hair px-8 py-20 text-center max-sm:mt-10 max-sm:px-6 max-sm:py-14">
+        <p className="text-lg font-medium tracking-[-0.01em]">
+          새로운 플레이리스트를 추가해보세요!
+        </p>
+        <p className="max-w-[38ch] text-sm text-slate">
+          아래에서 곡을 재생하면 여기에 쌓입니다.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <ul className="mt-12 border-t border-hair max-sm:mt-8">
+      {queue.map((track, index) => (
+        <li
+          key={track.id}
+          className="flex items-center gap-5 border-b border-hair py-4 max-sm:gap-4"
+        >
+          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-ghost">
+            <Image
+              src={`https://i.ytimg.com/vi/${track.youtubeId}/mqdefault.jpg`}
+              alt=""
+              fill
+              sizes="48px"
+              className="object-cover"
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[17px] tracking-[-0.01em]">{track.title}</p>
+            <p className="truncate text-sm text-slate">
+              {track.artist} · {SUB_GENRES[track.subGenre].ko}
+            </p>
+          </div>
+
+          {/* 여기서 누르면 이 목록이 큐가 된다. 들은 순서대로 이어 듣게 된다 */}
+          <PlayButton queue={queue} index={index} className="h-10 w-10 shrink-0" />
+        </li>
+      ))}
+    </ul>
   );
 }

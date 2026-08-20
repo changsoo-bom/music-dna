@@ -114,3 +114,20 @@ export function recommend(
   return taken;
 }
 
+
+/**
+ * 다시 찾기. 이미 본 곡을 빼고 다음 판을 뽑을 제외 목록을 만든다.
+ *
+ * **남은 곡이 한 판보다 적으면 비운다.** 안 그러면 `recommend` 의 backfill 이
+ * 제외했어야 할 곡을 도로 채워 넣어서, 누를 때마다 같은 목록이 나온다.
+ * 카탈로그를 한 바퀴 돌면 처음으로 돌아가는 셈이고, 그게 정직하다 —
+ * 40곡뿐인데 무한히 새 곡이 나오는 척할 수는 없다.
+ */
+export function nextExclusions(
+  seen: readonly string[],
+  justSeen: readonly string[],
+  limit = 5,
+): string[] {
+  const next = [...new Set([...seen, ...justSeen])];
+  return CATALOG.length - next.length < limit ? [] : next;
+}
