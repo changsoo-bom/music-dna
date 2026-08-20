@@ -7,6 +7,7 @@ import {
   PointElement,
   RadarController,
   RadialLinearScale,
+  Tooltip,
 } from "chart.js";
 import { useEffect, useRef } from "react";
 
@@ -14,12 +15,12 @@ import { useEffect, useRef } from "react";
  * 쓰는 조각만 등록한다. `chart.js/auto` 를 부르면 막대·파이·도넛까지 전부
  * 번들에 실린다 — 이 화면이 그리는 건 오각형 하나뿐이다.
  */
-Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Filler);
+Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Filler, Tooltip);
 
 export type RadarAxis = { key: string; label: string; value: number };
 
-/** 채움 투명도. 6자리 hex 뒤에 붙이는 알파다(0x26 ≈ 15%) */
-const FILL_ALPHA = "26";
+/** 채움 투명도. 6자리 hex 뒤에 붙이는 알파다(0x2e ≈ 18%) */
+const FILL_ALPHA = "2e";
 
 /**
  * 오각형 지표 차트.
@@ -31,10 +32,10 @@ const FILL_ALPHA = "26";
  * 여기에 hex 를 직접 적으면 `globals.css` 의 토큰과 두 벌이 된다 —
  * 한쪽만 바뀌는 날 색이 어긋나고 그건 아무 데서도 안 잡힌다.
  *
- * `--chart-5` 를 쓴다. 잉크로 칠하면 크림 캔버스 위에서 칙칙해지고,
- * 이 저장소에서 이미 "차트가 너무 검다" 로 한 번 되돌린 적이 있다.
- * 같은 보라를 분위기 막대가 쓰는데, 둘 다 **장르가 아니라 나 자신**을
- * 그리는 자리라 색이 겹치는 게 오히려 맞다.
+ * `--chart-1`(딥 틸)을 쓴다. 크림은 따뜻한 색이라 **차가운 색이 옆에 있을 때
+ * 크림으로 보인다** — 따뜻한 색끼리 겹치면 둘 다 탁해진다. 아래 분위기 막대가
+ * 쓰는 보라와도 갈린다. `--signal` 이 더 잘 어울리겠지만 그건 아이브로우 점과
+ * 궤도 호에 예약된 색이라 차트에 쓰지 않는다. → `.claude/rules/styling.md`
  *
  * 캔버스에는 글자가 없다 — 축 이름도 그림이다. 스크린리더에는
  * `aria-label` 로 요약하고, **정확한 값은 옆의 스탯 필에 글로 있다.**
@@ -53,7 +54,7 @@ export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
 
     const root = getComputedStyle(document.documentElement);
     const token = (name: string) => root.getPropertyValue(name).trim();
-    const accent = token("--chart-5");
+    const accent = token("--chart-1");
 
     const chart = new Chart(canvas, {
       type: "radar",
@@ -68,7 +69,9 @@ export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
             pointBackgroundColor: accent,
             pointBorderColor: accent,
             pointRadius: 4,
-            pointHoverRadius: 4,
+            pointHoverRadius: 7,
+            pointHoverBorderWidth: 3,
+            pointHoverBorderColor: token("--canvas"),
             fill: true,
           },
         ],
@@ -83,7 +86,28 @@ export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
         animation: window.matchMedia("(prefers-reduced-motion: reduce)").matches
           ? false
           : { duration: 900, easing: "easeOutQuart" },
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+        // 점 위가 아니라 **가까이만 가도** 잡는다. 꼭짓점은 7px 짜리 과녁이라
+        // 정확히 올려야 뜨면 안 뜨는 것과 다를 바가 없다.
+        interaction: { mode: "nearest", intersect: false },
+        plugins: {
+          legend: { display: false },
+          // 시스템의 툴팁 모양을 캔버스로 옮긴 것이다 — 흰 표면, 잉크 글자,
+          // 필 반경. 그림자는 캔버스로 못 그려서 hair 테두리로 대신한다.
+          tooltip: {
+            backgroundColor: token("--white"),
+            titleColor: token("--ink"),
+            bodyColor: token("--slate"),
+            borderColor: token("--hair"),
+            borderWidth: 1,
+            cornerRadius: 999,
+            padding: { top: 9, bottom: 9, left: 18, right: 18 },
+            // 계열이 하나뿐이라 색 상자가 무엇을 구분해 주지 않는다.
+            displayColors: false,
+            titleFont: { size: 14, weight: 500 },
+            bodyFont: { size: 14 },
+            callbacks: { label: (item) => ` ${item.parsed.r}` },
+          },
+        },
         scales: {
           r: {
             min: 0,
@@ -95,7 +119,7 @@ export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
             angleLines: { color: token("--hair") },
             pointLabels: {
               color: token("--slate"),
-              font: { family: getComputedStyle(canvas).fontFamily, size: 13, weight: 500 },
+              font: { family: getComputedStyle(canvas).fontFamily, size: 14, weight: 500 },
             },
           },
         },
@@ -106,7 +130,7 @@ export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
   }, [labels, values]);
 
   return (
-    <div className="relative aspect-square w-[clamp(280px,26vw,420px)] max-lg:w-[min(360px,100%)]">
+    <div className="relative aspect-square w-[clamp(320px,34vw,540px)] max-lg:w-[min(420px,100%)]">
       <canvas
         ref={canvasRef}
         role="img"
