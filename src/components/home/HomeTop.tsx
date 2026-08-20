@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 import { DnaSummary } from "@/components/report/DnaSummary";
 import { MoodMap } from "@/components/report/MoodMap";
+import { MyPlaylist } from "@/components/report/MyPlaylist";
 import { RecommendList } from "@/components/report/RecommendList";
 import { Arrow, ButtonLink, buttonClass } from "@/components/ui/Button";
 import { usePreference } from "@/hooks/use-preference";
@@ -56,6 +57,17 @@ export function HomeTop({ children }: { children: ReactNode }) {
             </ButtonLink>
           }
         />
+      </section>
+
+      {/* 내가 만든 것이 시스템이 만든 것보다 앞이다. 아직 비어 있어도 그렇다 —
+          자리를 뒤에 두면 자기 목록이 부록처럼 읽힌다. */}
+      <section className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12">
+        <header>
+          <span className="eyebrow text-ink">나만의 플레이리스트</span>
+          <h2 className="mt-5 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">직접 고른 목록</h2>
+        </header>
+
+        <MyPlaylist />
       </section>
 
       {/* 지표 다음, 추천 앞. 순서가 곧 문장이다 —
