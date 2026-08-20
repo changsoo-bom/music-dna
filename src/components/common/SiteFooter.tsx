@@ -16,22 +16,26 @@
  */
 export function SiteFooter() {
   return (
-    <footer className="mt-24 rounded-t-stadium bg-ink pt-20 pb-16 text-canvas max-sm:mt-16 max-sm:pt-14 max-sm:pb-12">
+    <footer className="mt-20 rounded-t-stadium bg-ink pt-12 pb-9 text-canvas max-sm:mt-14 max-sm:pt-9 max-sm:pb-7">
       <div className="shell">
-        <span className="flex items-center gap-2.5 text-[15px] font-bold tracking-[0.02em]">
-          <span aria-hidden className="relative block h-5 w-[34px]">
-            <span className="absolute top-0 left-0 h-5 w-5 rounded-full bg-chart-2" />
-            <span className="absolute top-0 right-0 h-5 w-5 rounded-full bg-chart-1" />
+        {/* 좁아지면 세로로 쌓는다. 한 줄로 두면 워드마크 옆에서
+            안내 문장이 한 글자씩 끊긴다 */}
+        <div className="flex max-lg:flex-col max-lg:gap-5">
+          <span className="flex items-center gap-2.5 text-[15px] font-bold tracking-[0.02em]">
+            <span aria-hidden className="relative block h-5 w-[34px]">
+              <span className="absolute top-0 left-0 h-5 w-5 rounded-full bg-chart-2" />
+              <span className="absolute top-0 right-0 h-5 w-5 rounded-full bg-chart-1" />
+            </span>
+            MY MUSIC DNA
           </span>
-          MY MUSIC DNA
-        </span>
 
-        <p className="mt-8 max-w-[52ch] text-sm leading-relaxed text-canvas/70">
-          검사 결과와 재생 이력은 이 브라우저에만 저장됩니다. 계정이 없고, 서버로 보내지 않습니다.
-          곡 정보와 앨범 이미지는 YouTube 에서 가져옵니다.
-        </p>
+          <p className="ml-auto max-w-180 text-[13px] leading-relaxed text-canvas/70 max-lg:ml-0">
+            검사 결과와 재생 이력은 이 브라우저에만 저장됩니다. 계정이 없고, 서버로 보내지 않습니다.
+            곡 정보와 앨범 이미지는 YouTube 에서 가져옵니다.
+          </p>
+        </div>
 
-        <div className="mt-12 flex flex-wrap items-center gap-x-7 gap-y-3 border-t border-canvas/25 pt-7 text-[13px] text-canvas/70 max-sm:mt-9">
+        <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-2 border-t border-canvas/25 pt-6 text-[13px] text-canvas/70 max-sm:mt-6">
           <span>© 2026 Music DNA</span>
           <span>포트폴리오용으로 만든 화면입니다.</span>
         </div>
