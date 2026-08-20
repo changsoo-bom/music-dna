@@ -6,6 +6,7 @@ import { useState } from "react";
 import { DnaSummary } from "@/components/report/DnaSummary";
 import { MyPlaylist } from "@/components/report/MyPlaylist";
 import { RecommendList } from "@/components/report/RecommendList";
+import { Verdict } from "@/components/report/Verdict";
 import { Arrow, ButtonLink, buttonClass } from "@/components/ui/Button";
 import { usePreference } from "@/hooks/use-preference";
 import { nextExclusions, recommend } from "@/lib/report/recommend";
@@ -69,7 +70,11 @@ export function HomeTop() {
 
   return (
     <>
-      <section className="pt-20 max-lg:pt-14 max-sm:pt-10">
+      <Verdict preference={preference} />
+
+      {/* 선언 다음에 내역. 위에서 "당신은 이런 사람" 이라고 말했으니
+          여기서는 그 판정이 어느 값에서 나왔는지를 편다. */}
+      <section className="mt-8">
         <DnaSummary
           preference={preference}
           action={
