@@ -1,6 +1,6 @@
 "use client";
 
-import { Play } from "@phosphor-icons/react/dist/ssr";
+import { Shuffle } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
 
 import { DnaSummary } from "@/components/report/DnaSummary";
@@ -32,7 +32,7 @@ export function HomeTop({ children }: { children: ReactNode }) {
   const preference = usePreference();
   // 훅은 조기 반환보다 위에 있어야 한다. 소개 화면에서는 안 쓰지만
   // 호출 순서가 렌더마다 달라지면 React 가 훅을 짝지을 수 없다.
-  const play = usePlayerStore((state) => state.play);
+  const playShuffled = usePlayerStore((state) => state.playShuffled);
 
   if (!preference) {
     // 저장값이 있는 줄 알고 스크립트가 숨겨 놨을 수 있다 — 깨진 값이었거나
@@ -40,7 +40,7 @@ export function HomeTop({ children }: { children: ReactNode }) {
     return <div className="home-intro" ref={showIntro}>{children}</div>;
   }
 
-  // 한 번만 고른다. 헤더의 "전체 재생" 과 목록이 같은 다섯 곡을 봐야 한다.
+  // 한 번만 고른다. 헤더의 "셔플 재생" 과 목록이 같은 다섯 곡을 봐야 한다.
   const picks = recommend(preference);
   const queue = picks.map((pick) => pick.track).filter(isPlayable);
   const quadrant = moodQuadrant(preference.axes);
@@ -90,7 +90,7 @@ export function HomeTop({ children }: { children: ReactNode }) {
       {/* 지표에서 추천으로 넘어가는 자리. 선 하나로 나눈다 —
           "분석" 과 "그래서 뭘 들을까" 는 성격이 다른 구간이다. */}
       <section className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12">
-        {/* 제목과 전체 재생을 양 끝으로 벌린다. 목록의 주인과 목록으로 할 일이
+        {/* 제목과 셔플 재생을 양 끝으로 벌린다. 목록의 주인과 목록으로 할 일이
             같은 줄에 있어야 "이게 내 것이고, 이렇게 튼다" 가 한 번에 읽힌다. */}
         <header className="flex items-end justify-between gap-8 max-sm:flex-col max-sm:items-start max-sm:gap-6">
           <div>
@@ -103,16 +103,17 @@ export function HomeTop({ children }: { children: ReactNode }) {
             </p>
           </div>
 
-          {/* 이 페이지가 원하는 단 하나의 행동이라 필 버튼이다.
-              카드의 위성 버튼은 한 곡, 이건 목록 전체 — 무게가 다르다. */}
+          {/* 목록을 섞어서 튼다. 순서대로 듣는 건 카드의 첫 곡을 누르면 되고,
+              여기는 "아무거나 틀어 줘" 자리다. 카드마다 재생 버튼이 이미 있으니
+              헤더까지 무거운 필 버튼이면 같은 행동이 두 무게로 놓인다. */}
           {queue.length > 0 && (
             <button
               type="button"
-              onClick={() => play(queue, 0)}
-              className={`${buttonClass()} shrink-0 gap-2`}
+              onClick={() => playShuffled(queue)}
+              className={`${buttonClass("text")} shrink-0`}
             >
-              <Play size={17} weight="fill" aria-hidden className="translate-x-px" />
-              전체 재생
+              셔플 재생
+              <Shuffle size={17} aria-hidden />
             </button>
           )}
         </header>
