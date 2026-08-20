@@ -166,7 +166,7 @@ export function PlayerBar() {
       {track && (
         <>
           {/* 바가 마지막 줄을 덮지 않게 문서 끝에 자리를 만든다 */}
-          <div aria-hidden className="h-28" />
+          
 
           <div className="fixed bottom-6 left-1/2 z-50 flex h-[76px] w-[min(680px,calc(100%-32px))] -translate-x-1/2 items-center gap-4 rounded-pill bg-white pr-5 pl-3 shadow-float max-sm:bottom-4 max-sm:h-[68px] max-sm:gap-3 max-sm:pr-3">
             {/* 커버 + 진행 호 */}

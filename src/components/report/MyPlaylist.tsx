@@ -53,8 +53,16 @@ export function MyPlaylist() {
         const sounding = soundingId === track.id;
         const Icon = sounding ? Pause : Play;
 
+        // `card-enter` 는 **마운트될 때 한 번만** 걸린다. `key` 가 곡 id 라
+        // 이미 있던 줄은 DOM 이 그대로 살아 있으므로, 방금 튼 곡이 맨 앞에
+        // 들어오면 그 줄만 올라온다.
+        //
+        // 시차(animation-delay)는 주지 않는다. 곡이 앞에 끼어들면 뒤 줄들의
+        // index 가 한 칸씩 밀리는데, 인라인 delay 를 index 로 계산하면 그 값이
+        // 바뀌면서 **이미 끝난 애니메이션이 다시 돈다.** 추천 목록은 판이 통째로
+        // 갈려서 그 문제가 없지만 여기는 한 줄씩 들어온다.
         return (
-          <li key={track.id}>
+          <li key={track.id} className="card-enter">
             <button
               type="button"
               onClick={() => play(queue, index)}
