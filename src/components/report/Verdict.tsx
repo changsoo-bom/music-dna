@@ -87,7 +87,7 @@ export function Verdict({ preference }: { preference: MusicPreference }) {
                   className="mt-3 block h-0.5 overflow-hidden rounded-pill bg-ghost"
                 >
                   <span
-                    className="bar-fill block h-full rounded-pill bg-ink"
+                    className="bar-fill block h-full rounded-pill bg-signal"
                     style={fillStyle(scores[key] / 100, index)}
                   />
                 </span>

@@ -19,8 +19,8 @@ Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Fi
 
 export type RadarAxis = { key: string; label: string; value: number };
 
-/** 채움 투명도. 6자리 hex 뒤에 붙이는 알파다(0x2e ≈ 18%) */
-const FILL_ALPHA = "2e";
+/** 채움 투명도. 6자리 hex 뒤에 붙이는 알파다(0x24 ≈ 14%) */
+const FILL_ALPHA = "24";
 
 /**
  * 오각형 지표 차트.
@@ -32,10 +32,11 @@ const FILL_ALPHA = "2e";
  * 여기에 hex 를 직접 적으면 `globals.css` 의 토큰과 두 벌이 된다 —
  * 한쪽만 바뀌는 날 색이 어긋나고 그건 아무 데서도 안 잡힌다.
  *
- * `--chart-1`(딥 틸)을 쓴다. 크림은 따뜻한 색이라 **차가운 색이 옆에 있을 때
- * 크림으로 보인다** — 따뜻한 색끼리 겹치면 둘 다 탁해진다. 아래 분위기 막대가
- * 쓰는 보라와도 갈린다. `--signal` 이 더 잘 어울리겠지만 그건 아이브로우 점과
- * 궤도 호에 예약된 색이라 차트에 쓰지 않는다. → `.claude/rules/styling.md`
+ * `--signal` 을 쓴다. 예약색이지만 **금지의 핵심은 "버튼에 쓰지 마라" 지
+ * "데이터에 쓰지 마라" 가 아니다** — CTA 에 쓰면 동의·법적 액션 색과 구별이
+ * 사라지는 게 이유였고, 값을 그리는 자리는 거기 해당하지 않는다.
+ * 아이브로우 점·궤도 호와 같은 색이라 페이지의 강조가 한 갈래로 모인다.
+ * 규칙 문서도 같이 넓혔다. → `.claude/rules/styling.md`
  *
  * 캔버스에는 글자가 없다 — 축 이름도 그림이다. 스크린리더에는
  * `aria-label` 로 요약하고, **정확한 값은 옆의 스탯 필에 글로 있다.**
@@ -57,7 +58,7 @@ export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
 
     const root = getComputedStyle(document.documentElement);
     const token = (name: string) => root.getPropertyValue(name).trim();
-    const accent = token("--chart-1");
+    const accent = token("--signal");
 
     const chart = new Chart(canvas, {
       type: "radar",
