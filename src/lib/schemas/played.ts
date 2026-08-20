@@ -3,8 +3,14 @@ import { z } from "zod";
 import { CATALOG } from "@/data/catalog";
 import type { CatalogTrack } from "@/types/music";
 
-/** 최근 재생 몇 곡까지 남길지. "빠른 선곡" 이라 목록이 길면 빠르지 않다 */
-export const PLAYED_LIMIT = 8;
+/**
+ * 최근 재생 몇 곡까지 남길지.
+ *
+ * "빠른 선곡" 이라 목록이 길면 빠르지 않고, **여섯 곡이 한 줄에 딱 떨어진다** —
+ * 6열 격자에서 셀이 186px 이고 그게 썸네일 원본(320×180)을 정사각으로 자른
+ * 180px 과 거의 같다. 이보다 크게 그리면 늘려서 뭉갠다.
+ */
+export const PLAYED_LIMIT = 6;
 
 /** 저장된 것은 곡 id 뿐이다. 제목·아티스트는 카탈로그가 갖고 있다 */
 const storedSchema = z.array(z.string());

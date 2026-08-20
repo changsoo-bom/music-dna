@@ -19,6 +19,10 @@ import { currentTrack, isPlayable, usePlayerStore } from "@/lib/use-player-store
  *
  * 추천은 원형, 여기는 사각형이다. 같은 모양으로 두 번 그리면 무엇이 시스템이
  * 고른 것이고 무엇이 내가 들은 것인지가 흐려진다.
+ *
+ * **6열인 이유는 썸네일 원본 크기다.** `mqdefault` 는 320×180 이라 정사각으로
+ * 자르면 180px 짜리 조각이 남는다. 1280px 폭에서 6열이면 셀이 186px 이고
+ * 거의 등배다. 4열(296px)로 그렸을 때는 1.6배로 늘어나 눈에 띄게 뭉갰다.
  */
 export function MyPlaylist() {
   const played = usePlayedTracks();
@@ -40,7 +44,7 @@ export function MyPlaylist() {
   }
 
   return (
-    <ul className="mt-12 grid grid-cols-4 gap-x-8 gap-y-10 max-xl:grid-cols-3 max-sm:mt-8 max-sm:grid-cols-2 max-sm:gap-x-5 max-sm:gap-y-8">
+    <ul className="mt-12 grid grid-cols-6 gap-x-6 gap-y-8 max-xl:grid-cols-4 max-sm:mt-8 max-sm:grid-cols-3 max-sm:gap-x-4">
       {queue.map((track, index) => {
         const sounding = soundingId === track.id;
         const Icon = sounding ? Pause : Play;
@@ -58,7 +62,7 @@ export function MyPlaylist() {
                   src={`https://i.ytimg.com/vi/${track.youtubeId}/mqdefault.jpg`}
                   alt=""
                   fill
-                  sizes="280px"
+                  sizes="(max-width: 640px) 30vw, 200px"
                   className="object-cover"
                 />
 
@@ -70,9 +74,9 @@ export function MyPlaylist() {
                     sounding ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                   }`}
                 >
-                  <span className="grid h-11 w-11 place-items-center rounded-full bg-white text-ink shadow-float">
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-white text-ink shadow-float">
                     <Icon
-                      size={17}
+                      size={16}
                       weight="fill"
                       aria-hidden
                       className={sounding ? "" : "translate-x-px"}
@@ -81,8 +85,8 @@ export function MyPlaylist() {
                 </div>
               </div>
 
-              <p className="mt-4 truncate text-[17px] tracking-[-0.01em]">{track.title}</p>
-              <p className="mt-1 truncate text-sm text-slate">{track.artist}</p>
+              <p className="mt-3.5 truncate text-[15px] tracking-[-0.01em]">{track.title}</p>
+              <p className="mt-1 truncate text-[13px] text-slate">{track.artist}</p>
             </button>
           </li>
         );
