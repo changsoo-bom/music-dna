@@ -21,6 +21,12 @@ import { currentTrack, isPlayable, usePlayerStore } from "@/lib/use-player-store
  * 접히니 같은 자리에서 더 많은 곡을 보여 주고, 커버가 56px 이라 썸네일
  * 원본(320×180 을 정사각으로 자르면 180px)을 늘리지 않는다 —
  * 정사각 카드로 크게 그렸을 때는 1.6배로 늘어나 눈에 띄게 뭉갰다.
+ *
+ * **줄은 가만히 있을 때부터 표면을 갖는다.** 호버에만 배경을 주면 평소에는
+ * 글자만 떠 있는 목록이라 허전하고, 어디까지가 한 곡인지도 안 보인다.
+ * 크림 캔버스 위의 `bg-lifted` 가 기본이고, 포인터가 올라오면 `bg-white` +
+ * `shadow-lift` 로 한 단계 떠오른다 — 시스템이 정한 세 표면의 순서 그대로다.
+ * 지금 나는 곡은 그 떠오른 상태로 고정된다.
  */
 export function MyPlaylist() {
   const played = usePlayedTracks();
@@ -42,7 +48,7 @@ export function MyPlaylist() {
   }
 
   return (
-    <ul className="mt-10 grid grid-cols-3 gap-x-6 gap-y-2 max-lg:grid-cols-2 max-sm:mt-6 max-sm:grid-cols-1">
+    <ul className="mt-10 grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:mt-6 max-sm:grid-cols-1">
       {queue.map((track, index) => {
         const sounding = soundingId === track.id;
         const Icon = sounding ? Pause : Play;
@@ -53,7 +59,9 @@ export function MyPlaylist() {
               type="button"
               onClick={() => play(queue, index)}
               aria-label={`${track.artist} ${track.title} ${sounding ? "일시정지" : "재생"}`}
-              className="group flex w-full items-center gap-4 rounded-btn px-3 py-3 text-left transition-colors hover:bg-lifted focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none"
+              className={`group flex w-full items-center gap-4 rounded-btn px-4 py-3.5 text-left transition duration-200 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none ${
+                sounding ? "bg-white shadow-lift" : "bg-lifted hover:bg-white hover:shadow-lift"
+              }`}
             >
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-ghost">
                 <Image
