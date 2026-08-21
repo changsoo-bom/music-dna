@@ -450,9 +450,12 @@ dialog.player-screen {
      쌓임 순서는 셋뿐이다: 헤더(50) < 전체 화면(60) < 재생 바(70).
      헤더는 시트에 덮여야 하고 바는 시트 위에 남아야 한다. */
   position: fixed;
-  inset: 0 0 var(--player-bar-h) 0;
+  inset: 0 auto var(--player-bar-h) 0;
   z-index: 60;
-  width: 100%;
+  /* `100%` 는 스크롤바 자리를 뺀 폭이라 오른쪽 끝에 못 닿는다.
+     `html` 이 그 자리를 늘 비워 두므로(`scrollbar-gutter: stable`) 스크롤이
+     막힌 동안에도 띠가 남는다. `100vw` 는 그 자리까지 포함한 폭이다. */
+  width: 100vw;
   max-width: none;
   height: auto;
   max-height: none;

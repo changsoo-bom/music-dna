@@ -1,11 +1,10 @@
 "use client";
 
-import { CaretDown, Pause, Play, SkipBack, SkipForward } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, Pause, Play } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import type { CSSProperties, RefObject } from "react";
 
-import { VolumeControl } from "@/components/player/VolumeControl";
 import { SUB_GENRES } from "@/constants/genres";
 import { ORBIT_CIRCUMFERENCE } from "@/constants/orbit";
 import { usePlayedTracks } from "@/hooks/use-played-tracks";
@@ -59,9 +58,6 @@ export function PlayerScreen({
   arcRef: RefObject<SVGCircleElement | null>;
 }) {
   const track = usePlayerStore(currentTrack);
-  const isPlaying = usePlayerStore((s) => s.isPlaying);
-  const toggle = usePlayerStore((s) => s.toggle);
-  const skip = usePlayerStore((s) => s.skip);
   const preference = usePreference();
 
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -140,7 +136,7 @@ export function PlayerScreen({
         </button>
 
         {/* 두 칸이 다른 것을 말한다: 왼쪽은 **이 곡이 무엇인가**(커버·지표),
-            오른쪽은 **지금 무엇을 듣고 있고 곁에 무엇이 있는가**(제목·조작·목록).
+            오른쪽은 **지금 무엇을 듣고 있고 곁에 무엇이 있는가**(제목·목록).
             `items-start` 다 — 양쪽 높이가 곡마다 달라서 가운데로 맞추면
             제목이 위아래로 떠다닌다. */}
         <div className="grid grid-cols-[minmax(0,340px)_1fr] items-start gap-16 max-lg:grid-cols-1 max-lg:justify-items-center max-lg:gap-12 max-lg:text-center">
@@ -231,46 +227,10 @@ export function PlayerScreen({
               {length && <span className="tabular-nums"> · {length}</span>}
             </p>
 
-            <div className="mt-10 flex items-center gap-3 max-lg:justify-center">
-              <button
-                type="button"
-                onClick={() => skip(-1)}
-                aria-label="이전 곡"
-                className={`${ICON_BUTTON} h-12 w-12`}
-              >
-                <SkipBack size={22} weight="fill" aria-hidden />
-              </button>
-              <button
-                type="button"
-                onClick={toggle}
-                aria-label={isPlaying ? "일시정지" : "재생"}
-                className={`${ICON_BUTTON} h-16 w-16`}
-              >
-                {isPlaying ? (
-                  <Pause size={30} weight="fill" aria-hidden />
-                ) : (
-                  // Phosphor 의 `Play`(fill)는 잉크가 박스 안에서 오른쪽에 그려져
-                  // 있다. 줄 안에서는 보이는 잉크가 균등해야 한다 → `PlayerBar`
-                  <Play size={30} weight="fill" aria-hidden className="-translate-x-[3px]" />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => skip(1)}
-                aria-label="다음 곡"
-                className={`${ICON_BUTTON} h-12 w-12`}
-              >
-                <SkipForward size={22} weight="fill" aria-hidden />
-              </button>
-
-              {/* 바에 있는 것과 **같은 조작이다** — 값이 스토어에 있어서
-                  한쪽에서 줄이면 다른 쪽 손잡이도 따라 움직인다.
-                  모바일에서만 감춘다(바는 `md` 부터 감춘다 — 거긴 가로 자리가
-                  없어서고, 여기는 자리가 있다). 감추는 이유 자체는 같다:
-                  모바일 브라우저는 `setVolume` 을 무시하고 기기 볼륨만 먹는다. */}
-              <VolumeControl className="ml-2 max-sm:hidden" />
-            </div>
-
+            {/* 조작은 여기 없다. **재생 바가 이 화면 위에 그대로 살아 있어서**
+                (`--player-bar-h` 만큼 시트가 위에서 끝난다) 같은 버튼을 한 벌 더
+                놓으면 화면에 재생 버튼이 두 개 보인다. 하나만 남기고, 이 화면은
+                조작이 아니라 **이 곡이 무엇인지**를 맡는다. */}
             <PlayedQueue />
           </div>
         </div>
@@ -306,17 +266,20 @@ function PlayedQueue() {
       {/* **여기서만 스크롤한다**(`.scroll-panel`) — 목록이 아홉 줄까지 늘어도
           커버와 조작은 제자리에 남는다.
 
-          높이를 **커버와 같은 340px** 로 잡는다. 옆 칸에 이미 그 크기의
-          정사각형이 서 있어서, 목록이 그와 같은 높이면 두 덩어리가 한 짝으로
-          읽힌다. 임의의 값을 고르면 어느 쪽에도 안 맞는 크기가 된다.
-          한 줄이 64px 이라 다섯 줄하고 조금이 보인다 — 잘린 줄이 반쯤
-          보이는 것이 "아래에 더 있다" 는 가장 조용한 표시다.
+          높이가 **남는 자리를 그대로 먹는다.** 449px 은 이 목록 위아래로
+          시트가 이미 쓰고 있는 높이(여백·닫기·제목·아래 여백)의 합이고,
+          화면에서 그만큼을 뺀 나머지가 목록 몫이다. 고정값으로 잡으면 큰
+          화면에서는 아래가 비고 작은 화면에서는 시트가 넘친다 — 목록 안이
+          아니라 화면이 스크롤되면 여기까지 온 이유가 없다.
 
-          `36dvh` 로 한 번 더 조인다. 짧은 화면에서는 340px 가 시트를 넘겨서
-          목록 안이 아니라 화면이 스크롤되는데, 그러면 여기까지 온 이유가 없다.
+          `dvh` 다. iOS 주소창이 접히고 펴질 때 `vh` 는 안 따라온다 —
+          `body` 의 `min-height` 와 같은 이유다.
+
+          바닥을 두 줄(8rem)로 막는다. 아주 낮은 창에서 계산값이 한 줄도
+          안 되는 높이로 떨어지면 목록이 아니라 잘린 그림이 된다.
 
           오른쪽 여백은 막대 자리다. 없으면 곡 길이 위로 막대가 겹친다. */}
-      <ul className="scroll-panel mt-4 flex max-h-[min(21.25rem,36dvh)] flex-col pr-2">
+      <ul className="scroll-panel mt-4 flex max-h-[max(8rem,calc(100dvh-449px))] flex-col pr-2">
         {queue.map((track, index) => {
           const isCurrent = sounding === track.id;
           const length = formatDuration(track.duration);
