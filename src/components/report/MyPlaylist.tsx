@@ -4,7 +4,8 @@ import { Pause, Play } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 
 import { usePlayedTracks } from "@/hooks/use-played-tracks";
-import { currentTrack, isPlayable, usePlayerStore } from "@/lib/use-player-store";
+import { formatDuration } from "@/lib/utils";
+import { isPlayable, soundingId, usePlayerStore } from "@/lib/use-player-store";
 
 /**
  * 최근에 튼 곡. **곡을 재생하면 저절로 여기 쌓인다.**
@@ -34,9 +35,10 @@ export function MyPlaylist() {
   const play = usePlayerStore((state) => state.play);
   // 이 목록에서 나고 있는 곡. 추천에서 튼 같은 곡은 여기서 재생 아이콘이다 —
   // 눌렀을 때 멈추는 게 아니라 이 목록으로 옮겨 타기 때문이다.
-  const soundingId = usePlayerStore((state) =>
-    state.isPlaying && state.queueId === "played" ? (currentTrack(state)?.id ?? null) : null,
-  );
+  //
+  // 구독은 하나다. 줄마다 `isSounding` 을 구독하면 아홉 줄이 아홉 번 깨어난다.
+  // 판정은 같은 함수에서 나온다. → `soundingId`
+  const sounding = usePlayerStore((state) => soundingId(state, "played"));
 
   if (queue.length === 0) {
     return (
@@ -52,8 +54,9 @@ export function MyPlaylist() {
   return (
     <ul className="mt-10 grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:mt-6 max-sm:grid-cols-1">
       {queue.map((track, index) => {
-        const sounding = soundingId === track.id;
-        const Icon = sounding ? Pause : Play;
+        const isCurrent = sounding === track.id;
+        const length = formatDuration(track.duration);
+        const Icon = isCurrent ? Pause : Play;
 
         // `card-enter` 는 **마운트될 때 한 번만** 걸린다. `key` 가 곡 id 라
         // 이미 있던 줄은 DOM 이 그대로 살아 있으므로, 방금 튼 곡이 맨 앞에
@@ -68,9 +71,9 @@ export function MyPlaylist() {
             <button
               type="button"
               onClick={() => play("played", queue, index)}
-              aria-label={`${track.artist} ${track.title} ${sounding ? "일시정지" : "재생"}`}
+              aria-label={`${track.artist} ${track.title} ${isCurrent ? "일시정지" : "재생"}`}
               className={`group flex w-full items-center gap-4 rounded-btn px-4 py-3.5 text-left transition duration-200 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none ${
-                sounding ? "bg-white shadow-lift" : "bg-lifted hover:bg-white hover:shadow-lift"
+                isCurrent ? "bg-white shadow-lift" : "bg-lifted hover:bg-white hover:shadow-lift"
               }`}
             >
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-ghost">
@@ -87,21 +90,26 @@ export function MyPlaylist() {
                     opacity 만 움직인다 — 커버는 사진이라 아이콘이 그냥 얹히면 안 읽힌다. */}
                 <div
                   className={`absolute inset-0 grid place-items-center bg-ink/45 text-white transition-opacity duration-200 ${
-                    sounding ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    isCurrent ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                   }`}
                 >
                   <Icon
                     size={18}
                     weight="fill"
                     aria-hidden
-                    className={sounding ? "" : "translate-x-px"}
+                    className={isCurrent ? "" : "translate-x-px"}
                   />
                 </div>
               </div>
 
               <div className="min-w-0">
                 <p className="truncate text-[17px] tracking-[-0.01em]">{track.title}</p>
-                <p className="mt-0.5 truncate text-sm text-slate">{track.artist}</p>
+                {/* 길이는 아티스트와 달리 **안 잘린다.** 좁은 칸에서 먼저
+                    사라지는 건 긴 이름이어야 하고, 3:47 은 네 글자다. */}
+                <p className="mt-0.5 flex items-baseline text-sm text-slate">
+                  <span className="truncate">{track.artist}</span>
+                  {length && <span className="shrink-0 tabular-nums">&nbsp;· {length}</span>}
+                </p>
               </div>
             </button>
           </li>

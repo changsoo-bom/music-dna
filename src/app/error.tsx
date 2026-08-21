@@ -18,9 +18,7 @@ import { ButtonLink, buttonClass } from "@/components/ui/Button";
  * 말만 적는다.
  *
  * 루트 레이아웃 자체와 그 밖에 있는 `PlayerBar` 는 여기서 못 잡는다.
- * 그건 `global-error.tsx` 의 몫인데, 레이아웃의 인라인 스크립트는 이미
- * try/catch 고 `PlayerBar` 는 렌더 중에 저장소를 안 만진다. 잡을 것이
- * 생기면 그때 만든다 — 지금 만들면 **한 번도 안 도는 화면**이 하나 는다.
+ * 그건 `global-error.tsx` 가 받는다.
  *
  * 원인을 화면에 적지 않는다. 스택트레이스는 쓸 사람에게만 의미가 있고,
  * 여기 필요한 것은 다음에 뭘 누르면 되는지다.

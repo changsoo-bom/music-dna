@@ -6,6 +6,7 @@ import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
 import { maxPerGenre, nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
 import { PLAYED_LIMIT, parsePlayed } from "@/lib/schemas/played";
+import { formatDuration } from "@/lib/utils";
 import type { Genre, SubGenre } from "@/types/music";
 
 /**
@@ -196,8 +197,22 @@ assert.equal(
   "없는 id 가 상한 자리를 먹었다",
 );
 
+// 곡 길이 표기. 화면에 글로 나가는 값이라 초 단위가 틀리면 그냥 틀려 보인다.
+assert.equal(formatDuration(undefined), "", "길이가 없는데 0:00 을 그렸다");
+assert.equal(formatDuration(0), "", "0초를 길이로 그렸다");
+assert.equal(formatDuration(7), "0:07", "한 자리 초에 0 을 안 채웠다");
+assert.equal(formatDuration(227), "3:47", "분·초 환산이 틀렸다");
+assert.equal(formatDuration(600), "10:00", "정확히 나누어떨어지는 값이 틀렸다");
+// 카탈로그의 모든 길이가 사람이 읽을 수 있는 모양으로 나와야 한다
+for (const track of CATALOG) {
+  assert.match(
+    formatDuration(track.duration),
+    /^\d+:[0-5]\d$/,
+    `${track.id}: 길이 표기가 ${formatDuration(track.duration)} 다`,
+  );
+}
 
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 다시 찾기 3판 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 다시 찾기 3판 · 길이 표기 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );

@@ -124,14 +124,29 @@ export function currentTrack(state: PlayerState): PlayableTrack | null {
 }
 
 /**
- * 이 카드를 누르면 멈추는가. **아이콘이 이 값을 그린다.**
+ * **이 목록에서** 지금 소리를 내고 있는 곡의 id. 아니면 `null`.
  *
- * 목록까지 같아야 참이다. 곡 id 만 보면 추천에서 튼 곡이 빠른 선곡에도 있을 때
+ * 목록까지 봐야 한다. 곡 id 만 보면 추천에서 튼 곡이 빠른 선곡에도 있을 때
  * 양쪽 다 일시정지 아이콘을 다는데, **빠른 선곡 쪽을 누르면 멈추지 않는다** —
  * 다른 목록이므로 "이 목록을 여기서부터 틀어 줘" 가 된다. 그러면 아이콘이
  * 클릭의 결과를 잘못 말한 셈이고, 사용자에게는 "눌러도 아무 일이 안 난다" 로
  * 보인다. 아이콘과 행동은 같은 조건에서 갈려야 한다.
+ *
+ * 목록 컴포넌트는 이걸 **구독 하나로** 받아서 줄마다 비교한다. 줄마다
+ * 구독하면 아홉 줄이 아홉 번 깨어난다.
+ */
+export function soundingId(state: PlayerState, queueId: QueueId): string | null {
+  if (!state.isPlaying || state.queueId !== queueId) return null;
+  return currentTrack(state)?.id ?? null;
+}
+
+/**
+ * 이 카드를 누르면 멈추는가. **아이콘이 이 값을 그린다.**
+ *
+ * 카드가 하나뿐인 자리(위성 재생 버튼)를 위한 것이고, 조건은 위와 **같은
+ * 함수에서 나온다** — 전에는 목록 쪽이 같은 판정을 손으로 한 벌 더 갖고
+ * 있어서, 토글 조건이 바뀌는 날 한쪽만 고쳐질 자리였다.
  */
 export function isSounding(state: PlayerState, queueId: QueueId, trackId: string): boolean {
-  return state.isPlaying && state.queueId === queueId && currentTrack(state)?.id === trackId;
+  return soundingId(state, queueId) === trackId;
 }

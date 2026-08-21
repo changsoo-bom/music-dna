@@ -4,6 +4,7 @@ import { PlayButton } from "@/components/player/PlayButton";
 import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import type { Recommendation } from "@/lib/report/recommend";
 import { isPlayable } from "@/lib/use-player-store";
+import { formatDuration } from "@/lib/utils";
 import type { Genre } from "@/types/music";
 
 /** slot → 검증된 차트 색. Tailwind 는 클래스명을 정적으로 읽으므로 조립하지 않는다 */
@@ -56,6 +57,7 @@ export function RecommendList({ items }: { items: readonly Recommendation[] }) {
       {items.map(({ track, reasons }, index) => {
         const genre = PARENT_OF[track.subGenre];
         const queueIndex = queue.findIndex((t) => t.id === track.id);
+        const length = formatDuration(track.duration);
         return (
           <li
             key={track.id}
@@ -107,7 +109,12 @@ export function RecommendList({ items }: { items: readonly Recommendation[] }) {
             </p>
 
             <h3 className="mt-2 text-[19px] leading-tight tracking-[-0.01em]">{track.title}</h3>
-            <p className="mt-1 text-sm text-slate">{track.artist}</p>
+            {/* 길이를 아티스트 옆에 붙인다. **틀기 전에 드는 비용을 알려 주는
+                자리**고, 이 카드에서 그걸 말할 다른 줄이 없다. */}
+            <p className="mt-1 text-sm text-slate">
+              {track.artist}
+              {length && <span className="tabular-nums">&nbsp;· {length}</span>}
+            </p>
 
             {/* 이 장르가 당신 취향의 어디에 있는지. 호가 값을 그리지 않게 된 뒤로
                 근접도를 말하는 건 이 줄뿐이다. */}
