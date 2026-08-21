@@ -21,8 +21,8 @@ import { HomeTop } from "@/components/home/HomeTop";
 export default function HomePage() {
   return (
     <ViewTransition
-      enter={{ "nav-forward": "nav-forward", default: "none" }}
-      exit={{ "nav-forward": "nav-forward", default: "none" }}
+      enter={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
+      exit={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
       default="none"
     >
       <div className="flex flex-1 flex-col">

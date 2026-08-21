@@ -3,6 +3,7 @@ import { GENRES, PARENT_OF } from "@/constants/genres";
 import { NAV_FORWARD } from "@/constants/nav";
 import { PERSONAS } from "@/constants/personas";
 import { ButtonLink } from "@/components/ui/Button";
+import { QUESTIONS } from "@/lib/quiz/questions";
 import { moodAffinity, nightScore } from "@/lib/quiz/scoring";
 import { trackMood } from "@/lib/report/recommend";
 import type { Genre, MoodVector, MusicPreference } from "@/types/music";
@@ -17,6 +18,19 @@ const GENRE_FILL: Record<Genre, string> = {
 };
 
 const GENRE_LABEL = Object.fromEntries(GENRES.map((g) => [g.id, g.label])) as Record<Genre, string>;
+
+/**
+ * 다시 하는 데 드는 비용. 오른쪽 열의 문장 아래에 줄로 세운다.
+ *
+ * 문항 수는 카탈로그가 아니라 `QUESTIONS` 를 센다 — 문항을 늘리는 날
+ * 여기 "5" 가 조용히 거짓말이 되는 걸 막는다. 나머지 둘은 세는 값이 아니라
+ * 이 화면이 지키는 약속이라 글로 적는다.
+ */
+const facts = [
+  { label: "문항", value: `${QUESTIONS.length}개` },
+  { label: "걸리는 시간", value: "약 1분" },
+  { label: "이전 결과", value: "그대로 유지" },
+];
 
 /** 지문의 뷰박스. 막대가 `preserveAspectRatio="none"` 으로 늘어난다 */
 const PRINT = { width: CATALOG.length * 3, height: 100, gap: 1 } as const;
@@ -58,8 +72,8 @@ function Fingerprint({ mood }: { mood: MoodVector }) {
  * 마지막 섹션. **다시 검사하러 가는 자리다.**
  *
  * `design/prototype.html` 의 `#connect` 구조를 가져왔다 — 왼쪽에 흰 필 카드,
- * 오른쪽에 제목·한 문장·버튼. 프로토타입은 계정 연결을 권하지만 여기는
- * 검사가 이미 끝난 사람이 보는 화면이라 권할 것이 재검사뿐이다.
+ * 오른쪽에 제목·한 문장·드는 비용·버튼. 프로토타입은 계정 연결을 권하지만
+ * 여기는 검사가 이미 끝난 사람이 보는 화면이라 권할 것이 재검사뿐이다.
  *
  * 카드에 들어가는 넷은 **위 오각형이 안 보여주는 것**이다. 오각형은 축의
  * 균형이고 여기는 이름 붙은 결과 — 어느 장르, 어느 분위기, 언제 잰 것인지.
@@ -104,7 +118,9 @@ export function RetakeCta({ preference }: { preference: MusicPreference }) {
 
           <Fingerprint mood={axes} />
 
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-4.5 text-left">
+          {/* 카드는 통째로 가운데 정렬이다. 여기만 왼쪽으로 두면 칩·제목·지문의
+              축과 어긋나서 네 칸이 카드에서 떨어져 나온 것처럼 보인다 */}
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-4.5">
             {rows.map(({ label, value }) => (
               <div key={label}>
                 <dt className="text-[13px] text-slate">{label}</dt>
@@ -116,14 +132,31 @@ export function RetakeCta({ preference }: { preference: MusicPreference }) {
 
         <div>
           <span className="eyebrow text-ink">다시 검사</span>
-          <h2 className="mt-5 max-w-[16ch] text-[clamp(28px,3.4vw,40px)] leading-[1.1]">
+          <h2 className="mt-5 text-[clamp(28px,3.6vw,44px)] leading-[1.1]">
             요즘 듣는 게 달라졌다면
           </h2>
-          <p className="mt-5 max-w-[44ch] text-slate">
-            취향은 한 번 재고 끝나지 않습니다. 다섯 문항이면 다시 잽니다. 이전 결과는 새 결과가
-            나올 때까지 그대로 남습니다.
+          {/* 문단 폭을 제목보다 좁게 잡는다. 읽는 줄은 길어지면 다음 줄
+              첫 글자를 찾는 데 시간이 걸린다 — 제목은 한눈에 들어오는 덩어리라
+              그 제약을 안 받는다. */}
+          <p className="mt-6 max-w-[46ch] text-lg text-slate max-sm:text-base">
+            취향은 한 번 재고 끝나지 않습니다. 계절이 바뀌거나 앨범 하나에 빠지면 좌표도 같이
+            움직입니다.
           </p>
-          <ButtonLink href="/quiz" transitionTypes={NAV_FORWARD} className="mt-8">
+
+          {/* 문장에 흩어져 있던 사실 셋을 줄로 세운다. "다섯 문항이면 다시
+              잽니다" 를 읽는 것과 5·1분·유지를 한눈에 보는 것은 다르다 —
+              다시 할지 말지는 드는 비용을 보고 정하는 일이다.
+              문항 수는 세어서 쓴다. 문항을 늘리면 여기도 같이 바뀐다. */}
+          <dl className="mt-9 flex flex-wrap gap-x-14 gap-y-6 border-t border-hair pt-7 max-sm:gap-x-10">
+            {facts.map(({ label, value }) => (
+              <div key={label}>
+                <dt className="text-[13px] text-slate">{label}</dt>
+                <dd className="mt-1 text-xl font-medium tracking-[-0.02em]">{value}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <ButtonLink href="/quiz" transitionTypes={NAV_FORWARD} className="mt-9">
             다시 검사하기
           </ButtonLink>
         </div>

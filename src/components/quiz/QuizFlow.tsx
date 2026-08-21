@@ -1,9 +1,11 @@
 "use client";
 
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { NAV_FORWARD } from "@/constants/nav";
+import { NAV_BACK, NAV_FORWARD } from "@/constants/nav";
 import { QuizRadioOption, QuizRankOption } from "@/components/quiz/QuizOption";
 import { QuizProgress } from "@/components/quiz/QuizProgress";
 import { QuizResult } from "@/components/quiz/QuizResult";
@@ -95,6 +97,32 @@ export function QuizFlow() {
 
   return (
     <div className="mx-auto max-w-[720px]">
+      {/* 나가는 문. 이 화면에는 헤더도 푸터도 없어서, 이게 없으면 브라우저
+          뒤로가기 말고는 빠져나갈 길이 없다.
+
+          아래의 "이전" 과 다른 일을 한다 — 저건 문항을 되돌리고 이건 검사를
+          그만둔다. 글자가 없으니 `aria-label` 이 유일한 이름이다.
+
+          표면 없이 화살표만 둔다. 흰 원을 깔면 이 화면에서 유일하게 떠 있는
+          것이 되어 문항보다 먼저 눈에 들어온다 — 나가는 문이 그만한 무게를
+          가질 자리가 아니다. 대신 원형 히트박스는 남겨서 손이 안 미끄러진다.
+
+          답은 마지막 문항까지 가야 저장되므로 여기서 나가면 지금까지 고른
+          것이 사라진다. **확인 창을 띄우지 않는다** — 1분짜리 검사에
+          "정말 나가시겠습니까" 를 붙이면 그 창이 검사보다 무거워진다. */}
+      <Link
+        href="/"
+        transitionTypes={NAV_BACK}
+        aria-label="검사 그만두고 홈으로"
+        className="group mb-6 -ml-3.5 inline-flex h-14 w-14 items-center justify-center rounded-full text-slate transition-colors hover:text-ink max-sm:mb-4 max-sm:-ml-3 max-sm:h-12 max-sm:w-12"
+      >
+        <ArrowLeft
+          size={24}
+          aria-hidden
+          className="transition-transform duration-200 group-hover:-translate-x-0.5"
+        />
+      </Link>
+
       <QuizProgress current={index + 1} total={QUESTIONS.length} />
 
       {/* key 로 리마운트해서 진입 애니메이션을 다시 태운다 */}
