@@ -4,7 +4,7 @@ import { PlayButton } from "@/components/player/PlayButton";
 import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import type { Recommendation } from "@/lib/report/recommend";
 import { isPlayable } from "@/lib/use-player-store";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration } from "@/lib/format";
 import type { Genre } from "@/types/music";
 
 /** slot → 검증된 차트 색. Tailwind 는 클래스명을 정적으로 읽으므로 조립하지 않는다 */

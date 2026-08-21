@@ -6,7 +6,7 @@ import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
 import { maxPerGenre, nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
 import { PLAYED_LIMIT, parsePlayed } from "@/lib/schemas/played";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration } from "@/lib/format";
 import type { Genre, SubGenre } from "@/types/music";
 
 /**
@@ -203,6 +203,11 @@ assert.equal(formatDuration(0), "", "0초를 길이로 그렸다");
 assert.equal(formatDuration(7), "0:07", "한 자리 초에 0 을 안 채웠다");
 assert.equal(formatDuration(227), "3:47", "분·초 환산이 틀렸다");
 assert.equal(formatDuration(600), "10:00", "정확히 나누어떨어지는 값이 틀렸다");
+// 쓸 수 없는 값은 그리지 않는다. 남은 시간을 넣고 싶어지는 날
+// (`getDuration() - getCurrentTime()` 은 음수를 흘린다) `-1:-5` 가 화면에 뜬다.
+assert.equal(formatDuration(-5), "", "음수를 길이로 그렸다");
+assert.equal(formatDuration(Number.POSITIVE_INFINITY), "", "무한대를 길이로 그렸다");
+assert.equal(formatDuration(Number.NaN), "", "NaN 을 길이로 그렸다");
 // 카탈로그의 모든 길이가 사람이 읽을 수 있는 모양으로 나와야 한다
 for (const track of CATALOG) {
   assert.match(

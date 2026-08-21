@@ -60,18 +60,3 @@ export function revealOnScroll(el: HTMLElement | null) {
   return () => io.disconnect();
 }
 
-/**
- * 초 → `3:47`. 값이 없으면 빈 문자열이다.
- *
- * `duration` 은 카탈로그에 있지만 **`pnpm enrich` 를 돌리기 전에는 비어 있다**
- * (`types/music.ts` 에서 optional 인 이유). 없을 때 `0:00` 을 그리면 길이가
- * 0초인 곡처럼 보이므로, 부르는 쪽이 빈 문자열을 받아 자리를 안 만들게 한다.
- *
- * 시간 단위는 안 만든다. 카탈로그는 곡이고, 한 시간짜리가 섞여 있으면
- * `check-catalog` 가 먼저 잡아야 할 일이다 — `72:30` 이 그려지는 게
- * 그 사실을 숨기는 것보다 낫다.
- */
-export function formatDuration(seconds: number | undefined): string {
-  if (!seconds) return "";
-  return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
-}

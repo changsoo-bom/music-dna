@@ -4,7 +4,7 @@ import { Pause, Play } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 
 import { usePlayedTracks } from "@/hooks/use-played-tracks";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration } from "@/lib/format";
 import { isPlayable, soundingId, usePlayerStore } from "@/lib/use-player-store";
 
 /**
