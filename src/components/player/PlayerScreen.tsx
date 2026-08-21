@@ -303,7 +303,20 @@ function PlayedQueue() {
     <section className="mt-14 w-full max-lg:text-left">
       <h2 className="text-[13px] font-bold text-slate">재생목록</h2>
 
-      <ul className="mt-4 flex flex-col">
+      {/* **여기서만 스크롤한다**(`.scroll-panel`) — 목록이 아홉 줄까지 늘어도
+          커버와 조작은 제자리에 남는다.
+
+          높이를 **커버와 같은 340px** 로 잡는다. 옆 칸에 이미 그 크기의
+          정사각형이 서 있어서, 목록이 그와 같은 높이면 두 덩어리가 한 짝으로
+          읽힌다. 임의의 값을 고르면 어느 쪽에도 안 맞는 크기가 된다.
+          한 줄이 64px 이라 다섯 줄하고 조금이 보인다 — 잘린 줄이 반쯤
+          보이는 것이 "아래에 더 있다" 는 가장 조용한 표시다.
+
+          `36dvh` 로 한 번 더 조인다. 짧은 화면에서는 340px 가 시트를 넘겨서
+          목록 안이 아니라 화면이 스크롤되는데, 그러면 여기까지 온 이유가 없다.
+
+          오른쪽 여백은 막대 자리다. 없으면 곡 길이 위로 막대가 겹친다. */}
+      <ul className="scroll-panel mt-4 flex max-h-[min(21.25rem,36dvh)] flex-col pr-2">
         {queue.map((track, index) => {
           const isCurrent = sounding === track.id;
           const length = formatDuration(track.duration);
