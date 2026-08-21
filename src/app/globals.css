@@ -67,6 +67,13 @@
   --shadow-float: 0 24px 48px 0 rgb(0 0 0 / 0.08);
 }
 
+html {
+  /* 스크롤바 자리를 늘 비워 둔다. 전체 화면 재생이 열릴 때 본문 스크롤을
+     막는데, 그때 스크롤바가 사라지면서 화면이 그 폭만큼 옆으로 튄다.
+     자리를 미리 잡아 두면 튀지 않는다. */
+  scrollbar-gutter: stable;
+}
+
 body {
   /* 푸터를 바닥에 붙인다. 내용이 짧은 화면(검사 이력이 없는 홈)에서 푸터가
      화면 중간에 떠 있으면 페이지가 잘린 것처럼 보인다.
@@ -468,6 +475,16 @@ dialog.player-screen {
 }
 dialog.player-screen[open] {
   translate: 0 0;
+}
+
+/* 시트가 떠 있는 동안 뒤 본문은 안 움직인다.
+   모달 `<dialog>` 는 최상위 레이어에 뜨고 뒤를 `inert` 로 만들지만
+   **스크롤은 막지 않는다** — 시트 위에서 휠을 굴리면 스크롤이 뒤로 이어져
+   본문이 소리 없이 흘러가고, 닫으면 엉뚱한 자리에 와 있다.
+   `:has()` 로 잡으면 JS 도 효과도 필요 없다. body 의 overflow 는
+   html 이 visible 일 때 뷰포트로 전파되므로 이 한 줄로 스크롤이 선다. */
+body:has(dialog.player-screen[open]) {
+  overflow: hidden;
 }
 @starting-style {
   dialog.player-screen[open] {
