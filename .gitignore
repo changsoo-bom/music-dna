@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files. .env.example 만 예외 — 어떤 변수가 필요한지는 커밋돼야 알 수 있다
 .env*
+!.env.example
 
 # vercel
 .vercel

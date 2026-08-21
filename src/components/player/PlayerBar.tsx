@@ -51,8 +51,27 @@ export function PlayerBar() {
   const switchingRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
+  /**
+   * 재시도 횟수. **아래 효과를 다시 돌리기 위한 것뿐이다.**
+   *
+   * `loadIframeApi` 는 실패하면 캐시를 비워서 다음 호출이 다시 시도하게 해 두는데,
+   * 효과의 의존성이 `videoId` 뿐이면 그 다음 호출이 영영 안 온다 — 같은 곡을
+   * 다시 눌러도 `videoId` 가 그대로라 효과가 안 돈다. 스크립트가 한 번 못 뜨면
+   * **다른 곡을 고르는 것 말고는 복구할 방법이 없었다.**
+   */
+  const [attempt, setAttempt] = useState(0);
 
   const videoId = track?.youtubeId ?? null;
+
+  /** 재생 버튼. 실패한 상태에서는 토글이 아니라 재시도다 */
+  function pressPlay() {
+    if (failed) {
+      setFailed(false);
+      setAttempt((n) => n + 1);
+      return;
+    }
+    toggle();
+  }
 
   // 플레이어를 만든다. 첫 곡을 고른 뒤에야 스크립트를 받는다.
   useEffect(() => {
@@ -116,7 +135,7 @@ export function PlayerBar() {
     return () => {
       cancelled = true;
     };
-  }, [videoId]);
+  }, [videoId, attempt]);
 
   // 곡이 바뀌면 갈아 끼운다. 플레이어를 다시 만들지 않는다 —
   // 만들 때마다 iframe 이 새로 뜨면서 소리가 끊긴다.
@@ -198,7 +217,7 @@ export function PlayerBar() {
             <div role="status" aria-live="polite" className="min-w-0 flex-1">
               <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{track.title}</p>
               <p className="truncate text-[13px] text-slate">
-                {failed ? "재생을 시작하지 못했습니다" : track.artist}
+                {failed ? "재생을 시작하지 못했습니다 — 다시 누르면 재시도합니다" : track.artist}
               </p>
             </div>
 
@@ -214,8 +233,8 @@ export function PlayerBar() {
 
               <button
                 type="button"
-                onClick={toggle}
-                aria-label={isPlaying ? "일시정지" : "재생"}
+                onClick={pressPlay}
+                aria-label={failed ? "다시 시도" : isPlaying ? "일시정지" : "재생"}
                 className={`${ICON_BUTTON} h-11 w-11 bg-ink text-canvas hover:opacity-90`}
               >
                 {isPlaying ? (

@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 
 import { PlayerBar } from "@/components/player/PlayerBar";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 
 // 라틴 디스플레이·본문. 가변 폰트라 본문 450 weight 가 실제로 렌더된다.
 const sofia = Sofia_Sans({
@@ -46,8 +47,13 @@ export const metadata: Metadata = {
  * **CSS 가 소개 화면을 먼저 숨기게 하는 것뿐**이다.
  *
  * 소개 화면이 실제로 렌더되면(저장값이 깨진 경우) 그쪽 ref 가 이 표시를 지운다.
+ *
+ * **키를 손으로 적지 않는다.** 리터럴로 두면 `storage-keys.ts` 가 지시하는 대로
+ * `VERSION` 을 올리는 날 이 스크립트만 없는 키를 읽고, `data-dna` 가 안 붙어서
+ * 쿠키 작업으로 없앤 깜빡임이 돌아온다 — 타입 에러도 린트도 테스트도 안 난다.
+ * 서버 컴포넌트라 보간은 빌드 시점에 문자열 하나로 끝난다.
  */
-const HIDE_INTRO_BEFORE_PAINT = `try{if(localStorage.getItem('musicdna:musicPreference:v1'))document.documentElement.dataset.dna='1'}catch(e){}`;
+const HIDE_INTRO_BEFORE_PAINT = `try{if(localStorage.getItem(${JSON.stringify(STORAGE_KEYS.preference)}))document.documentElement.dataset.dna='1'}catch(e){}`;
 
 export default function RootLayout({
   children,

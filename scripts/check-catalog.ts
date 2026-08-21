@@ -99,11 +99,22 @@ for (let i = 0; i < 5; i += 1) {
     subGenresSeen.add(pick.track.subGenre);
   }
 
-  // 한 장르가 목록을 다 먹으면 "새로운 음악 발견" 이 성립하지 않는다
-  const topGenreCount = picks.filter(
-    (p) => PARENT_OF[p.track.subGenre] === PARENT_OF[picks[0].track.subGenre],
-  ).length;
-  assert.ok(topGenreCount <= 3, `선택지 ${i}: 한 장르가 ${topGenreCount}칸을 먹었다 — 장르당 상한이 안 먹었다`);
+  // 한 장르가 목록을 다 먹으면 "새로운 음악 발견" 이 성립하지 않는다.
+  //
+  // **전체 장르에서 최대를 센다.** 전에는 `picks[0]` 과 같은 장르만 셌는데,
+  // `recommend` 의 백필은 `perGenre` 를 무시하고 채우므로 상한을 넘치는 건
+  // 보통 1위 장르가 아니다 — `[pop, rock, rock, rock, rock]` 이면 1 로 세고
+  // 통과했다. **상한 장치가 존재하는 이유인 그 불변식이 무방비였다.**
+  const perGenre = new Map<string, number>();
+  for (const p of picks) {
+    const genre = PARENT_OF[p.track.subGenre];
+    perGenre.set(genre, (perGenre.get(genre) ?? 0) + 1);
+  }
+  const [worstGenre, topGenreCount] = [...perGenre.entries()].reduce((a, b) => (b[1] > a[1] ? b : a));
+  assert.ok(
+    topGenreCount <= 3,
+    `선택지 ${i}: ${worstGenre} 가 ${topGenreCount}칸을 먹었다 — 장르당 상한이 안 먹었다`,
+  );
 
   // 점수는 내림차순이어야 한다
   const scores = picks.map((p) => p.score);

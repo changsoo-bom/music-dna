@@ -53,9 +53,24 @@ export function writeStoredValue(key: string, value: string) {
  * → `src/lib/preference-cookie.ts`
  */
 export function useStoredValue(key: string, serverValue: string | null = null): string | null {
-  return useSyncExternalStore(
-    subscribe,
-    () => window.localStorage.getItem(key),
-    () => serverValue,
-  );
+  return useSyncExternalStore(subscribe, () => readStoredValue(key), () => serverValue);
+}
+
+/**
+ * Local Storage 를 읽는다. **접근 자체가 막혀 있으면 `null`.**
+ *
+ * `setItem` 은 이미 감싸 뒀는데(`QuizFlow`) 읽기는 안 감싸고 있었다.
+ * 사이트 데이터를 차단한 브라우저나 `allow-same-origin` 없는 iframe 에서는
+ * `localStorage` 에 손대는 것만으로 SecurityError 가 난다. 이 함수는
+ * `getSnapshot` 안에서 도므로 **렌더 도중에** 던지고, 그러면 화면이 통째로
+ * 죽는다 — 검사 결과가 없는 것과 똑같이 다루면 되는 상황인데.
+ *
+ * 던지지 않고 `null` 을 돌려준다. 호출부는 "저장된 게 없다" 로 읽는다.
+ */
+export function readStoredValue(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
 }

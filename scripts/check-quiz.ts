@@ -249,6 +249,17 @@ const rejected: [string, unknown][] = [
   ["음수 index", { ...good, answers: { ...good.answers, q2: [-1] } }],
   ["answers 가 배열이 아님", { ...good, answers: { q1: 1 } }],
   ["computedAt 없음", { ...good, computedAt: "" }],
+
+  // **답이 비면 모든 축이 기본값으로 평평해진다.** 그대로 통과시키면
+  // 정보량이 0인 사람이 페르소나를 배정받고, 추천은 모든 곡의 장르 점수가
+  // 100 이 되어 96/95/94/93/93 이라는 근거 없는 확신을 그린다.
+  // 조작만의 문제가 아니다 — **문항을 하나 늘리는 날 옛 저장값이 여기로 온다.**
+  ["답이 통째로 없음", { ...good, answers: {} }],
+  ["문항 하나만 답함", { ...good, answers: { q1: [0] } }],
+  ["한 문항이 빈 배열", { ...good, answers: { ...good.answers, q3: [] } }],
+  // 화면에서는 만들 수 없다(`toggleRank` 가 막는다). 통과하면 가중치
+  // 5+2+1 이 한 장르에 몰려 100% 가 된다.
+  ["같은 선택지를 중복 순위", { ...good, answers: { ...good.answers, q1: [0, 0, 0] } }],
 ];
 for (const [label, value] of rejected) {
   assert.equal(parsePreference(JSON.stringify(value)), null, `${label}: 걸러지지 않았다`);

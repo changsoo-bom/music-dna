@@ -86,16 +86,22 @@ export function QuizFlow() {
     });
     try {
       window.localStorage.setItem(STORAGE_KEYS.preference, raw);
-      // **정본이 앉은 다음에만** 사본을 쓴다. 순서가 뒤집히면 로컬 저장이
-      // 막힌 브라우저에 쿠키만 남고, 서버는 결과를 그리는데 클라이언트는
-      // 안내로 되돌리는 화면이 된다. → `src/lib/preference-cookie.ts`
-      writePreferenceCookie(raw);
     } catch {
       // 홈은 저장된 값을 읽어서 그린다. 저장이 안 됐으면 홈에 보내 봐야
       // 빈 화면이다. **여기서 붙잡고 결과를 보여준다.**
       setResult(preference);
       return;
     }
+
+    // **정본이 앉은 다음에만** 사본을 쓴다. 순서가 뒤집히면 로컬 저장이
+    // 막힌 브라우저에 쿠키만 남고, 서버는 결과를 그리는데 클라이언트는
+    // 안내로 되돌리는 화면이 된다.
+    //
+    // 위 try 밖이다. 안에 두면 `document.cookie` 가 던졌을 때(sandbox iframe)
+    // **정본은 이미 저장됐는데** "저장할 수 없었습니다" 를 띄우게 된다.
+    // 쿠키가 없어도 앱은 돈다 — 첫 페인트가 한 번 깜빡일 뿐이고, 그건
+    // `revealIfNoResult` 가 다음 방문에 고친다. → `src/lib/preference-cookie.ts`
+    writePreferenceCookie(raw);
 
     // 결과는 홈 맨 위에 있다. 같은 것을 두 번 보여주지 않는다.
     //

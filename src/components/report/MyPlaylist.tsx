@@ -32,8 +32,10 @@ export function MyPlaylist() {
   const played = usePlayedTracks();
   const queue = played.filter(isPlayable);
   const play = usePlayerStore((state) => state.play);
+  // 이 목록에서 나고 있는 곡. 추천에서 튼 같은 곡은 여기서 재생 아이콘이다 —
+  // 눌렀을 때 멈추는 게 아니라 이 목록으로 옮겨 타기 때문이다.
   const soundingId = usePlayerStore((state) =>
-    state.isPlaying ? (currentTrack(state)?.id ?? null) : null,
+    state.isPlaying && state.queueId === "played" ? (currentTrack(state)?.id ?? null) : null,
   );
 
   if (queue.length === 0) {
@@ -65,7 +67,7 @@ export function MyPlaylist() {
           <li key={track.id} className="card-enter">
             <button
               type="button"
-              onClick={() => play(queue, index)}
+              onClick={() => play("played", queue, index)}
               aria-label={`${track.artist} ${track.title} ${sounding ? "일시정지" : "재생"}`}
               className={`group flex w-full items-center gap-4 rounded-btn px-4 py-3.5 text-left transition duration-200 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none ${
                 sounding ? "bg-white shadow-lift" : "bg-lifted hover:bg-white hover:shadow-lift"

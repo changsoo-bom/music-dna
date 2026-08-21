@@ -154,7 +154,18 @@ export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
       },
     });
 
-    return () => chart.destroy();
+    // 정리 시점에 `tipRef.current` 를 읽지 않는다. 그때는 이미 다른 노드를
+    // 가리키고 있을 수 있어서 린트가 잡는다 — 효과가 도는 지금 붙들어 둔다.
+    const tipAtSetup = tipRef.current;
+
+    return () => {
+      chart.destroy();
+      // 툴팁은 캔버스 밖에 사는 DOM 이라 차트가 죽어도 남는다. 숨기는 일을
+      // `external` 콜백만 하고 있어서, **포인터가 꼭짓점에 얹힌 채 차트가
+      // 다시 만들어지면 옛 라벨이 그대로 박힌다** — 다른 탭에서 재검사하면
+      // `storage` 이벤트로 값이 갈리면서 실제로 그렇게 된다.
+      if (tipAtSetup) tipAtSetup.style.opacity = "0";
+    };
   }, [labels, values]);
 
   return (

@@ -1,4 +1,4 @@
-import { writeStoredValue } from "@/hooks/use-stored-value";
+import { readStoredValue, writeStoredValue } from "@/hooks/use-stored-value";
 import { PLAYED_LIMIT, parsePlayed } from "@/lib/schemas/played";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 
@@ -12,7 +12,7 @@ import { STORAGE_KEYS } from "@/lib/storage-keys";
  * 곡마다 하나씩만 있다는 약속보다 강하다.
  */
 export function recordPlayed(trackId: string) {
-  const current = parsePlayed(window.localStorage.getItem(STORAGE_KEYS.playlist));
+  const current = parsePlayed(readStoredValue(STORAGE_KEYS.playlist));
   if (current[0]?.id === trackId) return;
 
   const next = [trackId, ...current.map((track) => track.id).filter((id) => id !== trackId)];

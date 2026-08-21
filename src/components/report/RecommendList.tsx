@@ -37,7 +37,14 @@ function thumbnail(youtubeId: string) {
  * 더 그렇다. 데이터를 그리려다 없는 기능을 광고한 셈이었다.
  * 값은 `reasons` 가 글로 말하고, 호는 원형 초상을 감싸는 테두리로만 남는다.
  *
- * 서버 컴포넌트다. 재생 버튼이 링크라서 클라이언트로 내릴 이유가 없다.
+ * 이 파일에 `"use client"` 가 없지만 **서버 컴포넌트로 렌더되지는 않는다.**
+ * 유일한 소비자인 `HomeTop` 이 클라이언트라 그 아래는 전부 클라이언트다.
+ * 검사 결과가 Local Storage 에 있는 한 그 경계는 홈 최상단일 수밖에 없다 —
+ * 서버가 못 보는 값으로 화면이 갈리기 때문이다. 쿠키를 심어 첫 페인트는
+ * 서버가 그리게 했지만(`preference-cookie.ts`) 정본은 여전히 브라우저에 있다.
+ *
+ * 여기 지시문을 안 붙이는 건 **이 파일 자체는 경계가 아니라는 뜻**이다.
+ * 홈이 서버 컴포넌트가 되는 날 이 파일은 손댈 것이 없다.
  */
 export function RecommendList({ items }: { items: readonly Recommendation[] }) {
   // 어느 카드를 눌러도 큐는 목록 전체다. 재생할 수 없는 곡은 큐에서 빠지므로
@@ -86,6 +93,7 @@ export function RecommendList({ items }: { items: readonly Recommendation[] }) {
                   시스템이 원형 초상에 정해 둔 자리다(docs/design-reference.md). */}
               {queueIndex >= 0 && (
                 <PlayButton
+                  queueId="recommend"
                   queue={queue}
                   index={queueIndex}
                   className="absolute top-[84%] left-[84%] h-11 w-11 -translate-x-1/2 -translate-y-1/2"

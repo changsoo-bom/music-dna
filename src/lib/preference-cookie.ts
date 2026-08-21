@@ -42,10 +42,20 @@ export function decodePreferenceCookie(value: string | undefined): string | null
   }
 }
 
-/** 로컬에 성공적으로 저장한 **직후에만** 부른다. 둘이 같은 값을 들고 있어야 한다 */
+/**
+ * 로컬에 성공적으로 저장한 **직후에만** 부른다. 둘이 같은 값을 들고 있어야 한다.
+ *
+ * 실패를 삼킨다. `document.cookie` 는 sandbox iframe 이나 쿠키 차단에서 던지는데,
+ * **쿠키가 없어도 앱은 돈다** — 첫 페인트가 한 번 깜빡일 뿐이다.
+ * `writeStoredValue` 가 `setItem` 실패를 삼키는 것과 같은 판단이다.
+ */
 export function writePreferenceCookie(raw: string) {
-  const secure = window.location.protocol === "https:" ? "; secure" : "";
-  document.cookie = `${PREFERENCE_COOKIE}=${encodeURIComponent(raw)}; path=/; max-age=${MAX_AGE}; samesite=lax${secure}`;
+  try {
+    const secure = window.location.protocol === "https:" ? "; secure" : "";
+    document.cookie = `${PREFERENCE_COOKIE}=${encodeURIComponent(raw)}; path=/; max-age=${MAX_AGE}; samesite=lax${secure}`;
+  } catch {
+    return;
+  }
 }
 
 /**
@@ -54,5 +64,9 @@ export function writePreferenceCookie(raw: string) {
  * 생긴다. 그 상황을 발견한 자리에서 바로 지운다.
  */
 export function clearPreferenceCookie() {
-  document.cookie = `${PREFERENCE_COOKIE}=; path=/; max-age=0; samesite=lax`;
+  try {
+    document.cookie = `${PREFERENCE_COOKIE}=; path=/; max-age=0; samesite=lax`;
+  } catch {
+    return;
+  }
 }

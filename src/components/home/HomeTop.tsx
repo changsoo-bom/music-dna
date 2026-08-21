@@ -10,8 +10,9 @@ import { RetakeCta } from "@/components/report/RetakeCta";
 import { Verdict } from "@/components/report/Verdict";
 import { ButtonLink, buttonClass } from "@/components/ui/Button";
 import { usePreference } from "@/hooks/use-preference";
+import { readStoredValue } from "@/hooks/use-stored-value";
 import { nextExclusions, recommend } from "@/lib/report/recommend";
-import { clearPreferenceCookie } from "@/lib/preference-cookie";
+import { clearPreferenceCookie, writePreferenceCookie } from "@/lib/preference-cookie";
 import { parsePreference } from "@/lib/schemas/preference";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { revealOnScroll } from "@/lib/utils";
@@ -36,7 +37,15 @@ import { revealOnScroll } from "@/lib/utils";
  */
 function revealIfNoResult(el: HTMLElement | null) {
   if (!el) return;
-  if (parsePreference(window.localStorage.getItem(STORAGE_KEYS.preference))) return;
+  const raw = readStoredValue(STORAGE_KEYS.preference);
+  if (parsePreference(raw)) {
+    // 정본은 멀쩡한데 이 화면이 그려졌다 = **서버가 쿠키를 못 봤다.**
+    // Safari ITP 는 `document.cookie` 로 심은 쿠키를 7일에 자르므로 오래
+    // 만에 돌아온 사람이 늘 여기로 온다. 사본을 다시 심어 두면 다음
+    // 방문부터는 서버가 첫 화면을 그린다.
+    if (raw) writePreferenceCookie(raw);
+    return;
+  }
   clearPreferenceCookie();
   document.documentElement.removeAttribute("data-dna");
 }

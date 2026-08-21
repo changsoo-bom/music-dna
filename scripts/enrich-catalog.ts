@@ -18,8 +18,26 @@ import { CATALOG } from "@/data/catalog";
  * 돌려받은 제목·채널을 표로 찍어 사람이 눈으로 확인하게 한다.
  */
 
+/**
+ * 키를 찾는다. **환경변수가 먼저다.**
+ *
+ * `.env.local` 만 읽으면 CI 나 다른 사람 기계에서 키를 넣을 방법이 없다 —
+ * 파일이 없으면 친절한 메시지에 닿기도 전에 `readFileSync` 가 raw ENOENT 로
+ * 죽는다. 환경변수를 먼저 보고, 없을 때만 파일로 내려간다.
+ *
+ * **`NEXT_PUBLIC_` 을 절대 붙이지 않는다.** 이 스크립트는 서버(로컬)에서만 돌고,
+ * 접두사를 붙이는 순간 키가 클라이언트 번들에 실린다.
+ */
 function loadKey(): string {
-  const raw = readFileSync(".env.local", "utf8");
+  const fromEnv = process.env.YOUTUBE_API_KEY?.trim();
+  if (fromEnv) return fromEnv;
+
+  let raw: string;
+  try {
+    raw = readFileSync(".env.local", "utf8");
+  } catch {
+    throw new Error("YOUTUBE_API_KEY 가 없다 — 환경변수로 넣거나 .env.local 에 적는다");
+  }
   const line = raw.split("\n").find((l) => l.startsWith("YOUTUBE_API_KEY="));
   const key = line?.slice("YOUTUBE_API_KEY=".length).trim();
   if (!key) throw new Error(".env.local 에 YOUTUBE_API_KEY 가 없다");
@@ -61,14 +79,14 @@ function toSeconds(iso: string): number {
   return Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0);
 }
 
+const found: Found[] = [];
+
 async function main() {
 const targets = CATALOG.filter((t) => !t.youtubeId);
 const onlyOne = process.argv.includes("--one");
 const queue = onlyOne ? targets.slice(0, 1) : targets;
 
 console.log(`검색 대상 ${queue.length}곡 (예상 ${queue.length * 100} units)\n`);
-
-const found: Found[] = [];
 
 for (const track of queue) {
   const data = await api("search", {
@@ -106,11 +124,24 @@ for (let i = 0; i < found.length; i += 50) {
   });
   videoCalls += 1;
 
+  // **누락은 에러가 아니라 침묵으로 온다.** 삭제·비공개·지역차단된 id 는
+  // `items` 에서 그냥 빠진다. 그러면 `duration`·`embeddable` 이 undefined 로
+  // 남고, `apply-enrich` 의 `embeddable !== false` 를 통과해서
+  // `duration: undefined` 가 소스에 문자열로 박힌다.
+  // 여기서 못 채운 것을 명시적으로 표시해 둔다.
   for (const item of data.items ?? []) {
     const target = batch.find((f) => f.youtubeId === item.id);
     if (!target) continue;
     target.duration = toSeconds(item.contentDetails.duration);
     target.embeddable = item.status.embeddable;
+  }
+
+  const missing = batch.filter((f) => f.duration === undefined);
+  if (missing.length > 0) {
+    console.warn(
+      `videos.list 가 ${missing.length}개를 안 돌려줬다(삭제·비공개·지역차단): ` +
+        missing.map((f) => f.id).join(", "),
+    );
   }
 }
 
@@ -122,11 +153,29 @@ for (const f of found) {
   console.log(`${" ".repeat(44)}${f.channel}${flag}`);
 }
 
-writeFileSync("scripts/enrich-out.json", `${JSON.stringify(found, null, 2)}\n`);
 console.log(
   `\n검색 ${searchCalls}회(${searchCalls * 100} units) · 조회 ${videoCalls}회(${videoCalls} units)` +
     ` = ${searchCalls * 100 + videoCalls} units\n결과: scripts/enrich-out.json`,
 );
 }
 
-main();
+/**
+ * **어떻게 끝나든 여태 찾은 것은 남긴다.**
+ *
+ * 검색 한 번이 100 units 고 하루 한도가 10,000 이다. 35번째 곡에서
+ * `quotaExceeded` 403 이 나면 이미 쓴 3,400 units 어치 결과가 스택트레이스와
+ * 함께 사라졌다. 재시도는 `!t.youtubeId` 필터가 `apply-enrich` 뒤에야 의미가
+ * 있어서 40곡을 처음부터 다시 검색한다 — **두 번 실패하면 하루치가 끝난다.**
+ *
+ * 부분 결과라도 파일에 있으면 `apply-enrich` 로 적용하고 나머지만 다시 돌린다.
+ */
+main()
+  .catch((error: unknown) => {
+    console.error(`\n중단됐다: ${error instanceof Error ? error.message : String(error)}`);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    if (found.length === 0) return;
+    writeFileSync("scripts/enrich-out.json", `${JSON.stringify(found, null, 2)}\n`);
+    console.log(`${found.length}곡을 scripts/enrich-out.json 에 남겼다`);
+  });
