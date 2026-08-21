@@ -1,13 +1,18 @@
 "use client";
 
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { NAV_BACK, NAV_FORWARD } from "@/constants/nav";
 import { QuizRadioOption, QuizRankOption } from "@/components/quiz/QuizOption";
 import { QuizProgress } from "@/components/quiz/QuizProgress";
 import { QuizResult } from "@/components/quiz/QuizResult";
 import { buttonClass } from "@/components/ui/Button";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
+import { writePreferenceCookie } from "@/lib/preference-cookie";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { focusOnMount } from "@/lib/utils";
 import type { MusicPreference } from "@/types/music";
@@ -24,7 +29,7 @@ export function QuizFlow() {
   const [answers, setAnswers] = useState<QuizAnswers>({});
   const [index, setIndex] = useState(0);
   const [result, setResult] = useState<MusicPreference | null>(null);
-  const [saved, setSaved] = useState(false);
+  const router = useRouter();
 
   // 재검사는 화면만 처음으로 돌린다. 저장된 결과는 지우지 않는다 —
   // 다시 하다 그만두면 이전 결과가 남아 있어야 한다.
@@ -32,10 +37,9 @@ export function QuizFlow() {
     setAnswers({});
     setIndex(0);
     setResult(null);
-    setSaved(false);
   }
 
-  if (result) return <QuizResult preference={result} saved={saved} onRetry={retry} />;
+  if (result) return <QuizResult preference={result} onRetry={retry} />;
 
   const question = QUESTIONS[index];
   const picked = answers[question.id] ?? [];
@@ -72,22 +76,69 @@ export function QuizFlow() {
     // useEffect 에서 하면 React Compiler 의 set-state-in-effect 와 부딪힌다.
     const preference = computePreference(answers, new Date().toISOString());
 
-    // **결과 표시가 먼저다.** 저장은 부수효과다.
     // setItem 은 사생활 보호 모드(QuotaExceededError)나 사이트 데이터 차단
     // (localStorage 접근 자체가 SecurityError)에서 던진다. 이벤트 핸들러 안의
-    // 동기 예외라 error.tsx 도 에러 바운더리도 안 잡는다 — 순서가 반대면
-    // 5문항을 다 채우고도 "결과 보기" 가 아무 반응 없는 버튼이 된다.
-    setResult(preference);
+    // 동기 예외라 error.tsx 도 에러 바운더리도 안 잡는다.
+    const raw = JSON.stringify({
+      version: preference.version,
+      answers: preference.answers,
+      computedAt: preference.computedAt,
+    });
     try {
-      window.localStorage.setItem(STORAGE_KEYS.preference, JSON.stringify(preference));
-      setSaved(true);
+      window.localStorage.setItem(STORAGE_KEYS.preference, raw);
     } catch {
-      setSaved(false);
+      // 홈은 저장된 값을 읽어서 그린다. 저장이 안 됐으면 홈에 보내 봐야
+      // 빈 화면이다. **여기서 붙잡고 결과를 보여준다.**
+      setResult(preference);
+      return;
     }
+
+    // **정본이 앉은 다음에만** 사본을 쓴다. 순서가 뒤집히면 로컬 저장이
+    // 막힌 브라우저에 쿠키만 남고, 서버는 결과를 그리는데 클라이언트는
+    // 안내로 되돌리는 화면이 된다.
+    //
+    // 위 try 밖이다. 안에 두면 `document.cookie` 가 던졌을 때(sandbox iframe)
+    // **정본은 이미 저장됐는데** "저장할 수 없었습니다" 를 띄우게 된다.
+    // 쿠키가 없어도 앱은 돈다 — 첫 페인트가 한 번 깜빡일 뿐이고, 그건
+    // `revealIfNoResult` 가 다음 방문에 고친다. → `src/lib/preference-cookie.ts`
+    writePreferenceCookie(raw);
+
+    // 결과는 홈 맨 위에 있다. 같은 것을 두 번 보여주지 않는다.
+    //
+    // 돌아가는 길이지만 `nav-forward` 다. 검사를 마치고 결과를 받는 건
+    // 되돌아가는 게 아니라 도착이다 — 뒤로 미는 애니메이션을 쓰면
+    // 방금 한 일이 취소된 것처럼 읽힌다.
+    router.push("/", { transitionTypes: NAV_FORWARD });
   }
 
   return (
     <div className="mx-auto max-w-[720px]">
+      {/* 나가는 문. 이 화면에는 헤더도 푸터도 없어서, 이게 없으면 브라우저
+          뒤로가기 말고는 빠져나갈 길이 없다.
+
+          아래의 "이전" 과 다른 일을 한다 — 저건 문항을 되돌리고 이건 검사를
+          그만둔다. 글자가 없으니 `aria-label` 이 유일한 이름이다.
+
+          표면 없이 화살표만 둔다. 흰 원을 깔면 이 화면에서 유일하게 떠 있는
+          것이 되어 문항보다 먼저 눈에 들어온다 — 나가는 문이 그만한 무게를
+          가질 자리가 아니다. 대신 원형 히트박스는 남겨서 손이 안 미끄러진다.
+
+          답은 마지막 문항까지 가야 저장되므로 여기서 나가면 지금까지 고른
+          것이 사라진다. **확인 창을 띄우지 않는다** — 1분짜리 검사에
+          "정말 나가시겠습니까" 를 붙이면 그 창이 검사보다 무거워진다. */}
+      <Link
+        href="/"
+        transitionTypes={NAV_BACK}
+        aria-label="검사 그만두고 홈으로"
+        className="group mb-6 -ml-3.5 inline-flex h-14 w-14 items-center justify-center rounded-full text-slate transition-colors hover:text-ink max-sm:mb-4 max-sm:-ml-3 max-sm:h-12 max-sm:w-12"
+      >
+        <ArrowLeft
+          size={24}
+          aria-hidden
+          className="transition-transform duration-200 group-hover:-translate-x-0.5"
+        />
+      </Link>
+
       <QuizProgress current={index + 1} total={QUESTIONS.length} />
 
       {/* key 로 리마운트해서 진입 애니메이션을 다시 태운다 */}
@@ -153,8 +204,8 @@ export function QuizFlow() {
             {picked.length === 0
               ? ""
               : picked.length < question.maxPicks
-                ? `${picked.length}개 선택 — 더 고르거나 이대로 넘어가도 됩니다`
-                : `${question.maxPicks}개 선택 완료 — 바꾸려면 하나를 해제하세요`}
+                ? `${picked.length}개 선택. 더 고르거나 이대로 넘어가도 됩니다`
+                : `${question.maxPicks}개 선택 완료. 바꾸려면 하나를 해제하세요`}
           </p>
         )}
       </div>

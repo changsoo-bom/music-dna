@@ -1,0 +1,191 @@
+"use client";
+
+import {
+  Chart,
+  Filler,
+  LineElement,
+  PointElement,
+  RadarController,
+  RadialLinearScale,
+  Tooltip,
+} from "chart.js";
+import { useEffect, useRef } from "react";
+
+/**
+ * 쓰는 조각만 등록한다. `chart.js/auto` 를 부르면 막대·파이·도넛까지 전부
+ * 번들에 실린다 — 이 화면이 그리는 건 오각형 하나뿐이다.
+ */
+Chart.register(RadarController, RadialLinearScale, PointElement, LineElement, Filler, Tooltip);
+
+export type RadarAxis = { key: string; label: string; value: number };
+
+/** 채움 투명도. 6자리 hex 뒤에 붙이는 알파다(0x24 ≈ 14%) */
+const FILL_ALPHA = "24";
+
+/**
+ * 오각형 지표 차트.
+ *
+ * **필이 값을 말하고 이 도형이 균형을 말한다.** 숫자 다섯 개를 읽어서
+ * "어느 쪽으로 치우쳤나" 를 머릿속에서 그리는 일을 그림이 대신한다.
+ *
+ * 색은 CSS 변수에서 읽는다. Chart.js 는 캔버스에 그리므로 클래스가 안 먹고,
+ * 여기에 hex 를 직접 적으면 `globals.css` 의 토큰과 두 벌이 된다 —
+ * 한쪽만 바뀌는 날 색이 어긋나고 그건 아무 데서도 안 잡힌다.
+ *
+ * `--signal` 을 쓴다. 예약색이지만 **금지의 핵심은 "버튼에 쓰지 마라" 지
+ * "데이터에 쓰지 마라" 가 아니다** — CTA 에 쓰면 동의·법적 액션 색과 구별이
+ * 사라지는 게 이유였고, 값을 그리는 자리는 거기 해당하지 않는다.
+ * 아이브로우 점·궤도 호와 같은 색이라 페이지의 강조가 한 갈래로 모인다.
+ * 규칙 문서도 같이 넓혔다. → `.claude/rules/styling.md`
+ *
+ * 캔버스에는 글자가 없다 — 축 이름도 그림이다. 스크린리더에는
+ * `aria-label` 로 요약하고, **정확한 값은 옆의 스탯 필에 글로 있다.**
+ */
+export function RadarChart({ axes }: { axes: readonly RadarAxis[] }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const tipRef = useRef<HTMLDivElement>(null);
+  const labelRef = useRef<HTMLSpanElement>(null);
+  const valueRef = useRef<HTMLSpanElement>(null);
+
+  // 배열은 렌더마다 새로 만들어진다. 그대로 의존성에 넣으면 New Search 를
+  // 누를 때마다 차트를 부수고 다시 만들면서 애니메이션이 처음부터 돈다.
+  const labels = axes.map((axis) => axis.label).join("|");
+  const values = axes.map((axis) => axis.value).join("|");
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const root = getComputedStyle(document.documentElement);
+    const token = (name: string) => root.getPropertyValue(name).trim();
+    const accent = token("--signal");
+
+    const chart = new Chart(canvas, {
+      type: "radar",
+      data: {
+        labels: labels.split("|"),
+        datasets: [
+          {
+            data: values.split("|").map(Number),
+            borderColor: accent,
+            backgroundColor: `${accent}${FILL_ALPHA}`,
+            borderWidth: 2,
+            pointBackgroundColor: accent,
+            pointBorderColor: accent,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            // **보이는 점은 4px, 잡히는 범위는 18px.** 그려진 크기를 키우지 않고
+            // 과녁만 넓힌다 — 점이 커지면 도형의 선이 점에 먹힌다.
+            pointHitRadius: 18,
+            fill: true,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        // 라벨이 도형 바깥에 앉으므로 여백이 없으면 가장자리에서 잘린다.
+        layout: { padding: 12 },
+        // `prefers-reduced-motion` 은 `globals.css` 의 전역 블록이 CSS 만 막는다.
+        // 캔버스 애니메이션은 여기서 직접 봐야 한다. → `.claude/rules/react.md`
+        animation: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? false
+          : { duration: 900, easing: "easeOutQuart" },
+        // **`intersect: false` 를 쓰면 안 된다.** 그러면 캔버스 어디를 가리켜도
+        // "가장 가까운 점" 이 잡혀서 툴팁이 항상 떠 있고, 빈 구석에서도 값이
+        // 뜬다. 과녁은 위의 `pointHitRadius` 로 넓히고 여기서는 점에 닿아야만
+        // 잡히게 둔다.
+        interaction: { mode: "nearest", intersect: true },
+        plugins: {
+          legend: { display: false },
+          /**
+           * **캔버스가 아니라 DOM 으로 그린다.**
+           *
+           * 내장 툴팁을 시스템 모양으로 맞추려다 두 가지에 부딪혔다.
+           * `cornerRadius: 999` 는 Chart.js 가 상자 크기로 클램프하지 않아서
+           * 호가 서로 겹친 찌그러진 도형이 나오고, 위쪽 꼭짓점에서는 툴팁이
+           * **캔버스 경계에서 잘린다** — 캔버스 밖으로는 아무것도 못 나간다.
+           * 그림자도 못 그린다.
+           *
+           * DOM 이면 셋 다 없는 문제다. `rounded-pill` 도 `shadow-lift` 도
+           * 본문 폰트도 그냥 쓰던 것을 쓴다.
+           *
+           * state 를 안 쓴다. 포인터가 움직일 때마다 setState 하면 차트가
+           * 통째로 다시 그려진다 — `CountUp` 이 숫자를 직접 쓰는 것과 같은 이유다.
+           */
+          tooltip: {
+            enabled: false,
+            external: ({ tooltip }) => {
+              const tip = tipRef.current;
+              const label = labelRef.current;
+              const value = valueRef.current;
+              if (!tip || !label || !value) return;
+
+              if (tooltip.opacity === 0) {
+                tip.style.opacity = "0";
+                return;
+              }
+
+              const point = tooltip.dataPoints[0];
+              label.textContent = point.label;
+              value.textContent = String(point.parsed.r);
+              // `left`/`top` 이 아니라 `transform` 이다. 포인터가 움직일 때마다
+              // 레이아웃을 다시 잡지 않는다. → `.claude/rules/react.md`
+              tip.style.transform = `translate(${tooltip.caretX}px, ${tooltip.caretY}px) translate(-50%, -175%)`;
+              tip.style.opacity = "1";
+            },
+          },
+        },
+        scales: {
+          r: {
+            min: 0,
+            max: 100,
+            // 눈금 숫자를 지운다. 정확한 값은 옆 필이 크게 말하고 있고,
+            // 여기 25·50·75 를 겹쳐 쓰면 도형 위에 숫자가 깔린다.
+            ticks: { display: false, stepSize: 25 },
+            grid: { color: token("--hair") },
+            angleLines: { color: token("--hair") },
+            pointLabels: {
+              color: token("--slate"),
+              font: { family: getComputedStyle(canvas).fontFamily, size: 14, weight: 500 },
+            },
+          },
+        },
+      },
+    });
+
+    // 정리 시점에 `tipRef.current` 를 읽지 않는다. 그때는 이미 다른 노드를
+    // 가리키고 있을 수 있어서 린트가 잡는다 — 효과가 도는 지금 붙들어 둔다.
+    const tipAtSetup = tipRef.current;
+
+    return () => {
+      chart.destroy();
+      // 툴팁은 캔버스 밖에 사는 DOM 이라 차트가 죽어도 남는다. 숨기는 일을
+      // `external` 콜백만 하고 있어서, **포인터가 꼭짓점에 얹힌 채 차트가
+      // 다시 만들어지면 옛 라벨이 그대로 박힌다** — 다른 탭에서 재검사하면
+      // `storage` 이벤트로 값이 갈리면서 실제로 그렇게 된다.
+      if (tipAtSetup) tipAtSetup.style.opacity = "0";
+    };
+  }, [labels, values]);
+
+  return (
+    <div className="relative aspect-square w-[clamp(340px,40vw,620px)] max-lg:w-[min(480px,100%)]">
+      <canvas
+        ref={canvasRef}
+        role="img"
+        aria-label={`다섯 지표의 균형. ${axes.map((a) => `${a.label} ${a.value}`).join(", ")}`}
+      />
+
+      {/* 포인터를 따라다니는 표시다. 값은 이미 옆 필에 글로 있으므로
+          스크린리더에는 숨긴다 — 같은 걸 두 번 읽어 줄 이유가 없다. */}
+      <div
+        ref={tipRef}
+        aria-hidden
+        className="pointer-events-none absolute top-0 left-0 rounded-pill bg-white px-4.5 py-2 text-sm whitespace-nowrap opacity-0 shadow-float transition-opacity duration-100"
+      >
+        <span ref={labelRef} className="font-medium" />
+        <span ref={valueRef} className="ml-2.5 tabular-nums text-slate" />
+      </div>
+    </div>
+  );
+}

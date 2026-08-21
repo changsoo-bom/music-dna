@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { PERSONAS } from "@/constants/personas";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference, nightScore, RANK_WEIGHTS, resolvePersona } from "@/lib/quiz/scoring";
+import { decodePreferenceCookie } from "@/lib/preference-cookie";
+import { parsePreference } from "@/lib/schemas/preference";
 import type { Mood, PersonaId } from "@/types/music";
 import type { QuizAnswers } from "@/types/quiz";
 
@@ -137,14 +139,11 @@ for (const first of [0, 1, 2, 3, 4]) {
 }
 
 /**
- * 범위 밖 index 는 **조용히 균등 분포가 된다.** 여기서 고치지 않고 못 박아 둔다.
+ * `computePreference` 자체는 범위 밖 index 를 **조용히 균등 분포로** 만든다.
+ * 예외도 경고도 없이 "당신은 모든 장르를 똑같이 듣습니다" 가 나온다.
  *
- * 저장된 답을 다시 계산할 때(문항이나 선택지가 줄었을 때) 실제로 발생하는 경로다.
- * 예외도 경고도 없이 "당신은 모든 장르를 똑같이 듣습니다" 라는 결과가 나온다.
- *
- * 지금은 읽기 경로가 없어서(쓰기 한 곳뿐) 터지지 않는다. **읽기를 붙일 때**
- * Zod safeParse + `version` 확인 + index 범위 검사를 넣고 이 단언을 뒤집어야 한다.
- * 그때까지 이 단언이 "알고 있는 구멍" 을 코드에 남겨 둔다.
+ * 이건 여기서 막지 않는다. 막는 곳은 `parsePreference` 다 (아래 7번) —
+ * 계산 함수는 순수하게 두고, 신뢰 경계에서 거른다.
  */
 assert.deepEqual(
   computePreference({ q1: [99] }, AT).axes.genre,
@@ -223,3 +222,76 @@ assert.ok(
 console.log(
   `✓ 문항 ${QUESTIONS.length}개 · 무드 1위 ${topMoods.size}종 도달 · 페르소나 ${reached.size}종 도달`,
 );
+
+/* 7. Local Storage 읽기 — 신뢰 경계 ────────────────────────── */
+
+/**
+ * 저장된 값은 사용자가 고칠 수 있고 이전 버전 앱이 쓴 것일 수도 있다.
+ * 하나라도 어긋나면 **통째로 버리고 재검사로 보낸다.** 반쯤 맞는 결과가 제일 나쁘다.
+ */
+const good = computePreference({ q1: [1, 4], q2: [4], q3: [3], q4: [4], q5: [1] }, AT);
+const roundTrip = parsePreference(JSON.stringify(good));
+assert.deepEqual(roundTrip, good, "정상적으로 저장한 값을 다시 못 읽는다");
+
+// 점수가 아니라 답을 저장하는 이유 — 배점을 고쳐도 재검사를 안 시켜도 된다.
+// 저장된 점수는 무시하고 답에서 다시 계산해야 한다.
+const tampered = { ...good, persona: "hype-player", axes: { ...good.axes, explorer: 999 } };
+assert.deepEqual(
+  parsePreference(JSON.stringify(tampered)),
+  good,
+  "저장된 점수를 그대로 믿었다 — 답에서 다시 계산해야 한다",
+);
+
+const rejected: [string, unknown][] = [
+  ["범위 밖 index", { ...good, answers: { ...good.answers, q1: [99] } }],
+  ["없는 문항 id", { ...good, answers: { ...good.answers, q9: [0] } }],
+  ["옛 스키마 버전", { ...good, version: 0 }],
+  ["음수 index", { ...good, answers: { ...good.answers, q2: [-1] } }],
+  ["answers 가 배열이 아님", { ...good, answers: { q1: 1 } }],
+  ["computedAt 없음", { ...good, computedAt: "" }],
+
+  // **답이 비면 모든 축이 기본값으로 평평해진다.** 그대로 통과시키면
+  // 정보량이 0인 사람이 페르소나를 배정받고, 추천은 모든 곡의 장르 점수가
+  // 100 이 되어 96/95/94/93/93 이라는 근거 없는 확신을 그린다.
+  // 조작만의 문제가 아니다 — **문항을 하나 늘리는 날 옛 저장값이 여기로 온다.**
+  ["답이 통째로 없음", { ...good, answers: {} }],
+  ["문항 하나만 답함", { ...good, answers: { q1: [0] } }],
+  ["한 문항이 빈 배열", { ...good, answers: { ...good.answers, q3: [] } }],
+  // 화면에서는 만들 수 없다(`toggleRank` 가 막는다). 통과하면 가중치
+  // 5+2+1 이 한 장르에 몰려 100% 가 된다.
+  ["같은 선택지를 중복 순위", { ...good, answers: { ...good.answers, q1: [0, 0, 0] } }],
+];
+for (const [label, value] of rejected) {
+  assert.equal(parsePreference(JSON.stringify(value)), null, `${label}: 걸러지지 않았다`);
+}
+
+assert.equal(parsePreference("{ 깨진 json"), null, "깨진 JSON 이 걸러지지 않았다");
+assert.equal(parsePreference("null"), null, "null 리터럴이 걸러지지 않았다");
+assert.equal(parsePreference(null), null, "값이 없을 때 null 이 아니다");
+
+console.log(`✓ 저장값 검증 — 정상 왕복 · 변조 무시 · 거부 ${rejected.length + 3}종`);
+
+// 쿠키 왕복. 서버가 첫 화면을 그리려면 이 경로가 성해야 한다 —
+// 여기가 깨지면 증상은 "가끔 빈 화면이 번쩍인다" 로만 나타나고,
+// 그건 눈으로 잡기 어렵다. → src/lib/preference-cookie.ts
+const cookieRaw = JSON.stringify({
+  version: good.version,
+  answers: good.answers,
+  computedAt: good.computedAt,
+});
+assert.deepEqual(
+  parsePreference(decodePreferenceCookie(encodeURIComponent(cookieRaw))),
+  good,
+  "쿠키를 거친 값을 다시 못 읽는다",
+);
+// 런타임이 이미 디코드해서 줬을 때. 한 번 더 돌려도 같은 값이어야 한다.
+assert.deepEqual(
+  parsePreference(decodePreferenceCookie(cookieRaw)),
+  good,
+  "이미 디코드된 쿠키 값에서 한 번 더 디코드해서 깨졌다",
+);
+// 사용자가 직접 고칠 수 있는 값이다. 던지지 않고 걸러져야 한다.
+assert.equal(parsePreference(decodePreferenceCookie("%")), null, "깨진 퍼센트 인코딩이 던졌다");
+assert.equal(decodePreferenceCookie(undefined), null, "쿠키가 없을 때 null 이 아니다");
+
+console.log("✓ 쿠키 왕복 — 인코딩 · 이중 디코딩 · 깨진 입력");

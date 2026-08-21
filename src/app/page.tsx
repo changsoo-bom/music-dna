@@ -1,48 +1,47 @@
-const CHART = [
-  "bg-chart-1",
-  "bg-chart-2",
-  "bg-chart-3",
-  "bg-chart-4",
-  "bg-chart-5",
-];
+import { cookies } from "next/headers";
+import { ViewTransition } from "react";
+
+import { SiteFooter } from "@/components/common/SiteFooter";
+import { SiteHeader } from "@/components/common/SiteHeader";
+import { HomeTop } from "@/components/home/HomeTop";
+import { PREFERENCE_COOKIE, decodePreferenceCookie } from "@/lib/preference-cookie";
 
 /**
- * 셋업 확인용 스펙 페이지. 폰트·토큰·반경·그림자가 실제로 물렸는지 한눈에 본다.
- * 실제 화면을 옮기기 시작하면 이 파일은 지운다. 원본은 design/prototype.html.
+ * 홈. 검사를 했으면 결과, 안 했으면 검사로 보내는 안내 한 덩어리.
+ *
+ * 소개 화면(`Hero`·`Fingerprint`)을 걷어냈다. **새로고침할 때마다 한 프레임씩
+ * 스쳤기 때문이다** — 서버는 Local Storage 를 못 보므로 항상 소개로 그려지고,
+ * 하이드레이션 직후에 결과로 바뀐다. 첫 페인트 전에 숨기는 장치를 붙여 뒀지만
+ * 페이지 하나 분량의 마크업이 그 틈으로 계속 새어 나왔다.
+ *
+ * 결과가 없을 때 남는 것은 "검사하러 가자" 한 줄이면 충분하다.
+ * 그 정도 크기는 스쳐도 화면이 흔들리지 않는다.
+ *
+ * **전환 래퍼는 레이아웃이 아니라 여기에 둔다.** 레이아웃은 라우트가 바뀌어도
+ * 살아남아서 enter/exit 가 아예 안 걸린다. 애니메이션 정의는 `globals.css`.
+ *
+ * `cookies()` 를 부르는 순간 이 라우트는 정적 프리렌더에서 빠진다. **그게
+ * 맞다** — 사람마다 다른 결과를 그리는 페이지를 빌드 시점에 한 장으로 굳혀
+ * 두면 그 한 장은 누구의 것도 아니다. 대신 첫 HTML 에 결과가 들어 있어서
+ * 빈 화면이 번쩍이던 구간이 사라진다. → `src/lib/preference-cookie.ts`
  */
-export default function Home() {
+export default async function HomePage() {
+  const serverRaw = decodePreferenceCookie((await cookies()).get(PREFERENCE_COOKIE)?.value);
+
   return (
-    <main className="mx-auto w-full max-w-[1280px] px-12 py-24">
-      <h1 className="text-6xl leading-[1.04]">
-        당신의 취향에는
-        <br />
-        지문이 있습니다
-      </h1>
-
-      <p className="mt-6 max-w-[52ch] text-slate">
-        Sofia Sans 와 Noto Sans KR 이 물렸고, 본문은 450 weight 로 렌더된다.
-      </p>
-
-      <div className="mt-10 flex gap-3">
-        <button className="rounded-btn border-[1.5px] border-ink bg-ink px-6 py-2.5 font-medium text-canvas">
-          취향 분석하기
-        </button>
-        <button className="rounded-btn border-[1.5px] border-ink bg-white px-6 py-2.5 text-ink">
-          샘플 리포트 보기
-        </button>
+    <ViewTransition
+      enter={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
+      exit={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
+      default="none"
+    >
+      <div className="flex flex-1 flex-col">
+        <SiteHeader />
+        <main className="shell flex-1 pb-28 max-sm:pb-16">
+          <HomeTop serverRaw={serverRaw} />
+        </main>
+        {/* 루트 레이아웃이 아니라 여기서 붙인다. 검사 화면에는 헤더도 푸터도 없다 */}
+        <SiteFooter />
       </div>
-
-      <div className="mt-16 flex h-24 gap-0.5">
-        {CHART.map((c) => (
-          <div key={c} className={`flex-1 rounded-pill ${c}`} />
-        ))}
-      </div>
-
-      <div className="rounded-stadium mt-16 bg-lifted p-11 shadow-float">
-        <p className="text-slate">
-          40px 스타디움 프레임 · shadow-float · bg-lifted
-        </p>
-      </div>
-    </main>
+    </ViewTransition>
   );
 }

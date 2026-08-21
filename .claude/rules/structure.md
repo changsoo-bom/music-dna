@@ -35,10 +35,11 @@ src/
 │   ├── report/               # 선택한 곡 → 지표 계산
 │   ├── schemas/{domain}.ts   # Zod 스키마 (+ index.ts 배럴)
 │   └── utils.ts
+├── data/                     # 저장소에 커밋된 데이터 (곡 카탈로그)
 ├── types/                    # 도메인별 타입 (`music.ts`, `quiz.ts` …)
 └── constants/                # 장르 분류 · 페르소나 문구 등 고정 데이터
 
-scripts/                      # src/ 밖. 커밋 전 검증 (`pnpm check:quiz`)
+scripts/                      # src/ 밖. 커밋 전 검증 (`pnpm check`)
 ```
 
 #### 원칙
