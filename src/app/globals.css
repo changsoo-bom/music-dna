@@ -359,3 +359,71 @@ html[data-dna="1"] .home-intro {
 [data-reveal="in"] > *:nth-child(n + 3) {
   animation-delay: 0.28s;
 }
+
+/* 재생 바가 아래에서 올라온다. **페이드는 주지 않는다** — 바는 화면 밖에서
+   밀려 들어오는 물건이지 허공에서 배어 나오는 물건이 아니다. 불투명도를
+   섞으면 올라오는 동안 뒤 내용이 비쳐서 두 겹으로 읽힌다.
+   자기 높이 + 32px 이면 아래 여백(24px)과 shadow-float 까지 화면 밖이다.
+
+   닫을 때는 같은 길로 되돌아간다. 나가는 쪽이 짧고(0.28s) 가속하는 곡선인 건
+   페이지 전환과 같은 판단이다 — 지나간 것이 시선을 끌면 안 된다. */
+@keyframes bar-up {
+  from {
+    transform: translateY(calc(100% + 32px));
+  }
+}
+@keyframes bar-down {
+  to {
+    transform: translateY(calc(100% + 32px));
+  }
+}
+.bar-up {
+  animation: bar-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.bar-down {
+  animation: bar-down 0.28s cubic-bezier(0.7, 0, 0.84, 0) both;
+}
+
+/* Tailwind v4 는 preflight 에서 버튼의 `cursor: pointer` 를 뺐다 — 브라우저
+   기본값을 따르겠다는 결정이다. 여기서는 되돌린다: 누를 수 있다는 건 커서가
+   말해 준다. 한 곳에서 잡는다 — 컴포넌트마다 붙이면 반드시 빠뜨리는 곳이
+   생기고, 실제로 `QuizOption` 한 군데만 손으로 붙어 있었다.
+   비활성 버튼은 뺀다. 눌리지 않는 것에 손가락을 띄우면 커서가 거짓말을 한다. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+/* 아이콘만 있는 조작이 무슨 일을 하는지 말한다.
+   `title` 속성을 안 쓴다 — 뜨는 데 1~2초 걸려서 그 전에 이미 눌리고,
+   모양도 브라우저가 정한다. `aria-label` 은 그대로 둔다: 저건 읽어 주는
+   쪽이고 이건 보는 쪽이다. 둘 다 있어야 둘 다 안다.
+   키보드로 짚어도 뜬다 — 마우스만 알 수 있는 설명은 설명이 아니다.
+   `translate` 는 `transform` 과 다른 속성이라 부모의 정렬을 안 건드린다. */
+[data-hint] {
+  position: relative;
+}
+[data-hint]::after {
+  content: attr(data-hint);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  translate: -50% 4px;
+  padding: 6px 11px;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: var(--canvas);
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.16s ease,
+    translate 0.16s ease;
+}
+[data-hint]:hover::after,
+[data-hint]:focus-visible::after {
+  opacity: 1;
+  translate: -50% 0;
+}

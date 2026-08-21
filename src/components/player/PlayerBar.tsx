@@ -24,8 +24,18 @@ const CIRCUMFERENCE = 477.5;
 /** 진행률을 다시 읽는 주기. 호가 60fps 로 돌 필요는 없다 */
 const TICK_MS = 500;
 
-const ICON_BUTTON =
-  "grid place-items-center rounded-full text-ink transition-opacity hover:opacity-55 focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none";
+const ICON_BASE =
+  "grid place-items-center rounded-full focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none";
+
+const ICON_BUTTON = `${ICON_BASE} text-ink transition-opacity hover:opacity-55`;
+
+/**
+ * 툴팁을 다는 아이콘용. **호버 표시가 불투명도가 아니라 색이다.**
+ *
+ * `opacity` 를 낮추면 그 안의 `::after` 툴팁까지 같이 흐려진다 — 설명하려고
+ * 띄운 것이 짚는 순간 제일 안 보이게 된다. 색으로 바꾸면 툴팁은 온전하다.
+ */
+const ICON_HINTED = `${ICON_BASE} text-slate transition-colors hover:text-ink`;
 
 /**
  * 화면 아래 재생 바.
@@ -68,6 +78,11 @@ export function PlayerBar() {
    * **다른 곡을 고르는 것 말고는 복구할 방법이 없었다.**
    */
   const [attempt, setAttempt] = useState(0);
+  /**
+   * 내려가는 중. **곡을 아직 붙잡고 있다** — `close()` 를 누른 자리에서 바로
+   * 부르면 큐가 비면서 바가 그 프레임에 사라진다. 내려가는 그림이 없다.
+   */
+  const [closing, setClosing] = useState(false);
 
   const videoId = track?.youtubeId ?? null;
 
@@ -86,6 +101,19 @@ export function PlayerBar() {
       return;
     }
     toggle();
+  }
+
+  /**
+   * 닫기. 바가 내려가는 동안 곡은 남겨 두고, 애니메이션이 끝나면 비운다.
+   *
+   * **소리는 기다리지 않는다.** 0.28초라도 계속 나면 닫기를 못 들은 것처럼
+   * 보인다. `pauseVideo` 가 정지 이벤트를 흘리고 스토어의 `isPlaying` 은
+   * 거기서 꺼진다 — 상태는 플레이어가 알려 준 것만 적는다는 규칙 그대로다.
+   */
+  function pressClose() {
+    if (closing) return;
+    setClosing(true);
+    playerRef.current?.pauseVideo();
   }
 
   // 플레이어를 만든다. 첫 곡을 고른 뒤에야 스크립트를 받는다.
@@ -199,11 +227,29 @@ export function PlayerBar() {
 
       {track && (
         <>
-          <div className="fixed bottom-6 left-1/2 z-50 flex h-[76px] w-[min(680px,calc(100%-32px))] -translate-x-1/2 items-center gap-4 rounded-pill bg-white pr-5 pl-3 shadow-float max-sm:bottom-4 max-sm:h-[68px] max-sm:gap-3 max-sm:pr-3">
+          {/* 가로 가운데는 `mx-auto` 로 잡는다. `-translate-x-1/2` 로 잡으면
+              transform 이 이미 쓰여 있어서 올라오고 내려가는 애니메이션이
+              가운데 정렬을 덮어쓴다 — 바가 오른쪽으로 반쯤 밀린 채 등장한다. */}
+          <div
+            onAnimationEnd={(event) => {
+              // 안쪽에서 올라온 이벤트는 내 것이 아니다
+              if (event.target !== event.currentTarget || !closing) return;
+              setClosing(false);
+              close();
+            }}
+            className={`${closing ? "bar-down" : "bar-up"} fixed inset-x-0 bottom-6 z-50 mx-auto flex h-[76px] w-[min(680px,calc(100%-32px))] items-center gap-4 rounded-pill bg-white pr-5 pl-3 shadow-float max-sm:bottom-4 max-sm:h-[68px] max-sm:gap-3 max-sm:pr-3`}
+          >
             {/* 커버 + 진행 호 */}
             <div className="relative h-13 w-13 shrink-0 max-sm:h-11 max-sm:w-11">
               <svg viewBox="0 0 160 160" className="absolute inset-0 h-full w-full -rotate-90">
-                <circle cx="80" cy="80" r="76" fill="none" strokeWidth="6" className="stroke-ghost" />
+                <circle
+                  cx="80"
+                  cy="80"
+                  r="76"
+                  fill="none"
+                  strokeWidth="6"
+                  className="stroke-ghost"
+                />
                 <circle
                   ref={arcRef}
                   cx="80"
@@ -282,14 +328,15 @@ export function PlayerBar() {
               target="_blank"
               rel="noreferrer"
               aria-label="YouTube 에서 열기"
-              className={`${ICON_BUTTON} h-10 w-10 shrink-0 text-slate max-sm:hidden`}
+              data-hint="YouTube 에서 열기"
+              className={`${ICON_HINTED} h-10 w-10 shrink-0 max-sm:hidden`}
             >
               <ArrowUpRight size={18} aria-hidden />
             </a>
 
             <button
               type="button"
-              onClick={close}
+              onClick={pressClose}
               aria-label="재생 닫기"
               className={`${ICON_BUTTON} h-10 w-10 shrink-0 text-slate`}
             >
