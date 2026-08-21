@@ -64,7 +64,7 @@ export function VolumeControl({
         onChange={(event) => setVolume(event.currentTarget.valueAsNumber)}
         aria-label="소리 크기"
         className={`volume ${compact ? "w-20" : "w-28"}`}
-        style={{ "--vol": muted ? 0 : volume } as CSSProperties}
+        style={{ "--pct": muted ? 0 : volume } as CSSProperties}
       />
     </div>
   );

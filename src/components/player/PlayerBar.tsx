@@ -5,9 +5,9 @@ import {
   ArrowUpRight,
   Pause,
   Play,
+  Playlist,
   SkipBack,
   SkipForward,
-  X,
 } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -15,6 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { PlayerScreen } from "@/components/player/PlayerScreen";
 import { VolumeControl } from "@/components/player/VolumeControl";
 import { ORBIT_CIRCUMFERENCE } from "@/constants/orbit";
+import { formatDuration } from "@/lib/format";
 import { recordPlayed } from "@/lib/played-tracks";
 import { loadIframeApi } from "@/lib/youtube/iframe-api";
 import { currentTrack, usePlayerStore } from "@/lib/use-player-store";
@@ -30,14 +31,13 @@ const ICON_BASE =
 /**
  * 재생·넘기기. 잉크 글리프만 놓는다 — 원도 테두리도 없다.
  *
- * **주 행동을 크기로만 구분한다.** 바 자체가 흰 필이고 옆에 커버 원과
- * 궤도 호가 이미 돌고 있어서, 여기에 원을 하나 더 그리면 같은 도형이
- * 두 개가 된다. 재생만 글리프와 히트 영역을 키운다.
+ * **주 행동을 크기로만 구분한다.** 조작마다 원을 그리면 한 줄에 원이 셋이
+ * 늘어서서 무엇이 먼저인지가 사라진다. 재생만 글리프와 히트 영역을 키운다.
  */
 const ICON_BUTTON = `${ICON_BASE} text-ink transition-opacity hover:opacity-55`;
 
 /**
- * 물러나 있는 조작(나가기·닫기). 슬레이트로 앉아 있다가 짚으면 잉크로 온다.
+ * 물러나 있는 조작(나가기·재생 화면). 슬레이트로 앉아 있다가 짚으면 잉크로 온다.
  *
  * **호버 표시가 불투명도가 아니라 색이다.** `opacity` 를 낮추면 그 안의
  * `::after` 툴팁까지 같이 흐려진다 — 설명하려고 띄운 것이 짚는 순간 제일
@@ -46,15 +46,13 @@ const ICON_BUTTON = `${ICON_BASE} text-ink transition-opacity hover:opacity-55`;
 const ICON_QUIET = `${ICON_BASE} text-slate transition-colors hover:text-ink`;
 
 /**
- * 화면 아래 재생 바.
+ * 화면 아래 재생 바. 바닥에 붙는 한 줄이다.
  *
- * **여기서만 궤도 호가 값을 뜻한다.** 추천 카드에서 호로 근접도를 그렸다가
- * 재생 진행률로 읽혀서 되돌렸는데(`docs/design-reference.md`), 그건 호가
- * 나쁜 표현이어서가 아니라 **진행률처럼 생겼기 때문**이었다. 실제로 진행률인
- * 자리에서는 같은 그림이 정확한 표현이 된다. 커버를 감고 도는 주황 호가
- * 이 곡의 어디쯤인지다.
+ * **진행은 윗변의 막대가 말한다.** 커버를 감던 궤도 호는 뗐다 — 같은 값을
+ * 두 군데서 그리면 어느 쪽을 보는지가 매번 달라지고, 둘 중 **끌 수 있는
+ * 쪽이 정본**이다. 호는 전체 화면에 남아 있다: 거기엔 막대가 없다.
  *
- * 호는 state 가 아니라 ref 로 그린다 — 0.5초마다 리렌더하면 바 전체가
+ * 진행은 state 가 아니라 ref 로 쓴다 — 0.5초마다 리렌더하면 바 전체가
  * 다시 그려진다. `CountUp` 이 숫자를 직접 쓰는 것과 같은 이유다.
  *
  * 소리는 화면 밖 iframe 이 낸다. 영상을 보여주지 않는 건 이 서비스가
@@ -66,16 +64,23 @@ export function PlayerBar() {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const toggle = usePlayerStore((s) => s.toggle);
   const skip = usePlayerStore((s) => s.skip);
-  const close = usePlayerStore((s) => s.close);
   // 조작은 `VolumeControl` 이 하고, 여기서는 재생기에 내려보내기만 한다
   const volume = usePlayerStore((s) => s.volume);
   const muted = usePlayerStore((s) => s.muted);
 
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
-  const arcRef = useRef<SVGCircleElement>(null);
-  /** 전체 화면의 진행 호. 아래 주기가 바의 호와 **같은 값을 둘 다에** 써 넣는다 */
+  /** 전체 화면의 진행 호. 바에는 호가 없다 - 진행은 윗변의 막대가 말한다 */
   const screenArcRef = useRef<SVGCircleElement>(null);
+  /**
+   * 재생 위치 막대. **state 가 아니라 ref 다** — 0.5초마다 값을 state 로
+   * 받으면 바 전체가 다시 그려진다. 궤도 호와 같은 이유고 같은 주기가 쓴다.
+   */
+  const seekRef = useRef<HTMLInputElement>(null);
+  /** 끄는 중. 그동안은 주기가 손잡이를 건드리지 않는다 — 잡은 손과 다투게 된다 */
+  const seekingRef = useRef(false);
+  /** "1:24 / 3:56". 같은 주기가 글자를 직접 쓴다 — 여기도 리렌더를 만들지 않는다 */
+  const timeRef = useRef<HTMLSpanElement>(null);
   /** 플레이어에 실제로 걸려 있는 영상 id. 같은 곡을 두 번 걸지 않기 위한 것 */
   const loadedRef = useRef<string | null>(null);
   /** 갈아 끼우는 중. 나가는 영상이 흘리는 정지·종료 신호를 무시한다 */
@@ -91,11 +96,6 @@ export function PlayerBar() {
    * **다른 곡을 고르는 것 말고는 복구할 방법이 없었다.**
    */
   const [attempt, setAttempt] = useState(0);
-  /**
-   * 내려가는 중. **곡을 아직 붙잡고 있다** — `close()` 를 누른 자리에서 바로
-   * 부르면 큐가 비면서 바가 그 프레임에 사라진다. 내려가는 그림이 없다.
-   */
-  const [closing, setClosing] = useState(false);
   /** 전체 화면이 열려 있는지. 바와 그 화면 둘만 아는 값이라 로컬 state 다 */
   const [expanded, setExpanded] = useState(false);
 
@@ -119,18 +119,36 @@ export function PlayerBar() {
   }
 
   /**
-   * 닫기. 바가 내려가는 동안 곡은 남겨 두고, 애니메이션이 끝나면 비운다.
+   * 막대 위치(0~1000)를 초로 바꿔 플레이어에 넘긴다.
    *
-   * **소리는 기다리지 않는다.** 0.28초라도 계속 나면 닫기를 못 들은 것처럼
-   * 보인다. `pauseVideo` 가 정지 이벤트를 흘리고 스토어의 `isPlaying` 은
-   * 거기서 꺼진다 — 상태는 플레이어가 알려 준 것만 적는다는 규칙 그대로다.
+   * 천분율로 다루는 이유는 **곡 길이를 렌더 시점에 몰라도 되기 때문**이다.
+   * 길이를 state 로 들고 있으면 곡이 바뀔 때마다 리렌더가 하나 더 생긴다.
    */
-  function pressClose() {
-    if (closing) return;
-    setClosing(true);
-    setExpanded(false);
-    playerRef.current?.pauseVideo();
+  function seekTo(permille: number, commit: boolean) {
+    const player = playerRef.current;
+    if (!player) return;
+    const duration = player.getDuration();
+    if (duration > 0) player.seekTo((duration * permille) / 1000, commit);
   }
+
+  /**
+   * 손을 뗐다. **창에서 받는다** — 막대 밖에서 놓으면 막대의 `pointerup` 은
+   * 안 온다. 거기서 끝내면 `seekingRef` 가 켜진 채로 남아서 진행 막대가
+   * 영영 안 움직인다.
+   */
+  useEffect(() => {
+    const stopSeek = () => {
+      if (!seekingRef.current) return;
+      seekingRef.current = false;
+      if (seekRef.current) seekTo(seekRef.current.valueAsNumber, true);
+    };
+    window.addEventListener("pointerup", stopSeek);
+    window.addEventListener("pointercancel", stopSeek);
+    return () => {
+      window.removeEventListener("pointerup", stopSeek);
+      window.removeEventListener("pointercancel", stopSeek);
+    };
+  }, []);
 
   // 플레이어를 만든다. 첫 곡을 고른 뒤에야 스크립트를 받는다.
   useEffect(() => {
@@ -232,11 +250,27 @@ export function PlayerBar() {
       const player = playerRef.current;
       if (!player) return;
       const duration = player.getDuration();
-      const played = duration > 0 ? player.getCurrentTime() / duration : 0;
-      const offset = String(ORBIT_CIRCUMFERENCE * (1 - played));
-      // 두 호가 같은 값을 본다. 전체 화면은 열려 있을 때만 존재하므로 없을 수 있다
-      if (arcRef.current) arcRef.current.style.strokeDashoffset = offset;
-      if (screenArcRef.current) screenArcRef.current.style.strokeDashoffset = offset;
+      const elapsed = player.getCurrentTime();
+      const played = duration > 0 ? elapsed / duration : 0;
+
+      // `formatDuration` 은 0 초에 빈 문자열을 준다 — 곡 길이 자리에서는
+      // "없음" 이 맞지만 시계 자리에서는 0:00 이 맞다
+      if (timeRef.current) {
+        timeRef.current.textContent = `${formatDuration(elapsed) || "0:00"} / ${
+          formatDuration(duration) || "0:00"
+        }`;
+      }
+
+      // 전체 화면은 열려 있을 때만 존재하므로 없을 수 있다
+      if (screenArcRef.current) {
+        screenArcRef.current.style.strokeDashoffset = String(ORBIT_CIRCUMFERENCE * (1 - played));
+      }
+
+      // 끄는 동안에는 안 건드린다. 잡은 손을 0.5초마다 뒤로 당기게 된다
+      if (seekRef.current && !seekingRef.current) {
+        seekRef.current.value = String(Math.round(played * 1000));
+        seekRef.current.style.setProperty("--pct", String(played * 100));
+      }
     }, TICK_MS);
     return () => window.clearInterval(timer);
   }, [ready]);
@@ -255,18 +289,50 @@ export function PlayerBar() {
 
       {track && (
         <>
-          {/* 가로 가운데는 `mx-auto` 로 잡는다. `-translate-x-1/2` 로 잡으면
-              transform 이 이미 쓰여 있어서 올라오고 내려가는 애니메이션이
-              가운데 정렬을 덮어쓴다 — 바가 오른쪽으로 반쯤 밀린 채 등장한다. */}
-          <div
-            onAnimationEnd={(event) => {
-              // 안쪽에서 올라온 이벤트는 내 것이 아니다
-              if (event.target !== event.currentTarget || !closing) return;
-              setClosing(false);
-              close();
-            }}
-            className={`${closing ? "bar-down" : "bar-up"} fixed inset-x-0 bottom-6 z-50 mx-auto flex h-[76px] w-[min(760px,calc(100%-32px))] items-center gap-4 rounded-pill bg-white pr-5 pl-3 shadow-float max-sm:bottom-4 max-sm:h-[68px] max-sm:gap-3 max-sm:pr-3`}
-          >
+          {/* 화면 아래에 붙는 한 줄. 떠 있지 않으므로 그림자 대신 윗변에
+              헤어라인을 둔다 — `shadow-float` 는 아래로 떨어지는 그림자라
+              바닥에 붙은 것 밑에서는 아무 일도 안 한다.
+
+              **좌·중·우 3열이고 가운데가 진짜 가운데다.** 양옆이
+              `minmax(0,1fr)` 로 같은 폭을 먹으므로 재생 조작이 바의 중심에
+              선다. `flex` 로 두면 제목 길이에 따라 조작이 좌우로 흔들린다.
+
+              **빈 자리를 눌러도 아무 일이 안 난다.** 한때 여기서 전체 화면을
+              열었는데, 제목을 긁으려고 드래그하다 손을 떼면 그것도 클릭으로
+              읽혀서 화면이 튀어 올랐다. 여는 문은 곡 정보와 목록 아이콘
+              둘이면 충분하다 — 둘 다 눌러야 열린다고 생겨 있다.
+
+              글자는 못 고른다(`select-none`). 조작이 늘어선 줄에서 드래그는
+              고르기가 아니라 실수고, 여기 글자를 복사할 일은 없다. */}
+          <div className="bar-up fixed inset-x-0 bottom-0 z-70 grid h-[var(--player-bar-h)] w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-t border-hair bg-white px-6 select-none max-sm:gap-3 max-sm:px-4">
+            {/* 재생 위치. **바의 윗변에 딱 붙는다** — 여기가 곡의 시간축이고,
+                아래 줄은 곡을 고르는 자리다. 선은 3px 지만 상자는 14px 이라
+                (`.seek`) 눈에 보이는 것보다 넓게 잡힌다.
+
+                값은 `defaultValue` 로만 준다. 제어 컴포넌트로 만들면 0.5초마다
+                리렌더가 생긴다 — 위 주기가 DOM 에 직접 쓴다. */}
+            <input
+              ref={seekRef}
+              type="range"
+              min={0}
+              max={1000}
+              defaultValue={0}
+              aria-label="재생 위치"
+              className="seek absolute inset-x-0 top-0"
+              onChange={(event) => {
+                const value = event.currentTarget.valueAsNumber;
+                seekingRef.current = true;
+                event.currentTarget.style.setProperty("--pct", String(value / 10));
+                // 끄는 동안은 `false` — 놓기 전에 요청이 쌓이지 않게 한다
+                seekTo(value, false);
+              }}
+              // 키보드에는 `pointerup` 이 없다. 여기서 같은 자리를 지난다
+              onKeyUp={(event) => {
+                seekingRef.current = false;
+                seekTo(event.currentTarget.valueAsNumber, true);
+              }}
+            />
+
             {/* 커버와 제목이 통째로 전체 화면을 여는 버튼이다.
                 바를 통째로 감싸지 못한다 — 안에 버튼이 다섯 개 더 있고,
                 버튼 안의 버튼은 클릭이 어느 쪽 것인지 모호해진다. */}
@@ -275,53 +341,54 @@ export function PlayerBar() {
               onClick={() => setExpanded(true)}
               aria-haspopup="dialog"
               aria-label={`${track.title} 재생 화면 열기`}
-              className="flex min-w-0 flex-1 items-center gap-4 rounded-pill text-left transition-opacity hover:opacity-70 focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none max-sm:gap-3"
+              className="flex min-w-0 items-center gap-4 rounded-btn text-left transition-opacity hover:opacity-70 focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none max-sm:gap-3"
             >
-              {/* 커버 + 진행 호 */}
-              <div className="relative h-13 w-13 shrink-0 max-sm:h-11 max-sm:w-11">
-                <svg viewBox="0 0 160 160" className="absolute inset-0 h-full w-full -rotate-90">
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r="76"
-                    fill="none"
-                    strokeWidth="6"
-                    className="stroke-ghost"
-                  />
-                  <circle
-                    ref={arcRef}
-                    cx="80"
-                    cy="80"
-                    r="76"
-                    fill="none"
-                    strokeWidth="6"
-                    strokeLinecap="round"
-                    className="stroke-signal-lt transition-[stroke-dashoffset] duration-500 ease-linear"
-                    strokeDasharray={ORBIT_CIRCUMFERENCE}
-                    strokeDashoffset={ORBIT_CIRCUMFERENCE}
-                  />
-                </svg>
-                <div className="absolute inset-[14%] overflow-hidden rounded-full bg-ghost">
-                  <Image
-                    src={`https://i.ytimg.com/vi/${track.youtubeId}/mqdefault.jpg`}
-                    alt=""
-                    fill
-                    sizes="52px"
-                    className="object-cover"
-                  />
-                </div>
+              {/* 커버. **진행 호를 뗐다** — 진행은 이제 윗변의 막대가 말한다.
+                  같은 값을 두 군데서 그리면 어느 쪽을 보는지가 매번 달라지고,
+                  둘 중 하나만 끌 수 있으면 조작할 수 있는 쪽이 정본이다.
+                  호는 전체 화면에 남아 있다: 거기엔 막대가 없다. */}
+              <div className="relative h-13 w-13 shrink-0 overflow-hidden rounded-btn bg-ghost max-sm:h-11 max-sm:w-11">
+                {/* **`sizes` 는 상자 폭이 아니라 그려지는 폭이다.** 썸네일은
+                    16:9(320×180)고 상자는 정사각형이라 `object-cover` 가
+                    **높이를 맞춰** 확대한다 — 52px 상자에 실제로 깔리는 폭은
+                    52 × 16/9 ≒ 92px 다. 여기에 52 를 적으면 브라우저가 w=64
+                    후보를 골라서 92px 로 늘려 그린다. 그게 뭉개짐이었다.
+                    96 × 3배 화면 = 288 이라 원본 320 안에서 해결된다. */}
+                <Image
+                  src={`https://i.ytimg.com/vi/${track.youtubeId}/mqdefault.jpg`}
+                  alt=""
+                  fill
+                  sizes="96px"
+                  className="object-cover"
+                />
               </div>
 
               {/* 곡이 저절로 넘어갈 때 화면을 안 보는 사람에게도 알린다 */}
-              <div role="status" aria-live="polite" className="min-w-0 flex-1">
+              <div role="status" aria-live="polite" className="min-w-0">
                 <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{track.title}</p>
                 <p className="truncate text-[13px] text-slate">
                   {failed ? "재생을 시작하지 못했습니다 — 다시 누르면 재시도합니다" : track.artist}
                 </p>
               </div>
+
+              {/* 지난 시간 / 곡 길이. **이름 바로 옆에 붙는다** — 제목 칸을
+                  늘리지 않아서(`flex-1` 이 없다) 곡이 짧든 길든 이름 끝에
+                  따라온다.
+
+                  글자는 위 주기가 직접 쓴다. state 로 받으면 0.5초마다 바가
+                  통째로 다시 그려진다 — 진행 막대와 같은 이유다.
+                  처음 값은 카탈로그가 아는 길이로 채워 둔다: 재생기가 뜨기
+                  전까지 `getDuration()` 이 0 이라 `-- / --` 가 잠깐 보인다. */}
+              <span
+                ref={timeRef}
+                className="shrink-0 text-[13px] tabular-nums text-slate max-sm:hidden"
+              >
+                {`0:00 / ${formatDuration(track.duration)}`}
+              </span>
             </button>
 
-            <div className="flex shrink-0 items-center gap-1">
+            {/* 가운데 칸. 그리드가 양옆을 같은 폭으로 잡아 주므로 여기가 바의 중심이다 */}
+            <div className="flex shrink-0 items-center justify-center gap-1">
               <button
                 type="button"
                 onClick={() => skip(-1)}
@@ -368,35 +435,54 @@ export function PlayerBar() {
               </button>
             </div>
 
-            {/* 소리 조절. **좁은 화면에서는 감춘다** - 모바일 브라우저는
-                `setVolume` 을 무시하고 기기 볼륨만 먹는다. 눌러도 아무 일이
-                안 나는 조작을 놓아 두면 고장 난 것으로 보인다. */}
-            <VolumeControl compact className="max-md:hidden" />
+            {/* 오른쪽 칸. **한 칸으로 묶는다** — 그리드가 3열이라 따로 놓으면
+                네 번째부터 다음 줄로 떨어진다 */}
+            <div className="flex shrink-0 items-center justify-end gap-1">
+              {/* 소리 조절. **좁은 화면에서는 감춘다** - 모바일 브라우저는
+                  `setVolume` 을 무시하고 기기 볼륨만 먹는다. 눌러도 아무 일이
+                  안 나는 조작을 놓아 두면 고장 난 것으로 보인다. */}
+              <VolumeControl compact className="mr-1 max-md:hidden" />
 
-            <a
-              href={`https://www.youtube.com/watch?v=${track.youtubeId}`}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="YouTube 에서 열기"
-              data-hint="YouTube 에서 열기"
-              className={`${ICON_QUIET} h-10 w-10 shrink-0 max-sm:hidden`}
-            >
-              <ArrowUpRight size={18} aria-hidden />
-            </a>
+              <a
+                href={`https://www.youtube.com/watch?v=${track.youtubeId}`}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="YouTube 에서 열기"
+                data-hint="YouTube 에서 열기"
+                className={`${ICON_QUIET} h-10 w-10 shrink-0 max-sm:hidden`}
+              >
+                <ArrowUpRight size={18} aria-hidden />
+              </a>
 
-            <button
-              type="button"
-              onClick={pressClose}
-              aria-label="재생 닫기"
-              className={`${ICON_QUIET} h-10 w-10 shrink-0`}
-            >
-              <X size={17} aria-hidden />
-            </button>
+              {/* 전체 화면 스위치. **여는 것만이 아니라 닫기도 한다** —
+                  화면이 떠 있어도 바는 그 위에 남아 있어서, 같은 자리를
+                  다시 눌렀는데 아무 일도 안 나면 고장으로 보인다. */}
+              <button
+                type="button"
+                onClick={() => setExpanded((on) => !on)}
+                aria-haspopup="dialog"
+                aria-expanded={expanded}
+                aria-label={expanded ? "재생 화면 닫기" : "재생 화면 열기"}
+                data-hint="재생 화면"
+                className={`${ICON_QUIET} h-10 w-10 shrink-0 ${expanded ? "text-ink" : ""}`}
+              >
+                <Playlist size={19} aria-hidden />
+              </button>
+            </div>
           </div>
 
           {/* 바가 열고 닫는다. iframe 은 여전히 여기 있고 저 화면은 위에 겹칠 뿐이라
               열어도 소리가 안 끊긴다 — 재생기를 옮기면 곡이 처음으로 돌아간다 */}
           <PlayerScreen open={expanded} onClose={() => setExpanded(false)} arcRef={screenArcRef} />
+
+          {/* 바가 가릴 만큼 페이지를 늘린다.
+              **`<body>` 의 flex 자식이다** — 이 컴포넌트가 푸터 뒤에 렌더되므로
+              여기 놓인 상자가 그대로 페이지 맨 아래에 붙는다. 곡이 없으면 이
+              상자도 없어서 페이지는 바닥에 딱 맞는다.
+              본문에 `padding-bottom` 을 고정으로 주는 방법은 못 쓴다 — 바가
+              뜰지 말지는 클라이언트에서 정해지고, 서버가 그린 첫 화면에는
+              늘 빈 띠가 남는다. */}
+          <div aria-hidden className="h-[var(--player-bar-h)] shrink-0" />
         </>
       )}
     </>

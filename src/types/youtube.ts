@@ -14,6 +14,14 @@ export type YouTubePlayer = {
   loadVideoById: (videoId: string) => void;
   getCurrentTime: () => number;
   getDuration: () => number;
+  /**
+   * 초 단위로 이동한다.
+   *
+   * `allowSeekAhead` 는 **아직 안 받은 구간까지 새로 요청할지**다. 끄는
+   * 동안에는 `false` 로 부른다 — 매 프레임 새 요청을 보내면 손을 떼기도 전에
+   * 요청이 쌓인다. 손을 뗄 때 한 번만 `true` 로 부른다.
+   */
+  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   /** 0~100. 모바일 사파리는 무시한다 — 거기서는 기기 볼륨만 먹는다 */
   setVolume: (volume: number) => void;
   mute: () => void;

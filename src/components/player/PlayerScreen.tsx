@@ -31,9 +31,12 @@ function fillStyle(fill: number, index: number): CSSProperties {
 /**
  * 전체 화면 재생. 바를 누르면 열린다.
  *
- * **`<dialog>` 를 쓴다.** 포커스 가둠·Escape·뒤 배경 비활성화·최상위 레이어가
- * 전부 브라우저 기능이다. 직접 만들면 그 넷을 다 손으로 해야 하고, 보통
- * 하나쯤 빠진 채로 배포된다 — 그러면 탭이 화면 뒤로 새어 나간다.
+ * **`<dialog>` 를 쓴다. 단, 모달로는 안 연다.** 요소 신원(`role="dialog"`),
+ * `close` 이벤트, `[open]` 상태가 공짜로 따라온다. 최상위 레이어와 포커스
+ * 가둠은 일부러 안 쓴다 — 아래 `show()` 주석에 이유가 있다.
+ *
+ * **재생 바는 이 화면 위에 남는다.** 시트가 바 높이만큼 위에서 끝나서
+ * (`--player-bar-h`), 화면을 연 채로도 곡을 넘기고 소리를 줄일 수 있다.
  *
  * **소리는 여기서 안 만든다.** iframe 은 계속 `PlayerBar` 안에 있고 이 화면은
  * 그 위에 겹칠 뿐이다. 재생기를 이쪽으로 옮기면 iframe 이 다시 만들어지면서
@@ -64,25 +67,26 @@ export function PlayerScreen({
 
   /**
    * 열고 닫는 것은 명령형이다 — `<dialog>` 는 `open` 속성만 붙여서는
-   * 최상위 레이어에 올라가지 않고, 그러면 포커스도 안 갇힌다.
+   * 안 열린다.
    *
-   * **개발에서만 비모달로 연다.** `showModal()` 은 최상위 레이어에 띄우면서
-   * 문서의 나머지를 통째로 `inert` 로 만드는데, 그게 브라우저 확장이나
-   * 개발 도구가 `body` 에 심는 오버레이까지 죽인다 — 이 화면에는 요소
-   * 주석을 달 수가 없다. 화면을 보면서 고치는 일이 막히는 건 대가가 크다.
+   * **`showModal()` 이 아니라 `show()` 다.** 모달은 최상위 레이어에 올라가서
+   * `z-index` 로는 아무것도 그 위에 못 놓고, 문서의 나머지를 통째로 `inert`
+   * 로 만든다. 그러면 **재생 바가 시트 뒤에 깔려서 안 보이고 안 눌린다** —
+   * 시트를 연 채로 곡을 넘기거나 소리를 줄일 수가 없다. 그건 이 화면이
+   * 원래 모달이 아니라는 뜻이다: 뒤에 살아 있어야 하는 조작이 있다.
    *
-   * 프로덕션은 모달 그대로다. 개발에서만 다른 것: 탭이 시트 밖으로 나갈 수
-   * 있고 `::backdrop` 이 안 그려진다. **Escape 는 아래에서 직접 받는다** —
-   * 그건 브라우저가 모달에만 해 주는 일이라 개발에서 안 되면 차이를
-   * 모르고 지나칠 수 있다.
+   * 대신 모달이 공짜로 주던 것들을 여기서 챙긴다 — Escape 는 아래에서
+   * 직접 받고, 시트가 바 위로 안 올라오게 `bottom` 을 CSS 에서 띄우고,
+   * 뒤 본문 스크롤은 `body:has(dialog[open])` 이 세운다.
+   * 포커스는 가두지 않는다: 바로 탭이 갈 수 있어야 맞다.
+   *
+   * 덤으로, 개발 도구가 `body` 에 심는 요소 주석 오버레이도 살아 있다.
+   * 최상위 레이어에 뜨면 그것까지 같이 죽는다.
    */
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
-    if (open && !dialog.open) {
-      if (process.env.NODE_ENV === "development") dialog.show();
-      else dialog.showModal();
-    }
+    if (open && !dialog.open) dialog.show();
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
@@ -115,14 +119,14 @@ export function PlayerScreen({
   return (
     <dialog
       ref={dialogRef}
-      // Escape 와 배경 클릭은 브라우저가 `close` 로 알려 준다. 우리 상태를 거기 맞춘다
+      // 닫히는 길은 `close` 하나로 모인다. 우리 상태를 거기 맞춘다
       onClose={onClose}
       aria-label={`${track.title} 재생 화면`}
       className="player-screen"
     >
-      <div className="shell flex min-h-dvh flex-col justify-center py-20 max-sm:py-14">
-        {/* 닫기가 DOM 의 처음이다 — `showModal()` 이 첫 번째 포커스 가능한
-            요소로 초점을 옮기므로, 열자마자 Enter 로 닫을 수 있다 */}
+      <div className="shell flex min-h-full flex-col justify-center py-20 max-sm:py-14">
+        {/* 닫기가 DOM 의 처음이다 — 열 때 초점이 첫 번째 포커스 가능한
+            요소로 옮겨 가므로, 열자마자 Enter 로 닫을 수 있다 */}
         <button
           type="button"
           onClick={onClose}
@@ -153,11 +157,19 @@ export function PlayerScreen({
               />
             </svg>
             <div className="absolute inset-[7%] overflow-hidden rounded-full bg-ghost">
+              {/* **`hq720` 을 쓴다.** `hqdefault` 는 480×360 인데 원본이 16:9 라
+                  위아래에 검은 띠를 넣어 4:3 으로 맞춘 그림이다 — 원으로
+                  자르면 그 띠가 그대로 들어온다. 게다가 480px 로는 이 크기를
+                  못 채운다. `hq720` 은 1280×720 짜리 16:9 원본이다.
+
+                  `sizes` 는 상자 폭이 아니라 그려지는 폭이다: 정사각형 상자에
+                  16:9 를 `object-cover` 하면 폭이 1.78배로 깔린다.
+                  340 × 16/9 ≒ 605 → 2배 화면에서 1210, 원본 1280 안이다. */}
               <Image
-                src={`https://i.ytimg.com/vi/${track.youtubeId}/hqdefault.jpg`}
+                src={`https://i.ytimg.com/vi/${track.youtubeId}/hq720.jpg`}
                 alt=""
                 fill
-                sizes="(max-width: 1024px) 68vw, 340px"
+                sizes="(max-width: 1024px) 121vw, 620px"
                 className="object-cover"
               />
             </div>

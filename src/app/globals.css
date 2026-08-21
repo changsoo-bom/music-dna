@@ -22,6 +22,11 @@
   --signal: #cf4500;
   --signal-lt: #f37338;
 
+  /* 재생 바의 높이. **세 곳이 같은 수를 봐야 한다** — 바 자체, 바가 가릴
+     만큼 페이지를 늘리는 상자, 그리고 바 위로 안 올라오는 전체 화면.
+     한 군데만 고치면 시트가 바를 덮거나 페이지가 어긋난다. */
+  --player-bar-h: 76px;
+
   /* 차트 카테고리 5색 — 순서가 곧 검증 단위다 */
   --chart-1: #00897c;
   --chart-2: #b4521e;
@@ -130,6 +135,9 @@ h3 {
 @media (max-width: 640px) {
   .shell {
     width: min(1280px, 100% - 32px);
+  }
+  :root {
+    --player-bar-h: 68px;
   }
 }
 
@@ -370,25 +378,15 @@ html[data-dna="1"] .home-intro {
 /* 재생 바가 아래에서 올라온다. **페이드는 주지 않는다** — 바는 화면 밖에서
    밀려 들어오는 물건이지 허공에서 배어 나오는 물건이 아니다. 불투명도를
    섞으면 올라오는 동안 뒤 내용이 비쳐서 두 겹으로 읽힌다.
-   자기 높이 + 32px 이면 아래 여백(24px)과 shadow-float 까지 화면 밖이다.
-
-   닫을 때는 같은 길로 되돌아간다. 나가는 쪽이 짧고(0.28s) 가속하는 곡선인 건
-   페이지 전환과 같은 판단이다 — 지나간 것이 시선을 끌면 안 된다. */
+   바가 바닥에 붙어 있으므로 자기 높이만큼이면 완전히 화면 밖이다.
+ */
 @keyframes bar-up {
   from {
-    transform: translateY(calc(100% + 32px));
-  }
-}
-@keyframes bar-down {
-  to {
-    transform: translateY(calc(100% + 32px));
+    transform: translateY(100%);
   }
 }
 .bar-up {
   animation: bar-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-.bar-down {
-  animation: bar-down 0.28s cubic-bezier(0.7, 0, 0.84, 0) both;
 }
 
 /* Tailwind v4 는 preflight 에서 버튼의 `cursor: pointer` 를 뺐다 — 브라우저
@@ -445,13 +443,18 @@ button:not(:disabled),
    prefers-reduced-motion 은 위 전역 블록이 duration 을 0 으로 만든다. */
 dialog.player-screen {
   /* 위치를 직접 잡는다. UA 기본값은 모달일 때만 `fixed` 고 비모달은
-     `absolute` 라, 개발에서 비모달로 열면 시트가 문서 끝에 붙어 버린다. */
+     `absolute` 라, 안 적으면 시트가 문서 끝에 붙어 버린다.
+
+     **재생 바 위로는 안 올라간다.** `bottom` 을 바 높이에 맞춰 그 줄을
+     비워 둔다 — 시트가 떠 있어도 곡을 넘기고 소리를 줄일 수 있어야 한다.
+     쌓임 순서는 셋뿐이다: 헤더(50) < 전체 화면(60) < 재생 바(70).
+     헤더는 시트에 덮여야 하고 바는 시트 위에 남아야 한다. */
   position: fixed;
-  inset: 0;
+  inset: 0 0 var(--player-bar-h) 0;
   z-index: 60;
   width: 100%;
   max-width: none;
-  height: 100%;
+  height: auto;
   max-height: none;
   margin: 0;
   padding: 0;
@@ -463,7 +466,8 @@ dialog.player-screen {
      불투명도를 섞으면 올라오는 동안 뒤 화면이 비쳐서 두 겹으로 읽힌다.
      재생 바가 등장하는 방식과 같은 규칙이고, 실제로 바를 눌러서 여는
      화면이라 같은 방향으로 움직여야 손이 이해한다.
-     `100%` 는 자기 높이 = 뷰포트 높이라 완전히 화면 밖이다.
+     `100%` 는 자기 높이만큼이고, 시트가 끝나는 자리부터 아래는 바가
+     덮고 있어서 그만큼만 내려가도 완전히 안 보인다.
 
      0.55s 는 바(0.5s)보다 길다. 움직이는 거리가 화면 전체라 같은 시간에
      가면 훨씬 빨라 보인다 — 시간이 아니라 속도가 눈에 읽힌다. */
@@ -491,66 +495,72 @@ body:has(dialog.player-screen[open]) {
     translate: 0 100%;
   }
 }
-/* 올라오는 동안만 보인다 — 시트가 화면을 다 덮고 나면 가려진다.
-   시트는 페이드하지 않지만 뒤 그림자는 따라 들어와야 깊이가 생긴다.
-   여기만 색이 변하므로 시트 자체의 불투명도는 그대로 1 이다. */
-dialog.player-screen::backdrop {
-  background: rgb(20 20 19 / 0);
-  transition:
-    background 0.55s ease,
-    display 0.55s allow-discrete,
-    overlay 0.55s allow-discrete;
-}
-dialog.player-screen[open]::backdrop {
-  background: rgb(20 20 19 / 0.25);
-}
-@starting-style {
-  dialog.player-screen[open]::backdrop {
-    background: rgb(20 20 19 / 0);
-  }
-}
 
-/* 소리 크기. `<input type="range">` 를 쓴다 — 드래그·좌우 키·Home/End·
-   접근성 이름이 전부 브라우저 것이다. 겉모습만 시스템에 맞춘다.
+/* 값을 끄는 막대 둘 — 소리 크기(`.volume`)와 재생 위치(`.seek`).
+   같은 그림이라 같은 규칙을 본다. 채워진 비율은 `--pct` 로 들어온다:
+   소리 쪽은 React 가 인라인 style 로, 재생 위치 쪽은 0.5초 주기가
+   직접 써 넣는다(리렌더를 만들지 않으려고).
 
-   채워진 만큼은 트랙 배경의 그라디언트로 그린다. `--vol` 은 인라인 style
-   로 들어오고, 음소거일 때는 0 이 온다 — 값을 지우지 않고 표시만 비운다.
+   `<input type="range">` 를 쓰는 이유는 드래그·좌우 키·Home/End·접근성
+   이름이 전부 브라우저 것이어서다. 겉모습만 시스템에 맞춘다.
+
+   **상자는 손가락 크기, 선은 3px.** 선 두께를 요소 높이로 만들면 잡을
+   곳도 같이 얇아진다 — 3px 짜리 과녁은 마우스로 못 짚는다.
+   선은 배경으로 상자 가운데에만 그린다.
 
    주황(`--signal-lt`)이다. **값을 그리는 자리라 예약색을 쓴다** — 같은 바
-   안에서 진행 호가 이미 이 색으로 값을 말하고 있고, 소리 크기도 값이다.
-   금지된 것은 CTA 에 쓰는 쪽이지 데이터에 쓰는 쪽이 아니다.
-   → `.claude/rules/styling.md` */
-.volume {
+   안에서 진행 호가 이미 이 색으로 값을 말한다. 금지된 것은 CTA 에 쓰는
+   쪽이지 데이터에 쓰는 쪽이 아니다. → `.claude/rules/styling.md` */
+.volume,
+.seek {
   appearance: none;
-  /* **상자는 20px, 선은 3px.** 선 두께를 요소 높이로 만들면 잡을 곳도 같이
-     얇아진다 — 3px 짜리 과녁은 마우스로 못 짚는다. 상자를 손가락 크기로
-     두고 선은 배경으로 가운데에만 그린다. */
   height: 20px;
   /* 선이 아니라 상자에 걸린다. 안 보이지만 포커스 링의 모양을 잡는다 */
   border-radius: var(--radius-pill);
   background: linear-gradient(
       to right,
-      var(--signal-lt) 0 calc(var(--vol, 100) * 1%),
-      var(--ghost) calc(var(--vol, 100) * 1%) 100%
+      var(--signal-lt) 0 calc(var(--pct, 0) * 1%),
+      var(--ghost) calc(var(--pct, 0) * 1%) 100%
     )
     no-repeat center / 100% 3px;
   cursor: pointer;
 }
-.volume::-webkit-slider-thumb {
+
+/* 재생 위치는 바의 **윗변에 딱 붙는다**. 상자는 14px 이지만 선은 위로
+   붙여 그린다 - 가운데에 그리면 7px 아래로 내려앉아 "붙었다" 가 안 된다.
+   상자를 3px 로 줄이지 않는 건 그러면 잡을 곳이 같이 사라져서다.
+
+   **모서리를 안 굴린다.** 999px 반경이 상자 양 끝을 깎아서 선의 시작과
+   끝이 잘려 나간다 - 화면 폭을 가로지르는 선인데 양끝만 흐려 보인다.
+   포커스 링도 각지게 나오는 게 맞다: 붙어 있는 것에는 모서리가 없다. */
+.seek {
+  height: 14px;
+  border-radius: 0;
+  background-position: top;
+}
+
+/* **손잡이는 안 보인다.** 채워진 선의 끝이 곧 지금 값이라 동그라미가
+   같은 말을 한 번 더 한다. 크기는 그대로 두어 잡는 자리만 남긴다 —
+   `width: 0` 으로 지우면 끌 수가 없다. */
+.volume::-webkit-slider-thumb,
+.seek::-webkit-slider-thumb {
   appearance: none;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--signal-lt);
+  width: 14px;
+  height: 14px;
+  background: transparent;
 }
-.volume::-moz-range-thumb {
-  width: 10px;
-  height: 10px;
+.volume::-moz-range-thumb,
+.seek::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
   border: 0;
-  border-radius: 50%;
-  background: var(--signal-lt);
+  background: transparent;
 }
-.volume:focus-visible {
+
+/* 손잡이가 안 보이므로 포커스는 여기서만 보인다. 지우면 키보드로
+   어디를 만지고 있는지 알 방법이 없다 */
+.volume:focus-visible,
+.seek:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 4px;
 }
