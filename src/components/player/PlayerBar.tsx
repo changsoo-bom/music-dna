@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowUpRight, Pause, Play, SkipBack, SkipForward, X } from "@phosphor-icons/react/dist/ssr";
+import {
+  ArrowClockwise,
+  ArrowUpRight,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  X,
+} from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
@@ -63,11 +71,18 @@ export function PlayerBar() {
 
   const videoId = track?.youtubeId ?? null;
 
-  /** 재생 버튼. 실패한 상태에서는 토글이 아니라 재시도다 */
+  /**
+   * 재생 버튼. 실패한 상태에서는 토글이 아니라 재시도다.
+   *
+   * 재시도할 때 `isPlaying` 을 켠다. 큐 끝에서 `skip` 이 꺼 놓은 채로 실패에
+   * 들어올 수 있는데, 그러면 플레이어가 떠도 `onReady` 의
+   * `if (isPlaying) playVideo()` 가 안 걸려서 **한 번 더 눌러야 소리가 난다.**
+   */
   function pressPlay() {
     if (failed) {
       setFailed(false);
       setAttempt((n) => n + 1);
+      if (!isPlaying) toggle();
       return;
     }
     toggle();
@@ -237,7 +252,14 @@ export function PlayerBar() {
                 aria-label={failed ? "다시 시도" : isPlaying ? "일시정지" : "재생"}
                 className={`${ICON_BUTTON} h-11 w-11 bg-ink text-canvas hover:opacity-90`}
               >
-                {isPlaying ? (
+                {/* **실패 상태를 먼저 본다.** `isPlaying` 은 실패해도 true 로 남아 있다 —
+                    `play()` 가 켜 놓았고 플레이어가 아예 안 만들어져서 아무도 끄지
+                    않았다. 그대로 두면 "다시 누르면 재시도합니다" 옆에 일시정지
+                    기호가 붙고, 눌러도 멈추지 않는다. 아이콘이 클릭의 결과를
+                    잘못 말하는 건 이 커밋이 `isSounding` 으로 고친 바로 그 문제다. */}
+                {failed ? (
+                  <ArrowClockwise size={18} weight="bold" aria-hidden />
+                ) : isPlaying ? (
                   <Pause size={18} weight="fill" aria-hidden />
                 ) : (
                   // 재생 삼각형은 광학 중심이 기하 중심보다 오른쪽이다

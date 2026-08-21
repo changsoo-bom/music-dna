@@ -1,3 +1,6 @@
+import { readStoredValue } from "@/hooks/use-stored-value";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
+
 /**
  * 검사 결과를 쿠키에도 둔다. **서버가 첫 HTML 에 결과를 그리게 하려는 것뿐이다.**
  *
@@ -18,6 +21,11 @@
  * → `clearPreferenceCookie`
  */
 const PREFERENCE_COOKIE = "musicdna_pref_v1";
+
+/** 정본. 사본을 맞추려면 원본을 봐야 한다 */
+function readPreference(): string | null {
+  return readStoredValue(STORAGE_KEYS.preference);
+}
 
 /** 1년. 검사 결과는 오래 남아야 한다 — 재검사 전까지가 유효기간이다 */
 const MAX_AGE = 60 * 60 * 24 * 365;
@@ -56,6 +64,31 @@ export function writePreferenceCookie(raw: string) {
   } catch {
     return;
   }
+}
+
+/**
+ * 서버가 본 사본을 정본에 맞춘다. **효과에서 부른다** — 쿠키는 React 밖의
+ * 시스템이라 렌더 중에 건드리면 버려진 렌더의 쓰기가 남을 수 있다.
+ *
+ * `serverRaw` 는 이번 요청에 서버가 쿠키에서 읽은 값이고, 정본은 Local
+ * Storage 에 있다. 둘이 다르면 다음 방문에도 서버가 틀린 화면을 그린다 —
+ * 없으면(Safari ITP 가 7일에 자른다) 결과 없는 화면으로, 낡았으면
+ * **재검사 전 페르소나로**. 둘 다 쿠키를 심어서 없애려던 그 깜빡임이다.
+ *
+ * 낡은 사본은 실제로 생긴다. 검사 직후 `setItem` 은 됐는데
+ * `writePreferenceCookie` 가 던지면(sandbox iframe·쿠키 차단) 정본만 갱신되고
+ * 사본은 이전 결과에 머문다. 그쪽은 조용히 삼키므로 여기서 따라잡아야 한다.
+ *
+ * 서버에서는 아무것도 안 한다 — `document` 가 없고, 서버가 고칠 수 있는
+ * 것도 아니다. 같은 값이면 쓰지 않는다: 쿠키 쓰기는 싸지만 렌더마다
+ * 문자열을 만드는 일은 공짜가 아니다.
+ */
+export function syncPreferenceCookie(serverRaw: string | null) {
+  if (typeof document === "undefined") return;
+  const raw = readPreference();
+  if (raw === serverRaw) return;
+  if (raw) writePreferenceCookie(raw);
+  else clearPreferenceCookie();
 }
 
 /**

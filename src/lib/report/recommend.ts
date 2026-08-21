@@ -23,7 +23,7 @@ const MOOD_WEIGHT = 0.45;
  *
  * 탐험 성향이 높으면 더 벌린다 — 검사에서 잰 축이 추천에서도 일을 해야 한다.
  */
-function maxPerGenre(explorer: number): number {
+export function maxPerGenre(explorer: number): number {
   return explorer >= 50 ? 2 : 3;
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Shuffle } from "@phosphor-icons/react/dist/ssr";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { NAV_FORWARD } from "@/constants/nav";
 import { MyPlaylist } from "@/components/report/MyPlaylist";
@@ -12,7 +12,7 @@ import { ButtonLink, buttonClass } from "@/components/ui/Button";
 import { usePreference } from "@/hooks/use-preference";
 import { readStoredValue } from "@/hooks/use-stored-value";
 import { nextExclusions, recommend } from "@/lib/report/recommend";
-import { clearPreferenceCookie, writePreferenceCookie } from "@/lib/preference-cookie";
+import { clearPreferenceCookie, syncPreferenceCookie } from "@/lib/preference-cookie";
 import { parsePreference } from "@/lib/schemas/preference";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { revealOnScroll } from "@/lib/utils";
@@ -33,19 +33,16 @@ import { revealOnScroll } from "@/lib/utils";
  * 뜻이다.** 사본만 남겨 두면 다음 새로고침에 서버가 결과를 그리고 클라이언트가
  * 안내로 되돌리는 — 쿠키를 도입해서 없애려던 것과 정확히 반대인 깜빡임이 된다.
  *
+ * 반대 방향(정본은 멀쩡한데 사본이 없거나 낡음)은 여기서 안 고친다.
+ * 이 화면은 결과가 없을 때만 그려지므로 그 경우를 볼 수가 없다.
+ * → `syncPreferenceCookie`
+ *
  * 모듈 스코프에 둔다. 인라인 화살표면 렌더마다 detach/attach 한다.
  */
 function revealIfNoResult(el: HTMLElement | null) {
   if (!el) return;
   const raw = readStoredValue(STORAGE_KEYS.preference);
-  if (parsePreference(raw)) {
-    // 정본은 멀쩡한데 이 화면이 그려졌다 = **서버가 쿠키를 못 봤다.**
-    // Safari ITP 는 `document.cookie` 로 심은 쿠키를 7일에 자르므로 오래
-    // 만에 돌아온 사람이 늘 여기로 온다. 사본을 다시 심어 두면 다음
-    // 방문부터는 서버가 첫 화면을 그린다.
-    if (raw) writePreferenceCookie(raw);
-    return;
-  }
+  if (parsePreference(raw)) return;
   clearPreferenceCookie();
   document.documentElement.removeAttribute("data-dna");
 }
@@ -60,6 +57,13 @@ function revealIfNoResult(el: HTMLElement | null) {
  */
 export function HomeTop({ serverRaw = null }: { serverRaw?: string | null }) {
   const preference = usePreference(serverRaw);
+
+  // 서버가 본 사본과 정본이 다르면 사본을 맞춘다. → `syncPreferenceCookie`
+  //
+  // 효과가 맞는 자리다. 브라우저 쿠키는 **React 밖의 시스템**이고, 렌더 중에
+  // 건드리면 동시 렌더에서 두 번 쓰거나 버려진 렌더의 쓰기가 남는다.
+  // `setState` 를 안 하므로 Compiler 의 set-state-in-effect 와도 안 부딪힌다.
+  useEffect(() => syncPreferenceCookie(serverRaw), [serverRaw]);
   // 훅은 조기 반환보다 위에 있어야 한다. 안내 화면에서는 안 쓰지만
   // 호출 순서가 렌더마다 달라지면 React 가 훅을 짝지을 수 없다.
   //

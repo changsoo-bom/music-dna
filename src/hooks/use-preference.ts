@@ -19,11 +19,21 @@ import type { MusicPreference } from "@/types/music";
  * `useMemo` 가 아니라 모듈 스코프 캐시다. 훅 하나에 값 하나뿐이고
  * (`STORAGE_KEYS.preference`), 이 값을 보는 컴포넌트가 여럿이라
  * **모두가 같은 객체를 봐야** 신원이 실제로 안정된다.
+ *
+ * **브라우저에서만 캐시한다.** `"use client"` 는 번들 경계지 실행 경계가
+ * 아니라서 이 파일은 서버에서도 돈다. 홈이 `cookies()` 를 부르는 동적
+ * 라우트라 요청마다 서버에서 렌더되고, 그러면 모듈 변수에 **마지막 요청자의
+ * 검사 결과가 프로세스 수명 내내 남는다.** 다른 사람에게 새는 경로는 없지만
+ * (raw 가 같아야 히트하고, raw 가 같으면 같은 사람의 값이다) 서버에 아무것도
+ * 안 남긴다고 적어 둔 화면에서 굳이 들고 있을 이유가 없다.
+ *
+ * 서버는 어차피 한 번만 그리고 리렌더가 없으므로 신원 안정이 필요 없다.
  */
 let cachedRaw: string | null = null;
 let cachedResult: MusicPreference | null = null;
 
 function parseOnce(raw: string | null): MusicPreference | null {
+  if (typeof window === "undefined") return parsePreference(raw);
   if (raw === cachedRaw) return cachedResult;
   cachedRaw = raw;
   cachedResult = parsePreference(raw);

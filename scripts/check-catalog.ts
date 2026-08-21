@@ -4,7 +4,7 @@ import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import { CATALOG } from "@/data/catalog";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
-import { nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
+import { maxPerGenre, nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
 import { PLAYED_LIMIT, parsePlayed } from "@/lib/schemas/played";
 import type { Genre, SubGenre } from "@/types/music";
 
@@ -111,9 +111,13 @@ for (let i = 0; i < 5; i += 1) {
     perGenre.set(genre, (perGenre.get(genre) ?? 0) + 1);
   }
   const [worstGenre, topGenreCount] = [...perGenre.entries()].reduce((a, b) => (b[1] > a[1] ? b : a));
+  // **상한 자체와 비교한다.** `<= 3` 은 실제 상한(탐험 성향 50 이상이면 2)보다
+  // 한 칸 느슨해서, 페르소나 다섯 중 셋에서는 위반이 나도 통과했다.
+  // 진짜 불변식에 묶어 두면 백필이 상한을 넘기는 순간 여기서 걸린다.
+  const cap = maxPerGenre(preference.axes.explorer);
   assert.ok(
-    topGenreCount <= 3,
-    `선택지 ${i}: ${worstGenre} 가 ${topGenreCount}칸을 먹었다 — 장르당 상한이 안 먹었다`,
+    topGenreCount <= cap,
+    `선택지 ${i}: ${worstGenre} 가 ${topGenreCount}칸을 먹었다 — 상한은 ${cap} 이다`,
   );
 
   // 점수는 내림차순이어야 한다
@@ -176,6 +180,20 @@ assert.equal(
   parsePlayed(JSON.stringify(CATALOG.map((t) => t.id))).length,
   PLAYED_LIMIT,
   "최근 재생이 상한을 넘었다",
+);
+// 중복이 살아남으면 `MyPlaylist` 의 `key={track.id}` 가 겹친다.
+// React 가 줄을 못 짝지어서 재생 표시가 엉뚱한 줄에 붙는다.
+assert.deepEqual(
+  parsePlayed(JSON.stringify([CATALOG[0].id, CATALOG[1].id, CATALOG[0].id])).map((t) => t.id),
+  [CATALOG[0].id, CATALOG[1].id],
+  "중복 id 가 살아남았다 — 앞선 것만 남아야 한다(목록이 최근 순이다)",
+);
+// 상한만큼 자르는 일은 **없는 id 를 걸러낸 뒤**여야 한다.
+// 순서가 반대면 죽은 id 가 자리를 먹어서 성한 곡이 목록에서 빠진다.
+assert.equal(
+  parsePlayed(JSON.stringify([...Array(PLAYED_LIMIT).fill("없는곡"), CATALOG[0].id])).length,
+  1,
+  "없는 id 가 상한 자리를 먹었다",
 );
 
 
