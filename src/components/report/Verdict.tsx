@@ -4,6 +4,7 @@ import { CountUp } from "@/components/report/CountUp";
 import { RadarChart } from "@/components/report/RadarChart";
 import { PERSONAS } from "@/constants/personas";
 import { nightScore } from "@/lib/quiz/scoring";
+import { revealOnScroll } from "@/lib/utils";
 import type { MusicPreference } from "@/types/music";
 
 /**
@@ -59,8 +60,16 @@ export function Verdict({ preference }: { preference: MusicPreference }) {
     <section className="pt-20 max-lg:pt-14 max-sm:pt-10">
       {/* 왼쪽은 말, 오른쪽은 그림. 필은 값을 말하고 오각형은 균형을 말한다 —
           같은 데이터의 반복이 아니라 **읽는 방식이 다르다.**
-          좁아지면 세로로 쌓는다. 도형을 줄여 가며 옆에 붙여 두면 라벨부터 뭉갠다. */}
-      <div className="grid grid-cols-[1fr_auto] items-center gap-12 max-lg:grid-cols-1">
+          좁아지면 세로로 쌓는다. 도형을 줄여 가며 옆에 붙여 두면 라벨부터 뭉갠다.
+
+          진입 효과는 `<section>` 이 아니라 이 격자에 건다. 섹션의 자식은 이
+          격자 하나뿐이라 거기 걸면 통째로 한 번 움직이고 끝난다. 여기 걸면
+          자식이 둘(말·그림)이라 아래 섹션들과 같은 두 박자가 된다 —
+          말이 먼저 서고 오각형이 따라 오른다. */}
+      <div
+        ref={revealOnScroll}
+        className="grid grid-cols-[1fr_auto] items-center gap-12 max-lg:grid-cols-1"
+      >
         <div>
           <span className="eyebrow text-ink">당신의 음악 DNA</span>
           <h1 className="mt-5 max-w-[18ch] text-[clamp(34px,6vw,64px)] leading-[1.06]">

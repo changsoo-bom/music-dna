@@ -312,3 +312,44 @@ html[data-dna="1"] .home-intro {
     animation-delay: 0s !important;
   }
 }
+
+/* 섹션이 화면에 들어올 때 아래에서 올라오며 나타난다.
+   상태는 `revealOnScroll` 이 `data-reveal` 로 넘긴다. → `src/lib/utils.ts`
+
+   **속성 셀렉터로 받는 게 핵심이다.** `.reveal { opacity: 0 }` 처럼 클래스에
+   그냥 숨김을 걸면 JS 가 안 뜨는 순간 페이지가 빈 화면이 된다.
+   `data-reveal` 은 관찰자가 붙을 때만 생기므로, 안 붙으면 아무것도 안 숨는다.
+
+   빈 값이 "숨은 상태", `in` 이 "들어온 상태" 다. 값 하나로 두 단계를 다
+   표현하니 클래스를 붙였다 뗐다 하지 않아도 된다.
+
+   **섹션이 아니라 그 안의 덩어리가 움직인다.** 900px 짜리 블록을 통째로
+   40px 올리면 화면 전체가 살짝 밀린 것처럼 보일 뿐 아무 일도 안 일어난
+   것 같다. 제목이 먼저 서고 내용이 따라 오르면 그제서야 "지금 이 구간이
+   열렸다" 로 읽힌다. 시차는 0.14초 — 더 벌리면 기다리는 게 느껴진다.
+
+   40px 은 방향이 확실히 읽히는 거리다. 이보다 짧으면 티가 안 나고,
+   길면 아래에서 날아오는 것처럼 보여 스크롤을 빨리 내리는 사람에게는
+   화면 떨림으로 읽힌다. */
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+[data-reveal] > * {
+  opacity: 0;
+}
+[data-reveal="in"] > * {
+  animation: reveal 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+[data-reveal="in"] > *:nth-child(2) {
+  animation-delay: 0.14s;
+}
+[data-reveal="in"] > *:nth-child(n + 3) {
+  animation-delay: 0.28s;
+}

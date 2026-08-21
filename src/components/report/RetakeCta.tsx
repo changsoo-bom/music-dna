@@ -6,6 +6,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { moodAffinity, nightScore } from "@/lib/quiz/scoring";
 import { trackMood } from "@/lib/report/recommend";
+import { revealOnScroll } from "@/lib/utils";
 import type { Genre, MoodVector, MusicPreference } from "@/types/music";
 
 /** slot → 검증된 차트 색. Tailwind 는 클래스명을 정적으로 읽으므로 조립하지 않는다 */
@@ -104,7 +105,10 @@ export function RetakeCta({ preference }: { preference: MusicPreference }) {
   ];
 
   return (
-    <section className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12">
+    <section
+      ref={revealOnScroll}
+      className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12"
+    >
       <div className="grid grid-cols-[minmax(0,420px)_1fr] items-center gap-[clamp(40px,7vw,96px)] max-lg:grid-cols-1 max-lg:gap-10">
         {/* 필 카드. 크림 캔버스 위에 뜬 표면이라 흰색 + shadow-float 다.
             좁아지면 `rounded-stadium` 으로 내린다 — 세로로 긴 알약이 화면 폭에

@@ -13,6 +13,7 @@ import { usePreference } from "@/hooks/use-preference";
 import { nextExclusions, recommend } from "@/lib/report/recommend";
 import { parsePreference } from "@/lib/schemas/preference";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { revealOnScroll } from "@/lib/utils";
 
 /**
  * 소개 자리의 표시를 지운다. **저장값이 실제로 깨졌을 때만.**
@@ -75,7 +76,10 @@ export function HomeTop() {
 
       {/* 내가 들은 것이 시스템이 고른 것보다 앞이다. 아직 비어 있어도 그렇다 —
           자리를 뒤에 두면 자기 목록이 부록처럼 읽힌다. */}
-      <section className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12">
+      <section
+        ref={revealOnScroll}
+        className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12"
+      >
         <header>
           <span className="eyebrow text-ink">나만의 플레이리스트</span>
           <h2 className="mt-5 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">빠른 선곡</h2>
@@ -86,7 +90,10 @@ export function HomeTop() {
 
       {/* 내 목록에서 추천으로 넘어가는 자리. 선 하나로 나눈다 —
           "내가 들은 것" 과 "그래서 뭘 들을까" 는 성격이 다른 구간이다. */}
-      <section className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12">
+      <section
+        ref={revealOnScroll}
+        className="mt-24 border-t border-hair pt-16 max-sm:mt-16 max-sm:pt-12"
+      >
         {/* 제목과 다시 찾기를 양 끝으로 벌린다. 목록의 주인과 목록으로 할 일이
             같은 줄에 있어야 "이게 내 것이고, 이렇게 튼다" 가 한 번에 읽힌다. */}
         <header className="flex items-end justify-between gap-8 max-sm:flex-col max-sm:items-start max-sm:gap-6">
