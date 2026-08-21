@@ -427,3 +427,110 @@ button:not(:disabled),
   opacity: 1;
   translate: -50% 0;
 }
+
+/* 전체 화면 재생. `<dialog>` 의 기본 상자를 화면 전체로 편다.
+   기본값이 가운데 정렬된 작은 상자라 margin·max-* 를 전부 풀어야 한다.
+
+   여닫는 모션은 CSS 로만 만든다 — `display` 와 `overlay` 는 원래
+   전환이 안 되는 속성이라 `allow-discrete` 로 열어 주고, 여는 쪽의
+   시작 상태는 `@starting-style` 이 준다. 지원하지 않는 브라우저에서는
+   전환 없이 즉시 열리고 닫힌다: 기능은 그대로다.
+   prefers-reduced-motion 은 위 전역 블록이 duration 을 0 으로 만든다. */
+dialog.player-screen {
+  /* 위치를 직접 잡는다. UA 기본값은 모달일 때만 `fixed` 고 비모달은
+     `absolute` 라, 개발에서 비모달로 열면 시트가 문서 끝에 붙어 버린다. */
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: auto;
+  background: var(--canvas);
+  color: var(--ink);
+  /* 아래에서 통째로 올라오고 아래로 내려간다. **페이드는 없다** —
+     불투명도를 섞으면 올라오는 동안 뒤 화면이 비쳐서 두 겹으로 읽힌다.
+     재생 바가 등장하는 방식과 같은 규칙이고, 실제로 바를 눌러서 여는
+     화면이라 같은 방향으로 움직여야 손이 이해한다.
+     `100%` 는 자기 높이 = 뷰포트 높이라 완전히 화면 밖이다. */
+  translate: 0 100%;
+  transition:
+    translate 0.36s cubic-bezier(0.16, 1, 0.3, 1),
+    display 0.36s allow-discrete,
+    overlay 0.36s allow-discrete;
+}
+dialog.player-screen[open] {
+  translate: 0 0;
+}
+@starting-style {
+  dialog.player-screen[open] {
+    translate: 0 100%;
+  }
+}
+/* 올라오는 동안만 보인다 — 시트가 화면을 다 덮고 나면 가려진다.
+   시트는 페이드하지 않지만 뒤 그림자는 따라 들어와야 깊이가 생긴다.
+   여기만 색이 변하므로 시트 자체의 불투명도는 그대로 1 이다. */
+dialog.player-screen::backdrop {
+  background: rgb(20 20 19 / 0);
+  transition:
+    background 0.36s ease,
+    display 0.36s allow-discrete,
+    overlay 0.36s allow-discrete;
+}
+dialog.player-screen[open]::backdrop {
+  background: rgb(20 20 19 / 0.25);
+}
+@starting-style {
+  dialog.player-screen[open]::backdrop {
+    background: rgb(20 20 19 / 0);
+  }
+}
+
+/* 소리 크기. `<input type="range">` 를 쓴다 — 드래그·좌우 키·Home/End·
+   접근성 이름이 전부 브라우저 것이다. 겉모습만 시스템에 맞춘다.
+
+   채워진 만큼은 트랙 배경의 그라디언트로 그린다. `--vol` 은 인라인 style
+   로 들어오고, 음소거일 때는 0 이 온다 — 값을 지우지 않고 표시만 비운다.
+
+   주황(`--signal-lt`)이다. **값을 그리는 자리라 예약색을 쓴다** — 같은 바
+   안에서 진행 호가 이미 이 색으로 값을 말하고 있고, 소리 크기도 값이다.
+   금지된 것은 CTA 에 쓰는 쪽이지 데이터에 쓰는 쪽이 아니다.
+   → `.claude/rules/styling.md` */
+.volume {
+  appearance: none;
+  /* **상자는 20px, 선은 3px.** 선 두께를 요소 높이로 만들면 잡을 곳도 같이
+     얇아진다 — 3px 짜리 과녁은 마우스로 못 짚는다. 상자를 손가락 크기로
+     두고 선은 배경으로 가운데에만 그린다. */
+  height: 20px;
+  /* 선이 아니라 상자에 걸린다. 안 보이지만 포커스 링의 모양을 잡는다 */
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+      to right,
+      var(--signal-lt) 0 calc(var(--vol, 100) * 1%),
+      var(--ghost) calc(var(--vol, 100) * 1%) 100%
+    )
+    no-repeat center / 100% 3px;
+  cursor: pointer;
+}
+.volume::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--signal-lt);
+}
+.volume::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--signal-lt);
+}
+.volume:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}

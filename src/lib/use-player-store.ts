@@ -57,6 +57,19 @@ type PlayerState = {
   isPlaying: boolean;
   /** 임베드가 막힌 곡. 자동으로 넘기되 무한히 돌지 않게 기억해 둔다 */
   blocked: ReadonlySet<string>;
+  /**
+   * 소리 크기 0~100 과 음소거.
+   *
+   * **여기 있는 이유는 바와 전체 화면이 같은 값을 봐야 해서다.** 한쪽에서
+   * 줄인 소리가 다른 쪽 손잡이에 안 비치면 둘 중 하나는 거짓말을 한다.
+   * 조작이 한 군데뿐이었다면 로컬 state 로 충분했다. → `.claude/rules/state.md`
+   *
+   * **음소거는 볼륨과 따로 둔다.** 볼륨을 0 으로 떨어뜨려 흉내 내면 풀 때
+   * 돌아갈 자리를 어딘가에 또 적어야 하고, 그게 어긋나면 풀었는데 조용하다.
+   * `volume` 을 손대지 않고 두면 돌아갈 자리가 곧 그 값이다.
+   */
+  volume: number;
+  muted: boolean;
 
   play: (queueId: QueueId, queue: readonly PlayableTrack[], index: number) => void;
   toggle: () => void;
@@ -65,6 +78,8 @@ type PlayerState = {
   reportPlaying: (playing: boolean) => void;
   /** 이 곡은 이 사이트에서 못 튼다. 다음 곡으로 넘어간다 */
   reportBlocked: (id: string) => void;
+  setVolume: (volume: number) => void;
+  toggleMuted: () => void;
   close: () => void;
 };
 
@@ -84,6 +99,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   index: 0,
   isPlaying: false,
   blocked: new Set(),
+  volume: 100,
+  muted: false,
 
   play: (queueId, queue, index) => {
     const current = get();
@@ -159,6 +176,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     get().skip(1);
   },
 
+  // 소리를 만지면 음소거는 풀린다. 끌어 놓고 왜 조용한지 찾게 하지 않는다
+  setVolume: (volume) => set({ volume, muted: false }),
+
+  toggleMuted: () => set((s) => ({ muted: !s.muted })),
+
+  // 소리 크기는 안 건드린다. 껐다 다시 트는 것이지 설정을 되돌리는 게 아니다
   close: () => set({ queueId: null, queue: [], index: 0, isPlaying: false }),
 }));
 

@@ -12,14 +12,14 @@ import {
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+import { PlayerScreen } from "@/components/player/PlayerScreen";
+import { VolumeControl } from "@/components/player/VolumeControl";
+import { ORBIT_CIRCUMFERENCE } from "@/constants/orbit";
 import { recordPlayed } from "@/lib/played-tracks";
 import { loadIframeApi } from "@/lib/youtube/iframe-api";
 import { currentTrack, usePlayerStore } from "@/lib/use-player-store";
 import { PLAYER_STATE } from "@/types/youtube";
 import type { YouTubePlayer } from "@/types/youtube";
-
-/** 진행 호의 둘레. `globals.css` 의 `.orbit` 과 같은 r=76 을 쓴다 */
-const CIRCUMFERENCE = 477.5;
 
 /** 진행률을 다시 읽는 주기. 호가 60fps 로 돌 필요는 없다 */
 const TICK_MS = 500;
@@ -67,10 +67,15 @@ export function PlayerBar() {
   const toggle = usePlayerStore((s) => s.toggle);
   const skip = usePlayerStore((s) => s.skip);
   const close = usePlayerStore((s) => s.close);
+  // 조작은 `VolumeControl` 이 하고, 여기서는 재생기에 내려보내기만 한다
+  const volume = usePlayerStore((s) => s.volume);
+  const muted = usePlayerStore((s) => s.muted);
 
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const arcRef = useRef<SVGCircleElement>(null);
+  /** 전체 화면의 진행 호. 아래 주기가 바의 호와 **같은 값을 둘 다에** 써 넣는다 */
+  const screenArcRef = useRef<SVGCircleElement>(null);
   /** 플레이어에 실제로 걸려 있는 영상 id. 같은 곡을 두 번 걸지 않기 위한 것 */
   const loadedRef = useRef<string | null>(null);
   /** 갈아 끼우는 중. 나가는 영상이 흘리는 정지·종료 신호를 무시한다 */
@@ -91,6 +96,8 @@ export function PlayerBar() {
    * 부르면 큐가 비면서 바가 그 프레임에 사라진다. 내려가는 그림이 없다.
    */
   const [closing, setClosing] = useState(false);
+  /** 전체 화면이 열려 있는지. 바와 그 화면 둘만 아는 값이라 로컬 state 다 */
+  const [expanded, setExpanded] = useState(false);
 
   const videoId = track?.youtubeId ?? null;
 
@@ -121,6 +128,7 @@ export function PlayerBar() {
   function pressClose() {
     if (closing) return;
     setClosing(true);
+    setExpanded(false);
     playerRef.current?.pauseVideo();
   }
 
@@ -207,16 +215,28 @@ export function PlayerBar() {
     else playerRef.current?.pauseVideo();
   }, [ready, isPlaying]);
 
+  // 소리 크기를 재생기에 내려보낸다. 재생기가 뜨기 전에 만진 값도
+  // `ready` 가 켜지는 순간 여기서 한 번 더 적용된다.
+  useEffect(() => {
+    if (!ready) return;
+    const player = playerRef.current;
+    player?.setVolume(volume);
+    if (muted) player?.mute();
+    else player?.unMute();
+  }, [ready, volume, muted]);
+
   // 진행 호. setState 가 없으므로 이 주기는 리렌더를 만들지 않는다.
   useEffect(() => {
     if (!ready) return;
     const timer = window.setInterval(() => {
       const player = playerRef.current;
-      const arc = arcRef.current;
-      if (!player || !arc) return;
+      if (!player) return;
       const duration = player.getDuration();
       const played = duration > 0 ? player.getCurrentTime() / duration : 0;
-      arc.style.strokeDashoffset = String(CIRCUMFERENCE * (1 - played));
+      const offset = String(ORBIT_CIRCUMFERENCE * (1 - played));
+      // 두 호가 같은 값을 본다. 전체 화면은 열려 있을 때만 존재하므로 없을 수 있다
+      if (arcRef.current) arcRef.current.style.strokeDashoffset = offset;
+      if (screenArcRef.current) screenArcRef.current.style.strokeDashoffset = offset;
     }, TICK_MS);
     return () => window.clearInterval(timer);
   }, [ready]);
@@ -245,50 +265,61 @@ export function PlayerBar() {
               setClosing(false);
               close();
             }}
-            className={`${closing ? "bar-down" : "bar-up"} fixed inset-x-0 bottom-6 z-50 mx-auto flex h-[76px] w-[min(680px,calc(100%-32px))] items-center gap-4 rounded-pill bg-white pr-5 pl-3 shadow-float max-sm:bottom-4 max-sm:h-[68px] max-sm:gap-3 max-sm:pr-3`}
+            className={`${closing ? "bar-down" : "bar-up"} fixed inset-x-0 bottom-6 z-50 mx-auto flex h-[76px] w-[min(760px,calc(100%-32px))] items-center gap-4 rounded-pill bg-white pr-5 pl-3 shadow-float max-sm:bottom-4 max-sm:h-[68px] max-sm:gap-3 max-sm:pr-3`}
           >
-            {/* 커버 + 진행 호 */}
-            <div className="relative h-13 w-13 shrink-0 max-sm:h-11 max-sm:w-11">
-              <svg viewBox="0 0 160 160" className="absolute inset-0 h-full w-full -rotate-90">
-                <circle
-                  cx="80"
-                  cy="80"
-                  r="76"
-                  fill="none"
-                  strokeWidth="6"
-                  className="stroke-ghost"
-                />
-                <circle
-                  ref={arcRef}
-                  cx="80"
-                  cy="80"
-                  r="76"
-                  fill="none"
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                  className="stroke-signal-lt transition-[stroke-dashoffset] duration-500 ease-linear"
-                  strokeDasharray={CIRCUMFERENCE}
-                  strokeDashoffset={CIRCUMFERENCE}
-                />
-              </svg>
-              <div className="absolute inset-[14%] overflow-hidden rounded-full bg-ghost">
-                <Image
-                  src={`https://i.ytimg.com/vi/${track.youtubeId}/mqdefault.jpg`}
-                  alt=""
-                  fill
-                  sizes="52px"
-                  className="object-cover"
-                />
+            {/* 커버와 제목이 통째로 전체 화면을 여는 버튼이다.
+                바를 통째로 감싸지 못한다 — 안에 버튼이 다섯 개 더 있고,
+                버튼 안의 버튼은 클릭이 어느 쪽 것인지 모호해진다. */}
+            <button
+              type="button"
+              onClick={() => setExpanded(true)}
+              aria-haspopup="dialog"
+              aria-label={`${track.title} 재생 화면 열기`}
+              className="flex min-w-0 flex-1 items-center gap-4 rounded-pill text-left transition-opacity hover:opacity-70 focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none max-sm:gap-3"
+            >
+              {/* 커버 + 진행 호 */}
+              <div className="relative h-13 w-13 shrink-0 max-sm:h-11 max-sm:w-11">
+                <svg viewBox="0 0 160 160" className="absolute inset-0 h-full w-full -rotate-90">
+                  <circle
+                    cx="80"
+                    cy="80"
+                    r="76"
+                    fill="none"
+                    strokeWidth="6"
+                    className="stroke-ghost"
+                  />
+                  <circle
+                    ref={arcRef}
+                    cx="80"
+                    cy="80"
+                    r="76"
+                    fill="none"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    className="stroke-signal-lt transition-[stroke-dashoffset] duration-500 ease-linear"
+                    strokeDasharray={ORBIT_CIRCUMFERENCE}
+                    strokeDashoffset={ORBIT_CIRCUMFERENCE}
+                  />
+                </svg>
+                <div className="absolute inset-[14%] overflow-hidden rounded-full bg-ghost">
+                  <Image
+                    src={`https://i.ytimg.com/vi/${track.youtubeId}/mqdefault.jpg`}
+                    alt=""
+                    fill
+                    sizes="52px"
+                    className="object-cover"
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* 곡이 저절로 넘어갈 때 화면을 안 보는 사람에게도 알린다 */}
-            <div role="status" aria-live="polite" className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{track.title}</p>
-              <p className="truncate text-[13px] text-slate">
-                {failed ? "재생을 시작하지 못했습니다 — 다시 누르면 재시도합니다" : track.artist}
-              </p>
-            </div>
+              {/* 곡이 저절로 넘어갈 때 화면을 안 보는 사람에게도 알린다 */}
+              <div role="status" aria-live="polite" className="min-w-0 flex-1">
+                <p className="truncate text-[15px] font-medium tracking-[-0.01em]">{track.title}</p>
+                <p className="truncate text-[13px] text-slate">
+                  {failed ? "재생을 시작하지 못했습니다 — 다시 누르면 재시도합니다" : track.artist}
+                </p>
+              </div>
+            </button>
 
             <div className="flex shrink-0 items-center gap-1">
               <button
@@ -337,6 +368,11 @@ export function PlayerBar() {
               </button>
             </div>
 
+            {/* 소리 조절. **좁은 화면에서는 감춘다** - 모바일 브라우저는
+                `setVolume` 을 무시하고 기기 볼륨만 먹는다. 눌러도 아무 일이
+                안 나는 조작을 놓아 두면 고장 난 것으로 보인다. */}
+            <VolumeControl compact className="max-md:hidden" />
+
             <a
               href={`https://www.youtube.com/watch?v=${track.youtubeId}`}
               target="_blank"
@@ -357,6 +393,10 @@ export function PlayerBar() {
               <X size={17} aria-hidden />
             </button>
           </div>
+
+          {/* 바가 열고 닫는다. iframe 은 여전히 여기 있고 저 화면은 위에 겹칠 뿐이라
+              열어도 소리가 안 끊긴다 — 재생기를 옮기면 곡이 처음으로 돌아간다 */}
+          <PlayerScreen open={expanded} onClose={() => setExpanded(false)} arcRef={screenArcRef} />
         </>
       )}
     </>

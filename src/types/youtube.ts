@@ -14,6 +14,10 @@ export type YouTubePlayer = {
   loadVideoById: (videoId: string) => void;
   getCurrentTime: () => number;
   getDuration: () => number;
+  /** 0~100. 모바일 사파리는 무시한다 — 거기서는 기기 볼륨만 먹는다 */
+  setVolume: (volume: number) => void;
+  mute: () => void;
+  unMute: () => void;
 };
 
 /** `onStateChange` 의 `data`. 쓰는 값만 이름을 붙인다 */
