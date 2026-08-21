@@ -27,15 +27,23 @@ const TICK_MS = 500;
 const ICON_BASE =
   "grid place-items-center rounded-full focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none";
 
+/**
+ * 재생·넘기기. 잉크 글리프만 놓는다 — 원도 테두리도 없다.
+ *
+ * **주 행동을 크기로만 구분한다.** 바 자체가 흰 필이고 옆에 커버 원과
+ * 궤도 호가 이미 돌고 있어서, 여기에 원을 하나 더 그리면 같은 도형이
+ * 두 개가 된다. 재생만 글리프와 히트 영역을 키운다.
+ */
 const ICON_BUTTON = `${ICON_BASE} text-ink transition-opacity hover:opacity-55`;
 
 /**
- * 툴팁을 다는 아이콘용. **호버 표시가 불투명도가 아니라 색이다.**
+ * 물러나 있는 조작(나가기·닫기). 슬레이트로 앉아 있다가 짚으면 잉크로 온다.
  *
- * `opacity` 를 낮추면 그 안의 `::after` 툴팁까지 같이 흐려진다 — 설명하려고
- * 띄운 것이 짚는 순간 제일 안 보이게 된다. 색으로 바꾸면 툴팁은 온전하다.
+ * **호버 표시가 불투명도가 아니라 색이다.** `opacity` 를 낮추면 그 안의
+ * `::after` 툴팁까지 같이 흐려진다 — 설명하려고 띄운 것이 짚는 순간 제일
+ * 안 보이게 된다. 색으로 바꾸면 툴팁은 온전하다.
  */
-const ICON_HINTED = `${ICON_BASE} text-slate transition-colors hover:text-ink`;
+const ICON_QUIET = `${ICON_BASE} text-slate transition-colors hover:text-ink`;
 
 /**
  * 화면 아래 재생 바.
@@ -296,7 +304,7 @@ export function PlayerBar() {
                 type="button"
                 onClick={pressPlay}
                 aria-label={failed ? "다시 시도" : isPlaying ? "일시정지" : "재생"}
-                className={`${ICON_BUTTON} h-11 w-11 bg-ink text-canvas hover:opacity-90`}
+                className={`${ICON_BUTTON} h-12 w-12`}
               >
                 {/* **실패 상태를 먼저 본다.** `isPlaying` 은 실패해도 true 로 남아 있다 —
                     `play()` 가 켜 놓았고 플레이어가 아예 안 만들어져서 아무도 끄지
@@ -304,12 +312,18 @@ export function PlayerBar() {
                     기호가 붙고, 눌러도 멈추지 않는다. 아이콘이 클릭의 결과를
                     잘못 말하는 건 이 커밋이 `isSounding` 으로 고친 바로 그 문제다. */}
                 {failed ? (
-                  <ArrowClockwise size={18} weight="bold" aria-hidden />
+                  <ArrowClockwise size={22} weight="bold" aria-hidden />
                 ) : isPlaying ? (
-                  <Pause size={18} weight="fill" aria-hidden />
+                  <Pause size={22} weight="fill" aria-hidden />
                 ) : (
-                  // 재생 삼각형은 광학 중심이 기하 중심보다 오른쪽이다
-                  <Play size={18} weight="fill" aria-hidden className="translate-x-px" />
+                  // **왼쪽으로 2px.** Phosphor 의 `Play`(fill)는 잉크가 박스 안에서 이미
+                  // 오른쪽으로 24/256 만큼 밀려 있다 — 삼각형 무게중심을 박스 중심에
+                  // 맞춰 그린 것이다. 다른 글리프(Pause·SkipBack·SkipForward)는
+                  // 전부 정중앙이라, 이 자리만 재생일 때 3px 오른쪽으로 붙는다:
+                  // 다음 곡 버튼과의 간격이 이전 곡 쪽보다 6px 좁아지고,
+                  // 재생↔일시정지를 누를 때마다 가운데 글리프가 튄다.
+                  // 줄 안에서는 **보이는 잉크가 균등해야** 간격이 맞아 보인다.
+                  <Play size={22} weight="fill" aria-hidden className="-translate-x-0.5" />
                 )}
               </button>
 
@@ -329,7 +343,7 @@ export function PlayerBar() {
               rel="noreferrer"
               aria-label="YouTube 에서 열기"
               data-hint="YouTube 에서 열기"
-              className={`${ICON_HINTED} h-10 w-10 shrink-0 max-sm:hidden`}
+              className={`${ICON_QUIET} h-10 w-10 shrink-0 max-sm:hidden`}
             >
               <ArrowUpRight size={18} aria-hidden />
             </a>
@@ -338,7 +352,7 @@ export function PlayerBar() {
               type="button"
               onClick={pressClose}
               aria-label="재생 닫기"
-              className={`${ICON_BUTTON} h-10 w-10 shrink-0 text-slate`}
+              className={`${ICON_QUIET} h-10 w-10 shrink-0`}
             >
               <X size={17} aria-hidden />
             </button>

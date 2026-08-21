@@ -44,8 +44,10 @@ export function PlayButton({
           아예 안 보여서 버튼이 커버에 파묻힌다. 테두리를 두르는 대신 그림자를
           올렸다 — 시스템에 그림자는 둘뿐이고 그중 진한 쪽이다.
 
-          재생 삼각형은 광학 중심이 기하 중심보다 오른쪽이다. 정지 기호는 대칭이라 안 민다 */}
-      <Icon size={17} weight="fill" aria-hidden className={sounding ? "" : "translate-x-px"} />
+          재생 삼각형을 따로 밀지 않는다. Phosphor 의 `Play`(fill)는 잉크가 박스 안에서
+          이미 오른쪽에 그려져 있다 — 삼각형 무게중심이 박스 중심에 오도록 한 것이라,
+          여기서 더 밀면 원 안에서 오른쪽으로 붙는다 */}
+      <Icon size={17} weight="fill" aria-hidden />
     </button>
   );
 }

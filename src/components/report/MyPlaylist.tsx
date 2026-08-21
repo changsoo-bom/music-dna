@@ -93,12 +93,9 @@ export function MyPlaylist() {
                     isCurrent ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                   }`}
                 >
-                  <Icon
-                    size={18}
-                    weight="fill"
-                    aria-hidden
-                    className={isCurrent ? "" : "translate-x-px"}
-                  />
+                  {/* 재생 삼각형을 따로 밀지 않는다 — Phosphor 의 `Play`(fill)는
+                      잉크가 박스 안에서 이미 오른쪽에 그려져 있다 */}
+                  <Icon size={18} weight="fill" aria-hidden />
                 </div>
               </div>
 
