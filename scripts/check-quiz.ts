@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { PERSONAS } from "@/constants/personas";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference, nightScore, RANK_WEIGHTS, resolvePersona } from "@/lib/quiz/scoring";
+import { decodePreferenceCookie } from "@/lib/preference-cookie";
 import { parsePreference } from "@/lib/schemas/preference";
 import type { Mood, PersonaId } from "@/types/music";
 import type { QuizAnswers } from "@/types/quiz";
@@ -258,3 +259,28 @@ assert.equal(parsePreference("null"), null, "null 리터럴이 걸러지지 않�
 assert.equal(parsePreference(null), null, "값이 없을 때 null 이 아니다");
 
 console.log(`✓ 저장값 검증 — 정상 왕복 · 변조 무시 · 거부 ${rejected.length + 3}종`);
+
+// 쿠키 왕복. 서버가 첫 화면을 그리려면 이 경로가 성해야 한다 —
+// 여기가 깨지면 증상은 "가끔 빈 화면이 번쩍인다" 로만 나타나고,
+// 그건 눈으로 잡기 어렵다. → src/lib/preference-cookie.ts
+const cookieRaw = JSON.stringify({
+  version: good.version,
+  answers: good.answers,
+  computedAt: good.computedAt,
+});
+assert.deepEqual(
+  parsePreference(decodePreferenceCookie(encodeURIComponent(cookieRaw))),
+  good,
+  "쿠키를 거친 값을 다시 못 읽는다",
+);
+// 런타임이 이미 디코드해서 줬을 때. 한 번 더 돌려도 같은 값이어야 한다.
+assert.deepEqual(
+  parsePreference(decodePreferenceCookie(cookieRaw)),
+  good,
+  "이미 디코드된 쿠키 값에서 한 번 더 디코드해서 깨졌다",
+);
+// 사용자가 직접 고칠 수 있는 값이다. 던지지 않고 걸러져야 한다.
+assert.equal(parsePreference(decodePreferenceCookie("%")), null, "깨진 퍼센트 인코딩이 던졌다");
+assert.equal(decodePreferenceCookie(undefined), null, "쿠키가 없을 때 null 이 아니다");
+
+console.log("✓ 쿠키 왕복 — 인코딩 · 이중 디코딩 · 깨진 입력");

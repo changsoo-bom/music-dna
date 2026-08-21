@@ -11,6 +11,7 @@ import { Verdict } from "@/components/report/Verdict";
 import { ButtonLink, buttonClass } from "@/components/ui/Button";
 import { usePreference } from "@/hooks/use-preference";
 import { nextExclusions, recommend } from "@/lib/report/recommend";
+import { clearPreferenceCookie } from "@/lib/preference-cookie";
 import { parsePreference } from "@/lib/schemas/preference";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { revealOnScroll } from "@/lib/utils";
@@ -18,31 +19,38 @@ import { revealOnScroll } from "@/lib/utils";
 /**
  * 소개 자리의 표시를 지운다. **저장값이 실제로 깨졌을 때만.**
  *
- * 이 ref 는 하이드레이션 첫 렌더에서도 돈다 — 서버가 Local Storage 를 못 봐서
- * 항상 "결과 없음" 으로 그려지기 때문이다. 그때 표시를 지우면 첫 페인트에
- * 숨겨 뒀던 안내가 한 프레임 드러나고, 그게 **새로고침할 때마다 스치던 화면**이다.
+ * 이 ref 는 하이드레이션 첫 렌더에서도 돈다 — 쿠키가 없는 브라우저에서는
+ * 서버가 여전히 "결과 없음" 으로 그리기 때문이다. 그때 표시를 지우면 첫
+ * 페인트에 숨겨 뒀던 안내가 한 프레임 드러나고, 그게 **새로고침할 때마다
+ * 스치던 화면**이다.
  *
  * 그래서 여기서 저장값을 직접 다시 읽는다. 성한 값이 있으면 곧 결과로 바뀔
  * 것이므로 그대로 숨겨 둔다. 없거나 깨졌으면 그때 드러낸다 —
  * 안 그러면 빈 화면만 남는다.
+ *
+ * 같은 자리에서 쿠키 사본도 버린다. **여기까지 왔다는 건 정본이 비었다는
+ * 뜻이다.** 사본만 남겨 두면 다음 새로고침에 서버가 결과를 그리고 클라이언트가
+ * 안내로 되돌리는 — 쿠키를 도입해서 없애려던 것과 정확히 반대인 깜빡임이 된다.
  *
  * 모듈 스코프에 둔다. 인라인 화살표면 렌더마다 detach/attach 한다.
  */
 function revealIfNoResult(el: HTMLElement | null) {
   if (!el) return;
   if (parsePreference(window.localStorage.getItem(STORAGE_KEYS.preference))) return;
+  clearPreferenceCookie();
   document.documentElement.removeAttribute("data-dna");
 }
 
 /**
  * 홈 맨 위. 검사를 했으면 결과, 안 했으면 검사로 보내는 안내.
  *
- * 서버는 Local Storage 를 못 보므로 첫 렌더는 항상 안내다. 검사한 사람은
- * 하이드레이션 직후 결과로 바뀐다. 계정을 두지 않기로 한 결정의 대가고,
- * 이걸 없애려면 서버에 세션을 둬야 한다.
+ * `serverRaw` 는 서버가 쿠키에서 읽어 넘긴 검사 결과다. 있으면 **첫 HTML 에
+ * 이미 결과가 들어 있어서** 화면이 안 바뀐다. 없으면 예전 그대로 — 안내로
+ * 그렸다가 하이드레이션 직후 결과로 넘어간다. 계정을 두지 않기로 한 결정의
+ * 대가가 여기 남아 있고, 쿠키는 그 대가를 첫 페인트에서만 면제해 준다.
  */
-export function HomeTop() {
-  const preference = usePreference();
+export function HomeTop({ serverRaw = null }: { serverRaw?: string | null }) {
+  const preference = usePreference(serverRaw);
   // 훅은 조기 반환보다 위에 있어야 한다. 안내 화면에서는 안 쓰지만
   // 호출 순서가 렌더마다 달라지면 React 가 훅을 짝지을 수 없다.
   //

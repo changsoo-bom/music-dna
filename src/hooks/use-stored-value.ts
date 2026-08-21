@@ -44,13 +44,18 @@ export function writeStoredValue(key: string, value: string) {
  *
  * `useEffect` 안에서 읽어 `setState` 하면 React Compiler 의 set-state-in-effect
  * 규칙에 걸리고, 서버가 그린 마크업과도 어긋난다. `useSyncExternalStore` 는
- * 서버 스냅샷을 따로 받으므로 두 문제를 같이 푼다 — 서버는 항상 `null` 로 그리고
- * 하이드레이션 직후 실제 값으로 넘어간다.
+ * 서버 스냅샷을 따로 받으므로 두 문제를 같이 푼다.
+ *
+ * `serverValue` 는 **서버가 이미 알고 있던 같은 값**이다(쿠키에서 온다).
+ * 세 번째 인자는 서버 렌더와 **하이드레이션 렌더 양쪽**에서 쓰이므로 두 번 다
+ * 같은 값이어야 한다 — 그래서 여기서 읽지 않고 밖에서 받는다.
+ * 안 넘기면 예전처럼 `null` 로 그리고 하이드레이션 직후 값이 나타난다.
+ * → `src/lib/preference-cookie.ts`
  */
-export function useStoredValue(key: string): string | null {
+export function useStoredValue(key: string, serverValue: string | null = null): string | null {
   return useSyncExternalStore(
     subscribe,
     () => window.localStorage.getItem(key),
-    () => null,
+    () => serverValue,
   );
 }

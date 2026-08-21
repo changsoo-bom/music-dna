@@ -12,6 +12,7 @@ import { QuizResult } from "@/components/quiz/QuizResult";
 import { buttonClass } from "@/components/ui/Button";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
+import { writePreferenceCookie } from "@/lib/preference-cookie";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { focusOnMount } from "@/lib/utils";
 import type { MusicPreference } from "@/types/music";
@@ -78,8 +79,17 @@ export function QuizFlow() {
     // setItem 은 사생활 보호 모드(QuotaExceededError)나 사이트 데이터 차단
     // (localStorage 접근 자체가 SecurityError)에서 던진다. 이벤트 핸들러 안의
     // 동기 예외라 error.tsx 도 에러 바운더리도 안 잡는다.
+    const raw = JSON.stringify({
+      version: preference.version,
+      answers: preference.answers,
+      computedAt: preference.computedAt,
+    });
     try {
-      window.localStorage.setItem(STORAGE_KEYS.preference, JSON.stringify(preference));
+      window.localStorage.setItem(STORAGE_KEYS.preference, raw);
+      // **정본이 앉은 다음에만** 사본을 쓴다. 순서가 뒤집히면 로컬 저장이
+      // 막힌 브라우저에 쿠키만 남고, 서버는 결과를 그리는데 클라이언트는
+      // 안내로 되돌리는 화면이 된다. → `src/lib/preference-cookie.ts`
+      writePreferenceCookie(raw);
     } catch {
       // 홈은 저장된 값을 읽어서 그린다. 저장이 안 됐으면 홈에 보내 봐야
       // 빈 화면이다. **여기서 붙잡고 결과를 보여준다.**

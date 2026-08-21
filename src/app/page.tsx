@@ -1,8 +1,10 @@
+import { cookies } from "next/headers";
 import { ViewTransition } from "react";
 
 import { SiteFooter } from "@/components/common/SiteFooter";
 import { SiteHeader } from "@/components/common/SiteHeader";
 import { HomeTop } from "@/components/home/HomeTop";
+import { PREFERENCE_COOKIE, decodePreferenceCookie } from "@/lib/preference-cookie";
 
 /**
  * 홈. 검사를 했으면 결과, 안 했으면 검사로 보내는 안내 한 덩어리.
@@ -17,8 +19,15 @@ import { HomeTop } from "@/components/home/HomeTop";
  *
  * **전환 래퍼는 레이아웃이 아니라 여기에 둔다.** 레이아웃은 라우트가 바뀌어도
  * 살아남아서 enter/exit 가 아예 안 걸린다. 애니메이션 정의는 `globals.css`.
+ *
+ * `cookies()` 를 부르는 순간 이 라우트는 정적 프리렌더에서 빠진다. **그게
+ * 맞다** — 사람마다 다른 결과를 그리는 페이지를 빌드 시점에 한 장으로 굳혀
+ * 두면 그 한 장은 누구의 것도 아니다. 대신 첫 HTML 에 결과가 들어 있어서
+ * 빈 화면이 번쩍이던 구간이 사라진다. → `src/lib/preference-cookie.ts`
  */
-export default function HomePage() {
+export default async function HomePage() {
+  const serverRaw = decodePreferenceCookie((await cookies()).get(PREFERENCE_COOKIE)?.value);
+
   return (
     <ViewTransition
       enter={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
@@ -28,7 +37,7 @@ export default function HomePage() {
       <div className="flex flex-1 flex-col">
         <SiteHeader />
         <main className="shell flex-1 pb-28 max-sm:pb-16">
-          <HomeTop />
+          <HomeTop serverRaw={serverRaw} />
         </main>
         {/* 루트 레이아웃이 아니라 여기서 붙인다. 검사 화면에는 헤더도 푸터도 없다 */}
         <SiteFooter />

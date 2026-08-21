@@ -36,8 +36,12 @@ export function SiteFooter() {
             MY MUSIC DNA
           </Link>
 
+          {/* **"서버로 보내지 않습니다" 였다.** 결과를 쿠키에도 두면서 그 말이
+              사실이 아니게 됐다 — 쿠키는 매 요청에 실려 간다. 첫 화면을 서버가
+              그리게 하려고 한 일이고, 읽어서 그릴 뿐 어디에도 안 남긴다.
+              지키는 약속만 적는다. → `src/lib/preference-cookie.ts` */}
           <p className="ml-auto text-[13px] leading-relaxed text-canvas/70 max-lg:ml-0">
-            검사 결과와 재생 이력은 이 브라우저에만 저장됩니다. 계정이 없고, 서버로 보내지 않습니다.
+            검사 결과와 재생 이력은 이 브라우저에 저장됩니다. 계정이 없고, 서버에 남기지 않습니다.
             곡 정보와 앨범 이미지는 YouTube 에서 가져옵니다.
           </p>
         </div>
