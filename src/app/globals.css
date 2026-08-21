@@ -50,7 +50,13 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  --font-sans: var(--font-sofia), var(--font-kr), Arial, sans-serif;
+  /* 두 폰트 변수에 폴백을 준다. **`Arial, sans-serif` 가 그 역할을 못 한다** —
+     `--font-sofia` 는 `next/font` 가 `<body>` 클래스로만 정의하므로 루트
+     레이아웃이 죽으면(`global-error.tsx`) 없는 값이 되고, 폴백 없는 `var()` 가
+     정의되지 않은 속성을 가리키면 **선언 전체가 무효**가 된다(IACVT).
+     뒤에 적어 둔 Arial 까지 같이 버려지고, 상속값 → 초깃값 → 브라우저 기본
+     명조로 떨어진다. 레이아웃이 살아 있을 때는 값이 그대로다. */
+  --font-sans: var(--font-sofia, ui-sans-serif), var(--font-kr, ui-sans-serif), Arial, sans-serif;
 
   /* 반경은 셋뿐이다. 8~16px 중간값을 만들지 않는다 */
   --radius-btn: 20px;

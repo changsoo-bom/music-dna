@@ -129,6 +129,15 @@ assert.equal(
   false,
   "다른 목록의 같은 곡이 일시정지 아이콘을 달았다 — 눌러도 안 멈추는데",
 );
+// 멈춰 있으면 재생 아이콘이다. 이 단언이 없으면 `!isPlaying` 가드를 지워도
+// 아무것도 안 깨지는데, 그러면 멈춘 줄이 일시정지 기호를 달고 커버가
+// 계속 어둡게 덮인 채로 남는다.
+store.getState().toggle();
+assert.equal(
+  isSounding(store.getState(), "recommend", "a"),
+  false,
+  "멈춰 있는 곡이 일시정지 아이콘을 달았다",
+);
 
 console.log(
   `✓ 재생 큐 — 시작·토글·앞뒤·끝 정지·막힌 곡 건너뛰기·목록 전환·재정렬 후 토글·아이콘 일치`,
