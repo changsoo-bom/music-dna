@@ -456,12 +456,15 @@ dialog.player-screen {
      불투명도를 섞으면 올라오는 동안 뒤 화면이 비쳐서 두 겹으로 읽힌다.
      재생 바가 등장하는 방식과 같은 규칙이고, 실제로 바를 눌러서 여는
      화면이라 같은 방향으로 움직여야 손이 이해한다.
-     `100%` 는 자기 높이 = 뷰포트 높이라 완전히 화면 밖이다. */
+     `100%` 는 자기 높이 = 뷰포트 높이라 완전히 화면 밖이다.
+
+     0.55s 는 바(0.5s)보다 길다. 움직이는 거리가 화면 전체라 같은 시간에
+     가면 훨씬 빨라 보인다 — 시간이 아니라 속도가 눈에 읽힌다. */
   translate: 0 100%;
   transition:
-    translate 0.36s cubic-bezier(0.16, 1, 0.3, 1),
-    display 0.36s allow-discrete,
-    overlay 0.36s allow-discrete;
+    translate 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    display 0.55s allow-discrete,
+    overlay 0.55s allow-discrete;
 }
 dialog.player-screen[open] {
   translate: 0 0;
@@ -477,9 +480,9 @@ dialog.player-screen[open] {
 dialog.player-screen::backdrop {
   background: rgb(20 20 19 / 0);
   transition:
-    background 0.36s ease,
-    display 0.36s allow-discrete,
-    overlay 0.36s allow-discrete;
+    background 0.55s ease,
+    display 0.55s allow-discrete,
+    overlay 0.55s allow-discrete;
 }
 dialog.player-screen[open]::backdrop {
   background: rgb(20 20 19 / 0.25);
