@@ -43,6 +43,15 @@ assert.deepEqual(saved(), ["t002", "t001"], "새로 담은 곡이 맨 앞이 아
 toggleLibrary("t002");
 assert.deepEqual(saved(), ["t001"], "다시 눌렀는데 안 빠졌다");
 
+// 깨진 값은 빈 목록이다. **여기가 신뢰 경계다** — 저장소는 사람이 고칠 수 있고,
+// 던지면 `getSnapshot` 안에서 렌더 도중에 죽는다
+store.set(KEY, "{ 망가진 값");
+assert.deepEqual(saved(), [], "JSON 이 아닌 값이 안 걸러졌다");
+store.set(KEY, JSON.stringify({ a: 1 }));
+assert.deepEqual(saved(), [], "배열이 아닌 값이 안 걸러졌다");
+store.set(KEY, JSON.stringify(["t001", 42]));
+assert.deepEqual(saved(), [], "문자열이 아닌 원소가 섞였는데 안 걸러졌다");
+
 // 저장된 값에 중복이 섞여 있어도 한 줄로 접힌다.
 // 안 접히면 목록에 같은 곡이 두 줄 생기고 React 의 key 가 겹친다
 seed(["t001", "t001", "t002"]);

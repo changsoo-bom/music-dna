@@ -411,7 +411,7 @@ html[data-dna="1"] .home-intro {
    말해 준다. 한 곳에서 잡는다 — 컴포넌트마다 붙이면 반드시 빠뜨리는 곳이
    생기고, 실제로 `QuizOption` 한 군데만 손으로 붙어 있었다.
    비활성 버튼은 뺀다. 눌리지 않는 것에 손가락을 띄우면 커서가 거짓말을 한다. */
-button:not(:disabled),
+button:not(:disabled):not([aria-disabled="true"]),
 [role="button"]:not([aria-disabled="true"]) {
   cursor: pointer;
 }

@@ -51,10 +51,17 @@ export function TrackRow({
 
   return (
     <div className="relative">
+      {/* **`disabled` 가 아니라 `aria-disabled` 다.** `disabled` 버튼은 탭
+          순서에서 빠지고 낭독기도 건너뛴다 — 곡 제목과 아티스트가 이 버튼
+          안에만 있어서, 그러면 재생 불가 곡은 **이름조차 안 읽힌다.**
+          흐린 것은 눈에만 보이는 정보다.
+          포커스와 낭독은 살려 두고 누르는 것만 여기서 막는다. */}
       <button
         type="button"
-        onClick={onPlay}
-        disabled={!playable}
+        onClick={() => {
+          if (playable) onPlay();
+        }}
+        aria-disabled={!playable}
         aria-label={
           playable
             ? `${track.artist} ${track.title} ${isCurrent ? "일시정지" : "재생"}`

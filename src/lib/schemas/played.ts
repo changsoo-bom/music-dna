@@ -24,22 +24,11 @@ const BY_ID = new Map(CATALOG.map((track) => [track.id, track]));
 /**
  * 저장된 최근 재생 목록을 읽는다. **Local Storage 는 신뢰 경계 밖이다.**
  *
- * id 만 저장하는 것이 검증을 겸한다 — 카탈로그에 없는 id 는 그냥 빠진다.
- * 곡 정보를 통째로 저장했다면 제목이 바뀌었을 때 옛 제목이 화면에 남고,
- * 손댄 값이 그대로 렌더된다.
+ * id 만 저장한다. 곡 정보를 통째로 저장했다면 제목이 바뀌었을 때 옛 제목이
+ * 화면에 남고, 손댄 값이 그대로 렌더된다.
  *
- * 형식이 깨졌으면 빈 목록이다. 재생 이력은 없어도 되는 값이라
- * 여기서 화면을 세울 이유가 없다.
- *
- * **중복을 거른다.** 쓰기 경로(`recordPlayed`)는 같은 곡을 두 번 안 넣지만
- * 여기 오는 값은 사람이 고칠 수 있다. `["t001","t001"]` 을 통과시키면 목록에
- * 같은 곡이 두 줄 생기고, `MyPlaylist` 의 `key={track.id}` 가 **중복 key** 가
- * 된다 — React 가 어느 줄이 어느 것인지 못 짝지어서 재생 표시가 엉뚱한 줄에
- * 붙는다. "id 만 저장하는 것이 검증을 겸한다" 는 이 파일의 약속에 난 구멍이었다.
- *
- * 조회는 색인으로 한다. `CATALOG.find` 를 id 마다 부르면 입력 길이 × 카탈로그
- * 크기만큼 도는데, **입력 길이는 우리가 정하는 값이 아니다.** 자르기 전에
- * 찾아야 없는 id 가 자리를 안 먹으므로, 자르는 순서 대신 조회를 싸게 만든다.
+ * 형식 검증과 중복 제거는 `parseRawIds`, 카탈로그 조회와 자르기는
+ * `parseTrackIds` 가 한다. 여기서는 **몇 개까지 보여줄지**만 정한다.
  */
 export function parsePlayed(raw: string | null): CatalogTrack[] {
   return parseTrackIds(raw, PLAYED_LIMIT);
@@ -53,6 +42,11 @@ export function parsePlayed(raw: string | null): CatalogTrack[] {
  * **읽기 전용이다.** 카탈로그에 없는 id 를 여기서 떨어뜨리는 것이 이 함수의
  * 일이므로, 이 결과를 다시 저장하면 그 id 는 영영 사라진다. 저장된 값을
  * 고쳐 쓰는 쪽은 `parseRawIds` 를 쓴다.
+ *
+ * 조회는 색인(`BY_ID`)으로 한다. `CATALOG.find` 를 id 마다 부르면 입력 길이 ×
+ * 카탈로그 크기만큼 도는데, **입력 길이는 우리가 정하는 값이 아니다.**
+ * 자르기 전에 찾아야 없는 id 가 자리를 안 먹으므로, 자르는 순서 대신
+ * 조회를 싸게 만든다.
  */
 export function parseTrackIds(raw: string | null, limit = Number.POSITIVE_INFINITY): CatalogTrack[] {
   return parseRawIds(raw)
