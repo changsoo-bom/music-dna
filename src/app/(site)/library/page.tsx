@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
+import { ViewTransition } from "react";
 
-import { SiteFooter } from "@/components/common/SiteFooter";
-import { SiteHeader } from "@/components/common/SiteHeader";
 import { LibraryList } from "@/components/library/LibraryList";
 
 export const metadata: Metadata = {
@@ -11,14 +10,18 @@ export const metadata: Metadata = {
 /**
  * 보관함. 담은 곡을 모아 보는 한 덩어리뿐이라 라우트는 조립만 한다.
  *
- * 홈과 달리 `ViewTransition` 을 안 감싼다 — 전환 애니메이션은 검사 흐름의
- * 앞뒤(`nav-forward`/`nav-back`)를 말하는 장치고, 헤더로 오가는 페이지에
- * 붙이면 방향이 없는 이동에 방향을 붙이게 된다.
+ * 전환 래퍼는 홈·검사와 같은 모양이다 — **양쪽 다 감싸야 나가는 화면과
+ * 들어오는 화면이 짝을 이룬다.** 한쪽만 감싸면 반쪽만 움직인다.
+ * 감싸는 것은 `<main>` 뿐이다: 헤더와 푸터는 `(site)` 레이아웃에 있고
+ * 이동해도 안 죽는다.
  */
 export default function LibraryPage() {
   return (
-    <div className="flex flex-1 flex-col">
-      <SiteHeader />
+    <ViewTransition
+      enter={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
+      exit={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
+      default="none"
+    >
       <main className="shell flex-1 pb-28 max-sm:pb-16">
         <section className="pt-28 pb-24 max-sm:pt-16 max-sm:pb-14">
           <span className="eyebrow text-ink">보관함</span>
@@ -26,7 +29,6 @@ export default function LibraryPage() {
           <LibraryList />
         </section>
       </main>
-      <SiteFooter />
-    </div>
+    </ViewTransition>
   );
 }
