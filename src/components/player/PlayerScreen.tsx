@@ -1,12 +1,14 @@
 "use client";
 
-import { CaretDown, Pause, Play } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, RefObject } from "react";
 
+import { TrackRow } from "@/components/common/TrackRow";
 import { SUB_GENRES } from "@/constants/genres";
 import { ORBIT_CIRCUMFERENCE } from "@/constants/orbit";
+import { useLibrary } from "@/hooks/use-library";
 import { usePlayedTracks } from "@/hooks/use-played-tracks";
 import { usePreference } from "@/hooks/use-preference";
 import { formatDuration } from "@/lib/format";
@@ -272,6 +274,8 @@ function PlayedQueue() {
   const play = usePlayerStore((state) => state.play);
   // 줄마다 구독하면 아홉 줄이 아홉 번 깨어난다. 한 번 받아서 줄마다 비교한다
   const sounding = usePlayerStore((state) => soundingId(state, "played"));
+  // 보관함도 구독은 하나다 → `TrackRow`
+  const savedIds = new Set(useLibrary().map((item) => item.id));
 
   // 이 화면은 곡이 있을 때만 열리므로 보통 비지 않는다. 그래도 비면 제목만
   // 남기지 않고 통째로 접는다 — 아무것도 없는 제목은 고장으로 보인다
@@ -297,61 +301,40 @@ function PlayedQueue() {
           안 되는 높이로 떨어지면 목록이 아니라 잘린 그림이 된다.
 
           오른쪽 여백은 막대 자리다. 없으면 곡 길이 위로 막대가 겹친다. */}
-      <ul className="scroll-panel mt-4 flex max-h-[max(8rem,calc(100dvh-449px))] flex-col pr-2">
-        {queue.map((track, index) => {
-          const isCurrent = sounding === track.id;
-          const length = formatDuration(track.duration);
+      {/* **여기서만 스크롤한다**(`.scroll-panel`) — 목록이 아홉 줄까지 늘어도
+          커버와 조작은 제자리에 남는다.
 
-          return (
-            <li key={track.id}>
-              <button
-                type="button"
-                onClick={() => play("played", queue, index)}
-                aria-label={`${track.artist} ${track.title} ${isCurrent ? "일시정지" : "재생"}`}
-                className="group flex w-full items-center gap-4 rounded-btn px-3 py-2.5 text-left transition-colors hover:bg-lifted focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none"
-              >
-                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-btn bg-ghost">
-                  {/* 16:9 를 정사각형에 덮으므로 실제로 깔리는 폭은 1.78배다 */}
-                  <Image
-                    src={`https://i.ytimg.com/vi/${track.youtubeId}/mqdefault.jpg`}
-                    alt=""
-                    fill
-                    sizes="80px"
-                    className="object-cover"
-                  />
+          높이가 **남는 자리를 그대로 먹는다.** 이 목록 위아래로 시트가 이미
+          쓰고 있는 높이를 화면에서 빼고 남은 만큼이 목록 몫이다. 고정값으로
+          잡으면 큰 화면에서는 아래가 비고 작은 화면에서는 시트가 넘친다 —
+          목록 안이 아니라 화면이 스크롤되면 여기까지 온 이유가 없다.
 
-                  {/* 지금 나는 곡은 계속 보이고, 나머지는 포인터가 올라올 때만.
-                      커버는 사진이라 아이콘이 그냥 얹히면 안 읽힌다 */}
-                  <div
-                    className={`absolute inset-0 grid place-items-center bg-ink/45 text-white transition-opacity duration-200 ${
-                      isCurrent ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                    }`}
-                  >
-                    {isCurrent ? (
-                      <Pause size={16} weight="fill" aria-hidden />
-                    ) : (
-                      <Play size={16} weight="fill" aria-hidden />
-                    )}
-                  </div>
-                </div>
+          **수를 여기 안 적는다.** 한때 449px 이 박혀 있었는데 그 안에는 재생
+          바 높이가 녹아 있었고, 좁은 화면에서 바가 68px 로 줄고 커버 위아래
+          여백도 같이 줄어드는 것을 따라가지 못했다 — 목록이 73px 만큼 짧게
+          잘렸다. 바 높이와 시트가 쓰는 높이를 각각 CSS 변수로 두고 빼면,
+          브레이크포인트에서 값이 바뀌어도 이 식은 그대로 맞는다
+          → `globals.css` 의 `--player-bar-h` · `--screen-chrome-h`
 
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={`truncate text-[15px] tracking-[-0.01em] ${isCurrent ? "font-medium" : ""}`}
-                  >
-                    {track.title}
-                  </p>
-                  <p className="truncate text-[13px] text-slate">{track.artist}</p>
-                </div>
+          `dvh` 다. iOS 주소창이 접히고 펴질 때 `vh` 는 안 따라온다 —
+          `body` 의 `min-height` 와 같은 이유다.
 
-                {/* 길이는 안 잘린다. 좁은 칸에서 먼저 사라지는 건 긴 이름이어야 한다 */}
-                {length && (
-                  <span className="shrink-0 text-[13px] tabular-nums text-slate">{length}</span>
-                )}
-              </button>
-            </li>
-          );
-        })}
+          바닥을 두 줄(8rem)로 막는다. 아주 낮은 창에서 계산값이 한 줄도
+          안 되는 높이로 떨어지면 목록이 아니라 잘린 그림이 된다.
+
+          오른쪽 여백은 막대 자리다. 없으면 곡 길이 위로 막대가 겹친다. */}
+      <ul className="scroll-panel mt-4 flex max-h-[max(8rem,calc(100dvh-var(--player-bar-h)-var(--screen-chrome-h)))] flex-col pr-2">
+        {queue.map((track, index) => (
+          <li key={track.id}>
+            <TrackRow
+              compact
+              track={track}
+              isCurrent={sounding === track.id}
+              saved={savedIds.has(track.id)}
+              onPlay={() => play("played", queue, index)}
+            />
+          </li>
+        ))}
       </ul>
     </section>
   );
