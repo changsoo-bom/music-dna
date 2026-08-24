@@ -8,8 +8,8 @@ const VERSION = "v1";
 export const STORAGE_KEYS = {
   /** 성향 검사 결과 */
   preference: `${NAMESPACE}:musicPreference:${VERSION}`,
-  /** 사용자가 고른 음악 */
-  selected: `${NAMESPACE}:selectedTracks:${VERSION}`,
+  /** 보관함 — 사람이 직접 담은 곡 */
+  library: `${NAMESPACE}:libraryTracks:${VERSION}`,
   /** 내 플레이리스트 */
   playlist: `${NAMESPACE}:playlistTracks:${VERSION}`,
 } as const;

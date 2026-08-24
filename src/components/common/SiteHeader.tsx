@@ -2,7 +2,9 @@ import Link from "next/link";
 
 /**
  * 떠 있는 흰 필 헤더. 뷰포트 상단에 붙지 않고 24px 아래에 뜬다.
- * 랜딩에는 네비게이션을 두지 않는다 — 검사 전에는 갈 곳이 없다.
+ *
+ * 오른쪽 메뉴는 로고보다 약하다(`font-medium` · `text-slate`). 굵기와 색이
+ * 로고와 같아지면 셋이 같은 층으로 읽혀서 어디가 집인지 안 보인다.
  *
  * 진입할 때 위에서 내려온다. 애니메이션은 안쪽 `<header>` 에 건다 —
  * `sticky` 요소에 `transform` 을 걸면 그 요소가 새 컨테이닝 블록이 되어
@@ -19,6 +21,15 @@ export function SiteHeader() {
           </span>
           MY MUSIC DNA
         </Link>
+
+        <nav className="ml-auto flex items-center gap-7 font-medium text-slate max-sm:gap-5">
+          <Link href="/browse" className="transition-colors hover:text-ink">
+            전체보기
+          </Link>
+          <Link href="/library" className="transition-colors hover:text-ink">
+            보관함
+          </Link>
+        </nav>
       </header>
     </div>
   );

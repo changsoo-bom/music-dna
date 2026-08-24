@@ -19,7 +19,7 @@ export function isPlayable(track: CatalogTrack): track is PlayableTrack {
  * New Search 로 통째로 갈린다. 목록에 이름을 붙여야 "같은 목록의 같은 곡" 을
  * 판정할 수 있다.
  */
-export type QueueId = "recommend" | "played";
+export type QueueId = "recommend" | "played" | "library";
 
 /**
  * 큐가 끝났을 때 이어 틀 곡을 카탈로그에서 고른다. **같은 종류에서 무작위로.**

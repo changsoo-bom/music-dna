@@ -42,6 +42,15 @@ const BY_ID = new Map(CATALOG.map((track) => [track.id, track]));
  * 찾아야 없는 id 가 자리를 안 먹으므로, 자르는 순서 대신 조회를 싸게 만든다.
  */
 export function parsePlayed(raw: string | null): CatalogTrack[] {
+  return parseTrackIds(raw, PLAYED_LIMIT);
+}
+
+/**
+ * 저장된 곡 id 목록을 곡으로 바꾼다. 보관함도 같은 형식이라 여기를 같이 쓴다 —
+ * 저장하는 것이 id 배열인 이상 검증도 자르기도 다를 이유가 없고, 다른 점은
+ * **몇 개까지 남기느냐** 뿐이라 그것만 인자로 받는다.
+ */
+export function parseTrackIds(raw: string | null, limit = Number.POSITIVE_INFINITY): CatalogTrack[] {
   if (!raw) return [];
 
   let parsed: unknown;
@@ -57,5 +66,5 @@ export function parsePlayed(raw: string | null): CatalogTrack[] {
   return [...new Set(ids.data)]
     .map((id) => BY_ID.get(id))
     .filter((track): track is CatalogTrack => track !== undefined)
-    .slice(0, PLAYED_LIMIT);
+    .slice(0, limit);
 }

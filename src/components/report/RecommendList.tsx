@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+import { LibraryButton } from "@/components/common/LibraryButton";
 import { PlayButton } from "@/components/player/PlayButton";
 import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import type { Recommendation } from "@/lib/report/recommend";
@@ -108,7 +109,16 @@ export function RecommendList({ items }: { items: readonly Recommendation[] }) {
               {SUB_GENRES[track.subGenre].ko}
             </p>
 
-            <h3 className="mt-2 text-[19px] leading-tight tracking-[-0.01em]">{track.title}</h3>
+            {/* 제목 줄 오른쪽 끝이 보관함이다. 커버 위에 얹지 않는다 —
+                거기는 재생 버튼이 도킹하는 자리고, 원 위에 과녁 두 개가
+                붙으면 어느 쪽이 곡을 트는지 매번 확인해야 한다.
+                `items-start` 라 제목이 두 줄이 돼도 버튼은 첫 줄에 남는다. */}
+            <div className="mt-2 flex items-start gap-2">
+              <h3 className="min-w-0 flex-1 text-[19px] leading-tight tracking-[-0.01em]">
+                {track.title}
+              </h3>
+              <LibraryButton track={track} className="-mt-1.5 -mr-1.5" />
+            </div>
             {/* 길이를 아티스트 옆에 붙인다. **틀기 전에 드는 비용을 알려 주는
                 자리**고, 이 카드에서 그걸 말할 다른 줄이 없다. */}
             <p className="mt-1 text-sm text-slate">
