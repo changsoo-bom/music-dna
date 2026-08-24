@@ -48,7 +48,6 @@ export function SiteFooter() {
 
         <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-2 border-t border-canvas/25 pt-6 text-[13px] text-canvas/70 max-sm:mt-6">
           <span>© 2026 Music DNA</span>
-          <span>포트폴리오용으로 만든 화면입니다.</span>
         </div>
       </div>
     </footer>
