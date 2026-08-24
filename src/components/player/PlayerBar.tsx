@@ -304,11 +304,10 @@ export function PlayerBar() {
 
               글자는 못 고른다(`select-none`). 조작이 늘어선 줄에서 드래그는
               고르기가 아니라 실수고, 여기 글자를 복사할 일은 없다. */}
-          {/* `w-screen` 이다(= `100vw`). `fixed` 의 기준 상자는 스크롤바 자리를
-              뺀 폭이라, `inset-x-0` 으로는 바가 오른쪽 끝에 못 닿는다 —
-              `html` 이 그 자리를 늘 비워 두므로(`scrollbar-gutter: stable`)
-              스크롤바가 없을 때도 흰 바 옆에 크림색 띠가 남는다.
-              `100vw` 는 그 자리까지 포함한 폭이다. */}
+          {/* `w-screen`(= `100vw`)도 스크롤바 자리까지는 못 먹는다 — `vw` 의
+              기준은 창이 아니라 그 자리를 뺀 초기 포함 블록이라, `inset-x-0`
+              과 결과가 같다. 바가 오른쪽 끝에 닿는 것은 전체 화면이 열린
+              동안 `globals.css` 가 그 자리를 내주기 때문이다. */}
           <div className="bar-up fixed bottom-0 left-0 z-70 grid h-[var(--player-bar-h)] w-screen grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 border-t border-hair bg-white px-6 select-none max-sm:gap-3 max-sm:px-4">
             {/* 재생 위치. **바의 윗변에 딱 붙는다** — 여기가 곡의 시간축이고,
                 아래 줄은 곡을 고르는 자리다. 선은 3px 지만 상자는 14px 이라

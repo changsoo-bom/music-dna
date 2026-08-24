@@ -2,7 +2,7 @@
 
 import { CaretDown, Pause, Play } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, RefObject } from "react";
 
 import { SUB_GENRES } from "@/constants/genres";
@@ -23,6 +23,38 @@ const AXES = [
 
 const ICON_BUTTON =
   "grid place-items-center rounded-full text-ink transition-opacity hover:opacity-55 focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 focus-visible:ring-offset-canvas focus-visible:outline-none";
+
+/** 커버 그림. **`hq720` 을 먼저 쓰고, 없으면 `hqdefault` 로 떨어진다.**
+
+    `hq720`(1280×720)은 16:9 원본 그대로라 원으로 잘라도 깨끗하지만
+    **원본이 720p 이상일 때만 만들어진다** — 카탈로그 109곡 중 11곡은 404 다.
+    커버가 통째로 빈 채로 나오던 자리가 여기다. `maxresdefault` 는 그 11곡에
+    똑같이 없고, 항상 있는 16:9 는 `mqdefault`(320×180)뿐인데 이 크기를 못 채운다.
+
+    그래서 `hqdefault`(480×360)로 떨어진다. 16:9 를 4:3 으로 맞추려고 위아래에
+    검은 띠를 넣은 그림이라, 정사각형에 `object-cover` 하면 세로가 차면서 띠가
+    같이 들어온다. 알맹이가 세로의 3/4 이니 4/3 배로 키우면 띠가 상자 밖으로
+    밀려난다 → `scale-[1.34]`.
+
+    `sizes` 는 상자 폭이 아니라 그려지는 폭이다: 정사각형 상자에 16:9 를
+    `object-cover` 하면 폭이 1.78배로 깔린다.
+    340 × 16/9 ≒ 605 → 2배 화면에서 1210, `hq720` 원본 1280 안이다.
+
+    곡이 바뀌면 `key` 로 갈아 끼운다. 안 그러면 앞 곡에서 켜진 폴백이 남는다. */
+function CoverImage({ youtubeId }: { youtubeId: string }) {
+  const [fallback, setFallback] = useState(false);
+
+  return (
+    <Image
+      src={`https://i.ytimg.com/vi/${youtubeId}/${fallback ? "hqdefault" : "hq720"}.jpg`}
+      alt=""
+      fill
+      sizes="(max-width: 1024px) 121vw, 620px"
+      className={fallback ? "scale-[1.34] object-cover" : "object-cover"}
+      onError={() => setFallback(true)}
+    />
+  );
+}
 
 function fillStyle(fill: number, index: number): CSSProperties {
   return { "--fill": fill, animationDelay: `${index * 0.09}s` } as CSSProperties;
@@ -166,21 +198,7 @@ export function PlayerScreen({
                 />
               </svg>
               <div className="absolute inset-[7%] overflow-hidden rounded-full bg-ghost">
-                {/* **`hq720` 을 쓴다.** `hqdefault` 는 480×360 인데 원본이 16:9 라
-                    위아래에 검은 띠를 넣어 4:3 으로 맞춘 그림이다 — 원으로
-                    자르면 그 띠가 그대로 들어온다. 게다가 480px 로는 이 크기를
-                    못 채운다. `hq720` 은 1280×720 짜리 16:9 원본이다.
-
-                    `sizes` 는 상자 폭이 아니라 그려지는 폭이다: 정사각형 상자에
-                    16:9 를 `object-cover` 하면 폭이 1.78배로 깔린다.
-                    340 × 16/9 ≒ 605 → 2배 화면에서 1210, 원본 1280 안이다. */}
-                <Image
-                  src={`https://i.ytimg.com/vi/${track.youtubeId}/hq720.jpg`}
-                  alt=""
-                  fill
-                  sizes="(max-width: 1024px) 121vw, 620px"
-                  className="object-cover"
-                />
+                <CoverImage key={track.youtubeId} youtubeId={track.youtubeId} />
               </div>
             </div>
 
