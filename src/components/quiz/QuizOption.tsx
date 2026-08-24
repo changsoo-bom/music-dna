@@ -27,7 +27,7 @@ function cardClass(selected: boolean, muted = false) {
   // 한도에 닿아 죽은 카드. 너무 흐리면 안 된다 — 무엇을 해제할지 고르려면
   // 남은 선택지를 읽어야 하는데, 그게 필요한 순간이 바로 지금이다.
   if (muted) return `${base} bg-white text-ink shadow-lift opacity-60`;
-  return `${base} bg-white text-ink shadow-lift hover:shadow-float cursor-pointer`;
+  return `${base} bg-white text-ink shadow-lift hover:shadow-float`;
 }
 
 function Body({ label, sub, badge, selected }: BaseProps) {
@@ -42,7 +42,9 @@ function Body({ label, sub, badge, selected }: BaseProps) {
         {badge}
       </span>
       <span className="min-w-0">
-        <span className="block text-[17px] font-medium tracking-[-0.01em] max-sm:text-base">{label}</span>
+        <span className="block text-[17px] font-medium tracking-[-0.01em] max-sm:text-base">
+          {label}
+        </span>
         {sub && (
           <span
             className={`mt-1 block text-sm transition-colors duration-200 ${

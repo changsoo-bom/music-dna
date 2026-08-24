@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+import { LibraryButton } from "@/components/common/LibraryButton";
 import { PlayButton } from "@/components/player/PlayButton";
 import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import type { Recommendation } from "@/lib/report/recommend";
@@ -47,7 +48,16 @@ function thumbnail(youtubeId: string) {
  * 여기 지시문을 안 붙이는 건 **이 파일 자체는 경계가 아니라는 뜻**이다.
  * 홈이 서버 컴포넌트가 되는 날 이 파일은 손댈 것이 없다.
  */
-export function RecommendList({ items }: { items: readonly Recommendation[] }) {
+export function RecommendList({
+  items,
+  savedIds,
+}: {
+  items: readonly Recommendation[];
+  /** 보관함에 담긴 곡 id. **부모가 한 번 구독해서 내려준다** — 카드마다
+      `useLibrary()` 를 부르면 다섯 번 구독하고, 이 파일에 훅이 생기는 순간
+      "이 파일 자체는 경계가 아니다" 라는 위 약속이 깨진다 */
+  savedIds: ReadonlySet<string>;
+}) {
   // 어느 카드를 눌러도 큐는 목록 전체다. 재생할 수 없는 곡은 큐에서 빠지므로
   // 카드 순서와 큐 순서가 어긋날 수 있다 — 그래서 인덱스를 따로 찾는다.
   const queue = items.map((item) => item.track).filter(isPlayable);
@@ -108,7 +118,16 @@ export function RecommendList({ items }: { items: readonly Recommendation[] }) {
               {SUB_GENRES[track.subGenre].ko}
             </p>
 
-            <h3 className="mt-2 text-[19px] leading-tight tracking-[-0.01em]">{track.title}</h3>
+            {/* 제목 줄 오른쪽 끝이 보관함이다. 커버 위에 얹지 않는다 —
+                거기는 재생 버튼이 도킹하는 자리고, 원 위에 과녁 두 개가
+                붙으면 어느 쪽이 곡을 트는지 매번 확인해야 한다.
+                `items-start` 라 제목이 두 줄이 돼도 버튼은 첫 줄에 남는다. */}
+            <div className="mt-2 flex items-start gap-2">
+              <h3 className="min-w-0 flex-1 text-[19px] leading-tight tracking-[-0.01em]">
+                {track.title}
+              </h3>
+              <LibraryButton track={track} saved={savedIds.has(track.id)} className="-mt-1.5 -mr-1.5" />
+            </div>
             {/* 길이를 아티스트 옆에 붙인다. **틀기 전에 드는 비용을 알려 주는
                 자리**고, 이 카드에서 그걸 말할 다른 줄이 없다. */}
             <p className="mt-1 text-sm text-slate">

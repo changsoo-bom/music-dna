@@ -8,6 +8,8 @@
  */
 import assert from "node:assert/strict";
 
+import { PARENT_OF } from "@/constants/genres";
+import { CATALOG } from "@/data/catalog";
 import { currentTrack, isSounding, usePlayerStore } from "@/lib/use-player-store";
 import type { PlayableTrack } from "@/lib/use-player-store";
 
@@ -40,13 +42,46 @@ assert.equal(currentTrack(store.getState())?.id, "c", "다음 곡으로 안 넘�
 store.getState().skip(-1);
 assert.equal(currentTrack(store.getState())?.id, "b", "이전 곡으로 안 넘어갔다");
 
-// 끝에 닿으면 멈춘다. 되감지 않는다 — 자리를 뜬 뒤에도 계속 돌면 안 된다
+/**
+ * **큐가 끝나면 카탈로그에서 같은 종류로 이어진다.**
+ *
+ * 되감지 않는다 — 처음으로 돌아가면 들은 곡이 또 나온다. 이어 붙인 곡은
+ * 큐의 맨 뒤에 오고 `index` 가 그 자리를 가리켜야 한다. 여기가 어긋나면
+ * 화면은 새 곡 제목을 그리는데 소리는 옛 곡이 나거나 그 반대가 된다.
+ */
 reset();
 store.getState().play("recommend", QUEUE, 2);
 store.getState().skip(1);
-assert.equal(store.getState().isPlaying, false, "마지막 곡 다음에도 재생 중이다");
-assert.equal(currentTrack(store.getState())?.id, "c", "마지막 곡에서 위치가 움직였다");
+assert.equal(store.getState().isPlaying, true, "마지막 곡 다음에 안 이어졌다");
+assert.equal(store.getState().queue.length, 4, "이어 붙인 곡이 큐에 안 들어갔다");
+assert.equal(store.getState().index, 3, "이어 붙였는데 위치가 마지막을 안 가리킨다");
+const linked = currentTrack(store.getState());
+assert.equal(linked?.subGenre, "kpop", "다른 하위 장르가 이어졌다");
+assert.equal(["a", "b", "c"].includes(linked?.id ?? ""), false, "들은 곡이 다시 이어졌다");
 
+// 같은 종류가 마르면 넓힌다. kpop 을 전부 들은 셈 치면 상위 장르(pop) 안에서 온다
+reset();
+store.getState().play("recommend", QUEUE, 2);
+store.setState({
+  blocked: new Set(CATALOG.filter((t) => t.subGenre === "kpop").map((t) => t.id)),
+});
+store.getState().skip(1);
+assert.equal(store.getState().isPlaying, true, "같은 하위 장르가 말랐다고 멈췄다");
+assert.equal(
+  PARENT_OF[currentTrack(store.getState())!.subGenre],
+  "pop",
+  "하위 장르가 말랐을 때 상위 장르 밖에서 골랐다",
+);
+
+// **끝이 있는 라디오다.** 카탈로그를 한 바퀴 돌면 멈춘다 —
+// 자리를 뜬 사람의 스피커가 영원히 울면 안 된다
+reset();
+store.getState().play("recommend", QUEUE, 2);
+store.setState({ blocked: new Set(CATALOG.map((t) => t.id)) });
+store.getState().skip(1);
+assert.equal(store.getState().isPlaying, false, "고를 곡이 없는데 재생 중이다");
+
+// 뒤로는 안 잇는다. 없던 과거를 만들어 낼 수는 없다
 reset();
 store.getState().play("recommend", QUEUE, 0);
 store.getState().skip(-1);
@@ -58,12 +93,14 @@ store.getState().play("recommend", QUEUE, 0);
 store.getState().reportBlocked("b");
 assert.equal(currentTrack(store.getState())?.id, "c", "막힌 곡을 건너뛰지 않았다");
 
-// 뒤가 전부 막혔으면 멈춘다. 여기서 무한히 돌면 브라우저가 굳는다
+// 뒤가 전부 막혔으면 큐를 빠져나가 카탈로그로 잇는다.
+// 여기서 무한히 돌면 브라우저가 굳는다
 reset();
 store.getState().play("recommend", QUEUE, 0);
 store.setState({ blocked: new Set(["b", "c"]) });
 store.getState().skip(1);
-assert.equal(store.getState().isPlaying, false, "갈 곳이 없는데 재생 중이다");
+assert.equal(store.getState().queue.length, 4, "막힌 곡만 남았는데 안 이어졌다");
+assert.equal(store.getState().isPlaying, true, "막힌 곡을 지나 이어졌는데 안 튼다");
 
 // 다른 목록에서 같은 곡을 눌러도 멈추지 않는다.
 // 곡 id 만 비교하면 추천 목록과 빠른 선곡에 같은 곡이 있을 때
@@ -140,5 +177,5 @@ assert.equal(
 );
 
 console.log(
-  `✓ 재생 큐 — 시작·토글·앞뒤·끝 정지·막힌 곡 건너뛰기·목록 전환·재정렬 후 토글·아이콘 일치`,
+  `✓ 재생 큐 — 시작·토글·앞뒤·큐 끝에서 이어잇기·막힌 곡 건너뛰기·목록 전환·재정렬 후 토글·아이콘 일치`,
 );

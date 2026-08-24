@@ -1,4 +1,4 @@
-import { readStoredValue, writeStoredValue } from "@/hooks/use-stored-value";
+import { readStoredValue, writeStoredValue } from "@/lib/stored-value";
 import { PLAYED_LIMIT, parsePlayed } from "@/lib/schemas/played";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 

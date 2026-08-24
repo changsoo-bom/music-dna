@@ -1,4 +1,4 @@
-import { readStoredValue } from "@/hooks/use-stored-value";
+import { readStoredValue } from "@/lib/stored-value";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 
 /**

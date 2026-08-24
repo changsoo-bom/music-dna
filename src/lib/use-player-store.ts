@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+import { PARENT_OF } from "@/constants/genres";
+import { CATALOG } from "@/data/catalog";
 import type { CatalogTrack } from "@/types/music";
 
 /** 큐에 담기려면 재생할 것이 있어야 한다 */
@@ -17,7 +19,34 @@ export function isPlayable(track: CatalogTrack): track is PlayableTrack {
  * New Search 로 통째로 갈린다. 목록에 이름을 붙여야 "같은 목록의 같은 곡" 을
  * 판정할 수 있다.
  */
-export type QueueId = "recommend" | "played";
+export type QueueId = "recommend" | "played" | "library" | "browse";
+
+/**
+ * 큐가 끝났을 때 이어 틀 곡을 카탈로그에서 고른다. **같은 종류에서 무작위로.**
+ *
+ * 점수로 고르지 않는다. 추천 목록(`recommend`)은 검사 결과에 맞는 곡을 순서
+ * 있게 뽑는 일이고, 이건 **틀어 놓은 뒤의 시간**이다 — 여기서까지 최적해를
+ * 고르면 매번 같은 곡이 이어지고 카탈로그가 커져도 안 넓어진다. 방금 들은
+ * 곡과 같은 하위 장르라는 조건만 지키고 나머지는 운에 맡긴다.
+ *
+ * 좁은 쪽부터 본다: 같은 하위 장르 → 같은 상위 장르 → 카탈로그 전체.
+ * 하위 장르당 곡이 아직 4~6곡이라(`src/data/catalog.ts`) 몇 곡만 들어도
+ * 같은 칸이 마르는데, 그때 조용해지는 것보다 옆 칸으로 넓히는 쪽이 낫다.
+ *
+ * **들은 곡과 막힌 곡은 뺀다.** 그래서 카탈로그를 한 바퀴 돌면 후보가
+ * 없어지고 `skip` 이 거기서 멈춘다 — 무한 반복이 아니라 끝이 있는 라디오다.
+ * 자리를 뜬 사람의 스피커가 영원히 울지 않아야 한다는 판단은 그대로다.
+ */
+function radioPick(after: PlayableTrack, heard: ReadonlySet<string>): PlayableTrack | null {
+  const pool = CATALOG.filter(isPlayable).filter((track) => !heard.has(track.id));
+  const parent = PARENT_OF[after.subGenre];
+
+  const sameSub = pool.filter((track) => track.subGenre === after.subGenre);
+  const sameGenre = pool.filter((track) => PARENT_OF[track.subGenre] === parent);
+  const from = sameSub.length ? sameSub : sameGenre.length ? sameGenre : pool;
+
+  return from[Math.floor(Math.random() * from.length)] ?? null;
+}
 
 type PlayerState = {
   /** 지금 큐가 어느 목록에서 왔는지. 비었으면 `null` */
@@ -28,6 +57,19 @@ type PlayerState = {
   isPlaying: boolean;
   /** 임베드가 막힌 곡. 자동으로 넘기되 무한히 돌지 않게 기억해 둔다 */
   blocked: ReadonlySet<string>;
+  /**
+   * 소리 크기 0~100 과 음소거.
+   *
+   * **여기 있는 이유는 바와 전체 화면이 같은 값을 봐야 해서다.** 한쪽에서
+   * 줄인 소리가 다른 쪽 손잡이에 안 비치면 둘 중 하나는 거짓말을 한다.
+   * 조작이 한 군데뿐이었다면 로컬 state 로 충분했다. → `.claude/rules/state.md`
+   *
+   * **음소거는 볼륨과 따로 둔다.** 볼륨을 0 으로 떨어뜨려 흉내 내면 풀 때
+   * 돌아갈 자리를 어딘가에 또 적어야 하고, 그게 어긋나면 풀었는데 조용하다.
+   * `volume` 을 손대지 않고 두면 돌아갈 자리가 곧 그 값이다.
+   */
+  volume: number;
+  muted: boolean;
 
   play: (queueId: QueueId, queue: readonly PlayableTrack[], index: number) => void;
   toggle: () => void;
@@ -36,6 +78,8 @@ type PlayerState = {
   reportPlaying: (playing: boolean) => void;
   /** 이 곡은 이 사이트에서 못 튼다. 다음 곡으로 넘어간다 */
   reportBlocked: (id: string) => void;
+  setVolume: (volume: number) => void;
+  toggleMuted: () => void;
   close: () => void;
 };
 
@@ -55,6 +99,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   index: 0,
   isPlaying: false,
   blocked: new Set(),
+  volume: 100,
+  muted: false,
 
   play: (queueId, queue, index) => {
     const current = get();
@@ -92,10 +138,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   toggle: () => set((s) => ({ isPlaying: !s.isPlaying })),
 
   /**
-   * 앞뒤로 넘긴다. 막힌 곡은 건너뛰고, 끝에 닿으면 멈춘다.
+   * 앞뒤로 넘긴다. 막힌 곡은 건너뛴다.
    *
-   * 반복 재생을 넣지 않는다 — 다섯 곡짜리 목록이 조용해지지 않으면
-   * 사람이 자리를 뜬 뒤에도 계속 돈다.
+   * **앞으로 가다 큐가 끝나면 카탈로그에서 한 곡 이어 붙인다**(`radioPick`).
+   * 곡이 끝나서 온 것이든 ⏭ 를 눌러서 온 것이든 같다 — 마지막 곡에서
+   * 다음을 눌렀을 때만 아무 일도 안 나면 버튼이 상황에 따라 다른 말을 한다.
+   *
+   * 뒤로는 안 잇는다. 뒤는 지나온 길이고, 없던 과거를 만들어 낼 수는 없다.
    */
   skip: (direction) => {
     const { queue, index, blocked } = get();
@@ -105,6 +154,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         return;
       }
     }
+
+    const current = queue[index];
+    if (direction === 1 && current) {
+      const heard = new Set([...queue.map((track) => track.id), ...blocked]);
+      const next = radioPick(current, heard);
+      // 이어 붙인 곡은 큐의 마지막이므로 새 index 는 붙이기 전 길이다
+      if (next) {
+        set({ queue: [...queue, next], index: queue.length, isPlaying: true });
+        return;
+      }
+    }
+
     set({ isPlaying: false });
   },
 
@@ -115,6 +176,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     get().skip(1);
   },
 
+  // 소리를 만지면 음소거는 풀린다. 끌어 놓고 왜 조용한지 찾게 하지 않는다
+  setVolume: (volume) => set({ volume, muted: false }),
+
+  toggleMuted: () => set((s) => ({ muted: !s.muted })),
+
+  // 소리 크기는 안 건드린다. 껐다 다시 트는 것이지 설정을 되돌리는 게 아니다
   close: () => set({ queueId: null, queue: [], index: 0, isPlaying: false }),
 }));
 

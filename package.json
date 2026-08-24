@@ -10,9 +10,10 @@
     "typecheck": "tsc --noEmit",
     "check:quiz": "tsx scripts/check-quiz.ts",
     "check:catalog": "tsx scripts/check-catalog.ts",
-    "check": "pnpm check:quiz && pnpm check:catalog && pnpm check:player",
+    "check": "pnpm check:quiz && pnpm check:catalog && pnpm check:player && pnpm check:library",
     "enrich": "tsx scripts/enrich-catalog.ts",
-    "check:player": "tsx scripts/check-player.ts"
+    "check:player": "tsx scripts/check-player.ts",
+    "check:library": "tsx scripts/check-library.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
