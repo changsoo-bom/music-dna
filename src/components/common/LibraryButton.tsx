@@ -2,7 +2,6 @@
 
 import { CheckIcon, PlusIcon } from "@phosphor-icons/react/dist/ssr";
 
-import { useLibrary } from "@/hooks/use-library";
 import { toggleLibrary } from "@/lib/library";
 import type { CatalogTrack } from "@/types/music";
 
@@ -29,9 +28,21 @@ import type { CatalogTrack } from "@/types/music";
  *
  * 값을 그리는 자리가 아니라 조작이므로 `--signal` 을 안 쓴다
  * → `.claude/rules/styling.md`
+ *
+ * **담겼는지는 부모가 판정해서 내려준다.** 여기서 `useLibrary()` 를 부르면
+ * 줄마다 스토어를 구독한다 — 보관함 50곡이면 한 화면에 구독이 51개고, 한 번
+ * 누를 때마다 51번의 `JSON.parse` 가 돈다. 재생 상태를 다루는 방식과 같다
+ * → `TrackRow`
  */
-export function LibraryButton({ track, className = "" }: { track: CatalogTrack; className?: string }) {
-  const saved = useLibrary().some((item) => item.id === track.id);
+export function LibraryButton({
+  track,
+  saved,
+  className = "",
+}: {
+  track: CatalogTrack;
+  saved: boolean;
+  className?: string;
+}) {
   const Icon = saved ? CheckIcon : PlusIcon;
 
   return (

@@ -9,8 +9,9 @@ import { RecommendList } from "@/components/report/RecommendList";
 import { RetakeCta } from "@/components/report/RetakeCta";
 import { Verdict } from "@/components/report/Verdict";
 import { ButtonLink, buttonClass } from "@/components/ui/Button";
+import { useLibrary } from "@/hooks/use-library";
 import { usePreference } from "@/hooks/use-preference";
-import { readStoredValue } from "@/hooks/use-stored-value";
+import { readStoredValue } from "@/lib/stored-value";
 import { nextExclusions, recommend } from "@/lib/report/recommend";
 import { clearPreferenceCookie, syncPreferenceCookie } from "@/lib/preference-cookie";
 import { parsePreference } from "@/lib/schemas/preference";
@@ -57,6 +58,9 @@ function revealIfNoResult(el: HTMLElement | null) {
  */
 export function HomeTop({ serverRaw = null }: { serverRaw?: string | null }) {
   const preference = usePreference(serverRaw);
+  // 보관함 구독은 이 화면에 하나다. 추천 카드가 각자 부르면 다섯 번 구독한다.
+  // `MyPlaylist` 는 자기 목록만큼을 스스로 본다 → 두 목록이 서로 안 얽힌다
+  const savedIds = new Set(useLibrary().map((track) => track.id));
 
   // 서버가 본 사본과 정본이 다르면 사본을 맞춘다. → `syncPreferenceCookie`
   //
@@ -141,7 +145,7 @@ export function HomeTop({ serverRaw = null }: { serverRaw?: string | null }) {
           </button>
         </header>
 
-        <RecommendList items={picks} />
+        <RecommendList items={picks} savedIds={savedIds} />
       </section>
 
       <RetakeCta preference={preference} />

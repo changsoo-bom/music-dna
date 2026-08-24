@@ -49,8 +49,34 @@ export function parsePlayed(raw: string | null): CatalogTrack[] {
  * 저장된 곡 id 목록을 곡으로 바꾼다. 보관함도 같은 형식이라 여기를 같이 쓴다 —
  * 저장하는 것이 id 배열인 이상 검증도 자르기도 다를 이유가 없고, 다른 점은
  * **몇 개까지 남기느냐** 뿐이라 그것만 인자로 받는다.
+ *
+ * **읽기 전용이다.** 카탈로그에 없는 id 를 여기서 떨어뜨리는 것이 이 함수의
+ * 일이므로, 이 결과를 다시 저장하면 그 id 는 영영 사라진다. 저장된 값을
+ * 고쳐 쓰는 쪽은 `parseRawIds` 를 쓴다.
  */
 export function parseTrackIds(raw: string | null, limit = Number.POSITIVE_INFINITY): CatalogTrack[] {
+  return parseRawIds(raw)
+    .map((id) => BY_ID.get(id))
+    .filter((track): track is CatalogTrack => track !== undefined)
+    .slice(0, limit);
+}
+
+/**
+ * 저장된 값을 **id 배열 그대로** 읽는다. 형식만 보고 카탈로그는 안 본다.
+ *
+ * 쓰기 경로(`toggleLibrary`)가 이걸 쓴다. 카탈로그로 한 번 거른 결과를 다시
+ * 저장하면, **지금 카탈로그가 모르는 id 가 클릭 한 번에 영구 삭제된다** —
+ * 곡 목록은 배치로 채워지는 중이라 없는 id 는 "틀린 값" 이 아니라 "아직
+ * 안 들어온 값" 일 수 있다. 읽기 쪽이 어차피 걸러 주므로 화면에는 안 나온다.
+ *
+ * 중복은 여기서 접는다. 쓰기 경로는 같은 곡을 두 번 안 넣지만 저장된 값은
+ * 사람이 고칠 수 있고, `["t001","t001"]` 이 통과하면 목록에 같은 곡이 두 줄
+ * 생겨 `key` 가 겹친다 — React 가 어느 줄이 어느 것인지 못 짝짓는다.
+ *
+ * 형식이 깨졌으면 빈 배열이다. 재생 이력도 보관함도 없어도 되는 값이라
+ * 여기서 화면을 세울 이유가 없다.
+ */
+export function parseRawIds(raw: string | null): string[] {
   if (!raw) return [];
 
   let parsed: unknown;
@@ -63,8 +89,5 @@ export function parseTrackIds(raw: string | null, limit = Number.POSITIVE_INFINI
   const ids = storedSchema.safeParse(parsed);
   if (!ids.success) return [];
 
-  return [...new Set(ids.data)]
-    .map((id) => BY_ID.get(id))
-    .filter((track): track is CatalogTrack => track !== undefined)
-    .slice(0, limit);
+  return [...new Set(ids.data)];
 }

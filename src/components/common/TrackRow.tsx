@@ -5,6 +5,7 @@ import Image from "next/image";
 
 import { LibraryButton } from "@/components/common/LibraryButton";
 import { formatDuration } from "@/lib/format";
+import { isPlayable } from "@/lib/use-player-store";
 import type { CatalogTrack } from "@/types/music";
 
 /**
@@ -34,33 +35,47 @@ import type { CatalogTrack } from "@/types/music";
 export function TrackRow({
   track,
   isCurrent,
+  saved,
   onPlay,
 }: {
   track: CatalogTrack;
   isCurrent: boolean;
+  saved: boolean;
   onPlay: () => void;
 }) {
   const length = formatDuration(track.duration);
   const Icon = isCurrent ? Pause : Play;
+  // 담을 수는 있는데 틀 수는 없는 곡이 있다 — 카탈로그가 배치로 채워지는 중이라
+  // `youtubeId` 가 아직 안 붙은 자리가 남는다. 그런 줄은 보이되 안 눌린다.
+  const playable = isPlayable(track);
 
   return (
     <div className="relative">
       <button
         type="button"
         onClick={onPlay}
-        aria-label={`${track.artist} ${track.title} ${isCurrent ? "일시정지" : "재생"}`}
+        disabled={!playable}
+        aria-label={
+          playable
+            ? `${track.artist} ${track.title} ${isCurrent ? "일시정지" : "재생"}`
+            : `${track.artist} ${track.title} 재생할 수 없음`
+        }
         className={`group flex w-full items-center gap-4 rounded-btn py-3.5 pr-14 pl-4 text-left transition duration-200 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none ${
-          isCurrent ? "bg-white shadow-lift" : "bg-lifted hover:bg-white hover:shadow-lift"
-        }`}
+          isCurrent ? "bg-white shadow-lift" : "bg-lifted"
+        } ${playable ? "hover:bg-white hover:shadow-lift" : "opacity-55"}`}
       >
         <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-ghost">
-          <Image
-            src={`https://i.ytimg.com/vi/${track.youtubeId}/mqdefault.jpg`}
-            alt=""
-            fill
-            sizes="56px"
-            className="object-cover"
-          />
+          {/* 커버는 유튜브가 갖고 있다. 틀 수 없는 곡은 커버도 없으므로
+              회색 원만 남는다 — 깨진 이미지 아이콘보다 조용하다 */}
+          {playable && (
+            <Image
+              src={`https://i.ytimg.com/vi/${track.youtubeId}/mqdefault.jpg`}
+              alt=""
+              fill
+              sizes="56px"
+              className="object-cover"
+            />
+          )}
 
           {/* 커버를 덮어 어둡게 깔고 그 위에 아이콘.
               지금 나는 곡은 계속 보이고, 나머지는 포인터가 올라올 때만 보인다.
@@ -68,7 +83,7 @@ export function TrackRow({
           <div
             className={`absolute inset-0 grid place-items-center bg-ink/45 text-white transition-opacity duration-200 ${
               isCurrent ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-            }`}
+            } ${playable ? "" : "hidden"}`}
           >
             {/* 재생 삼각형을 따로 밀지 않는다 — Phosphor 의 `Play`(fill)는
                 잉크가 박스 안에서 이미 오른쪽에 그려져 있다 */}
@@ -87,7 +102,7 @@ export function TrackRow({
         </div>
       </button>
 
-      <LibraryButton track={track} className="absolute top-1/2 right-3 -translate-y-1/2" />
+      <LibraryButton track={track} saved={saved} className="absolute top-1/2 right-3 -translate-y-1/2" />
     </div>
   );
 }

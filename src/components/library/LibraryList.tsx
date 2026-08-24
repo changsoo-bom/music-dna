@@ -19,12 +19,15 @@ import { isPlayable, soundingId, usePlayerStore } from "@/lib/use-player-store";
  */
 export function LibraryList() {
   const saved = useLibrary();
+  // 큐는 **틀 수 있는 곡만** 이다. 목록은 담은 것을 전부 그린다 —
+  // 재생 불가를 목록에서까지 빼면, 담아 놓고 열었을 때 "아직 담은 곡이
+  // 없습니다" 가 뜬다. 담긴 건 사실인데 화면이 거짓말을 하는 것이다.
   const queue = saved.filter(isPlayable);
   const play = usePlayerStore((state) => state.play);
   // 구독은 하나다. 줄마다 구독하면 줄 수만큼 깨어난다 → `MyPlaylist`
   const sounding = usePlayerStore((state) => soundingId(state, "library"));
 
-  if (queue.length === 0) {
+  if (saved.length === 0) {
     return (
       <div className="mt-14 grid place-items-center gap-4 rounded-stadium border-2 border-dashed border-hair px-8 py-20 text-center max-sm:mt-10 max-sm:px-6 max-sm:py-14">
         <p className="text-lg font-medium tracking-[-0.01em]">아직 담은 곡이 없습니다.</p>
@@ -40,12 +43,13 @@ export function LibraryList() {
 
   return (
     <ul className="mt-10 flex flex-col gap-3 max-sm:mt-6">
-      {queue.map((track, index) => (
+      {saved.map((track) => (
         <li key={track.id} className="card-enter">
           <TrackRow
             track={track}
             isCurrent={sounding === track.id}
-            onPlay={() => play("library", queue, index)}
+            saved
+            onPlay={() => play("library", queue, queue.findIndex((t) => t.id === track.id))}
           />
         </li>
       ))}

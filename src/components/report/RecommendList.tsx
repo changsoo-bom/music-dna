@@ -48,7 +48,16 @@ function thumbnail(youtubeId: string) {
  * 여기 지시문을 안 붙이는 건 **이 파일 자체는 경계가 아니라는 뜻**이다.
  * 홈이 서버 컴포넌트가 되는 날 이 파일은 손댈 것이 없다.
  */
-export function RecommendList({ items }: { items: readonly Recommendation[] }) {
+export function RecommendList({
+  items,
+  savedIds,
+}: {
+  items: readonly Recommendation[];
+  /** 보관함에 담긴 곡 id. **부모가 한 번 구독해서 내려준다** — 카드마다
+      `useLibrary()` 를 부르면 다섯 번 구독하고, 이 파일에 훅이 생기는 순간
+      "이 파일 자체는 경계가 아니다" 라는 위 약속이 깨진다 */
+  savedIds: ReadonlySet<string>;
+}) {
   // 어느 카드를 눌러도 큐는 목록 전체다. 재생할 수 없는 곡은 큐에서 빠지므로
   // 카드 순서와 큐 순서가 어긋날 수 있다 — 그래서 인덱스를 따로 찾는다.
   const queue = items.map((item) => item.track).filter(isPlayable);
@@ -117,7 +126,7 @@ export function RecommendList({ items }: { items: readonly Recommendation[] }) {
               <h3 className="min-w-0 flex-1 text-[19px] leading-tight tracking-[-0.01em]">
                 {track.title}
               </h3>
-              <LibraryButton track={track} className="-mt-1.5 -mr-1.5" />
+              <LibraryButton track={track} saved={savedIds.has(track.id)} className="-mt-1.5 -mr-1.5" />
             </div>
             {/* 길이를 아티스트 옆에 붙인다. **틀기 전에 드는 비용을 알려 주는
                 자리**고, 이 카드에서 그걸 말할 다른 줄이 없다. */}

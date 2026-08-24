@@ -2,14 +2,13 @@
 
 import { useSyncExternalStore } from "react";
 
+import { SAME_TAB, readStoredValue } from "@/lib/stored-value";
+
 /**
- * 같은 탭에서 쓴 값을 알리는 신호.
- *
- * **`storage` 이벤트는 쓴 탭에는 안 온다.** 다른 탭에 알리라고 있는 것이라
- * 이걸로만 구독하면 방금 내가 저장한 값이 화면에 안 나타난다.
- * 쓰기를 `writeStoredValue` 하나로 모으고 여기서 직접 알린다.
+ * 읽기·쓰기 함수는 `@/lib/stored-value` 로 내려갔다. 훅만 여기 남는다 —
+ * `lib/` 이 `hooks/` 를 가져오면 레이어 방향이 뒤집히고, `"use client"` 가
+ * 붙은 이 파일에 매달린 lib 모듈은 서버에서 못 쓰게 된다.
  */
-const SAME_TAB = "musicdna:stored-value";
 
 function subscribe(onChange: () => void) {
   window.addEventListener("storage", onChange);
@@ -18,25 +17,6 @@ function subscribe(onChange: () => void) {
     window.removeEventListener("storage", onChange);
     window.removeEventListener(SAME_TAB, onChange);
   };
-}
-
-/**
- * Local Storage 에 쓰고 같은 탭에 알린다.
- *
- * 읽기와 한 파일에 둔다 — 신호 이름이 둘 사이의 계약이고, 떨어져 있으면
- * 한쪽만 고쳐서 화면이 조용히 안 갱신되는 일이 생긴다.
- *
- * 사생활 보호 모드나 사이트 데이터 차단에서 `setItem` 은 던진다.
- * **저장이 안 되는 것은 이 앱에서 치명적이지 않으므로 삼킨다** — 이번 세션에
- * 안 남을 뿐이고, 이걸로 재생을 막을 이유는 없다.
- */
-export function writeStoredValue(key: string, value: string) {
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    return;
-  }
-  window.dispatchEvent(new Event(SAME_TAB));
 }
 
 /**
@@ -54,23 +34,4 @@ export function writeStoredValue(key: string, value: string) {
  */
 export function useStoredValue(key: string, serverValue: string | null = null): string | null {
   return useSyncExternalStore(subscribe, () => readStoredValue(key), () => serverValue);
-}
-
-/**
- * Local Storage 를 읽는다. **접근 자체가 막혀 있으면 `null`.**
- *
- * `setItem` 은 이미 감싸 뒀는데(`QuizFlow`) 읽기는 안 감싸고 있었다.
- * 사이트 데이터를 차단한 브라우저나 `allow-same-origin` 없는 iframe 에서는
- * `localStorage` 에 손대는 것만으로 SecurityError 가 난다. 이 함수는
- * `getSnapshot` 안에서 도므로 **렌더 도중에** 던지고, 그러면 화면이 통째로
- * 죽는다 — 검사 결과가 없는 것과 똑같이 다루면 되는 상황인데.
- *
- * 던지지 않고 `null` 을 돌려준다. 호출부는 "저장된 게 없다" 로 읽는다.
- */
-export function readStoredValue(key: string): string | null {
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
 }
