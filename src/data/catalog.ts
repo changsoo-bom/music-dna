@@ -1,7 +1,7 @@
 import type { CatalogTrack } from "@/types/music";
 
 /**
- * 곡 카탈로그 — 109곡, 하위 장르 20종.
+ * 곡 카탈로그 — 178곡, 하위 장르 20종.
  *
  * 장르는 **사람이 직접 적는다.** YouTube 는 장르를 주지 않고
  * (`videoCategoryId` 는 "Music" 하나뿐), Spotify 태그는 `korean indie rock` 처럼
@@ -17,7 +17,8 @@ import type { CatalogTrack } from "@/types/music";
  *
  * > [!note] 공식 채널이 아닌 업로드가 섞여 있다
  * > `videoEmbeddable=true` 로 걸렀지만 t003·t004·t011·t026·t048·t049·t076·
- * > t087·t097·t103 은 팬 업로드나 방송 라이브다. 원본이 없거나 임베드가
+ * > t087·t097·t103 과 2차의 t126·t138~t142·t146·t147·t154·t159·t160·t167·
+ * > t168·t171·t173·t176·t179·t180·t183·t185 는 팬 업로드나 방송 라이브다. 원본이 없거나 임베드가
  * > 막혀 있어서인데, **언젠가 사라진다.** `pnpm enrich` 를 주기적으로 돌려
  * > 검사하고, 재생 실패는 화면에서 국소화한다(`blocked` → 다음 곡).
  * >
@@ -25,17 +26,23 @@ import type { CatalogTrack } from "@/types/music";
  * > 같은)은 여기 안 넣는다. 아티스트 채널만큼, 때로는 더 오래 간다.
  *
  * 목표는 300곡이고 **하위 장르당 15곡이 하한**이다 — 이미 고른 곡을 빼고
- * 나면 추천 후보가 금방 줄어든다. 지금은 4~6곡이라 아직 한참 모자라다.
+ * 나면 추천 후보가 금방 줄어든다. 지금은 국내가 하한에 가깝고 해외가 4~6곡이다.
  *
  * > [!important] 한 번에 다 못 채운다 — 할당량 때문이다
  * > `search.list` 가 곡당 **100 units** 고 하루 한도가 10,000 이다.
- * > 남은 191곡이면 19,100 units = **이틀 더**. 배치로 나눠 넣되,
+ * > 남은 122곡이면 12,200 units = **이틀 더**. 배치로 나눠 넣되,
  * > **한 배치가 끝날 때마다 커밋을 초록으로 남긴다** — `check-catalog` 가
  * > 모든 곡에 `youtubeId` 를 요구하므로 보강 안 된 곡을 커밋하면 CI 가 깨진다.
  * >
  * > 1차(t041~t120): 80곡 검색 → **11곡 반려**. 검색이 다른 곡을 집었다
  * > (죠지 "Loving U" → Joji "Die For You", 쿤디판다 "붕붕" → 김하온,
  * > Redbone → 213초짜리 편집본). **표를 눈으로 안 봤으면 다 들어갔다.**
+ * >
+ * > 2차(t121~t189): 국내 100곡 검색 → **69곡 통과**. 반려 사유가 셋이다.
+ * > 레이블 채널 18곡(HYBE·JYP·SM·STARSHIP·1theK·STONE) — 위 규칙대로 뺐다.
+ * > 오매칭 12곡(Colde "우리의 밤" → Sondia 동명곡, 나플라 "Visionary" →
+ * > 다른 아티스트 피처링곡, 릴보이 → 50초 쇼츠). 남은 곡은 검색 할당량이
+ * > 하루치(100곡 = 10,000 units)를 정확히 채워 다음 날로 넘겼다.
  */
 export const CATALOG: readonly CatalogTrack[] = [
   // ── Pop ──────────────────────────────────────────────
@@ -172,4 +179,75 @@ export const CATALOG: readonly CatalogTrack[] = [
   { id: "t118", title: "Watercolour", artist: "Pendulum", subGenre: "dnb", region: "intl", mood: { valence: 65 }, youtubeId: "tEPB7uzKuh4", duration: 213 },
   { id: "t119", title: "Come Alive", artist: "Netsky", subGenre: "dnb", region: "intl", mood: { valence: 72 }, youtubeId: "0z7omu2UNVA", duration: 190 },
   { id: "t120", title: "Original Don", artist: "Major Lazer", subGenre: "dnb", region: "intl", mood: { energy: 92, valence: 45 }, youtubeId: "RQsNQATtdNk", duration: 254 },
+
+  // ── 2차 국내 배치 (t121~t189) ────────────────────────
+  { id: "t121", title: "으르렁", artist: "EXO", subGenre: "kpop", region: "kr", youtubeId: "rjMcJHfzoIs", duration: 208 },
+  { id: "t122", title: "Gee", artist: "소녀시대", subGenre: "kpop", region: "kr", youtubeId: "12OHeq-qYwI", duration: 202 },
+  { id: "t123", title: "ASAP", artist: "STAYC", subGenre: "kpop", region: "kr", youtubeId: "aHR8zak8Xsc", duration: 195 },
+  { id: "t124", title: "뚜두뚜두", artist: "BLACKPINK", subGenre: "kpop", region: "kr", youtubeId: "IHNzOHi8sJs", duration: 216 },
+  { id: "t125", title: "TOMBOY", artist: "(여자)아이들", subGenre: "kpop", region: "kr", youtubeId: "Jh4QFaPmdss", duration: 198 },
+  { id: "t126", title: "빨간 맛", artist: "Red Velvet", subGenre: "kpop", region: "kr", youtubeId: "r9UMwwUCl1g", duration: 201 },
+  { id: "t127", title: "바람이 분다", artist: "이소라", subGenre: "ballad", region: "kr", youtubeId: "Fk__GLYSFMw", duration: 237 },
+  { id: "t128", title: "서른 즈음에", artist: "김광석", subGenre: "ballad", region: "kr", youtubeId: "mnh3X3wzpYs", duration: 283 },
+  { id: "t129", title: "너를 위해", artist: "임재범", subGenre: "ballad", region: "kr", youtubeId: "GiKvLl1V6mY", duration: 248 },
+  { id: "t130", title: "서쪽 하늘", artist: "이승철", subGenre: "ballad", region: "kr", youtubeId: "4n8oU-4MDGs", duration: 244 },
+  { id: "t131", title: "야생화", artist: "박효신", subGenre: "ballad", region: "kr", youtubeId: "ZtcM3KhgF-s", duration: 313 },
+  { id: "t132", title: "보고싶다", artist: "김범수", subGenre: "ballad", region: "kr", youtubeId: "hlx3DZQA5PY", duration: 245 },
+  { id: "t133", title: "만약에", artist: "태연", subGenre: "ballad", region: "kr", youtubeId: "RjU5Op_KSBw", duration: 266 },
+  { id: "t134", title: "다행이다", artist: "이적", subGenre: "ballad", region: "kr", youtubeId: "59y92uRqV7g", duration: 213 },
+  { id: "t135", title: "그대 돌아오면", artist: "거미", subGenre: "ballad", region: "kr", youtubeId: "aWVB3CjkPW0", duration: 277 },
+  { id: "t136", title: "강아지", artist: "검정치마", subGenre: "indie-pop", region: "kr", youtubeId: "YcG3FGwEdMg", duration: 209 },
+  { id: "t137", title: "나무", artist: "카더가든", subGenre: "indie-pop", region: "kr", youtubeId: "cCB8WugrfPE", duration: 228 },
+  { id: "t138", title: "수고했어 오늘도", artist: "옥상달빛", subGenre: "indie-pop", region: "kr", youtubeId: "lnre7tFfKx4", duration: 178 },
+  { id: "t139", title: "위잉위잉", artist: "혁오", subGenre: "indie-pop", region: "kr", youtubeId: "GIa80KLuDwc", duration: 194 },
+  { id: "t140", title: "숲", artist: "최유리", subGenre: "indie-pop", region: "kr", youtubeId: "COcuU8LKawk", duration: 229 },
+  { id: "t141", title: "오래된 노래", artist: "스탠딩 에그", subGenre: "indie-pop", region: "kr", youtubeId: "_bXarqHwbkY", duration: 282 },
+  { id: "t142", title: "이 바보야", artist: "정승환", subGenre: "indie-pop", region: "kr", youtubeId: "Qrr0EBtQR9o", duration: 228 },
+  { id: "t143", title: "오랜만에", artist: "김현철", subGenre: "city-pop", region: "kr", youtubeId: "89hHEaDc3bo", duration: 327 },
+  { id: "t144", title: "샴푸의 요정", artist: "빛과 소금", subGenre: "city-pop", region: "kr", youtubeId: "af-gM-w2yyM", duration: 224 },
+  { id: "t145", title: "붉은 노을", artist: "이문세", subGenre: "city-pop", region: "kr", youtubeId: "EM0P2NiEiO4", duration: 228 },
+  { id: "t146", title: "이별의 그늘", artist: "윤상", subGenre: "city-pop", region: "kr", youtubeId: "ee-OBWRbURA", duration: 275 },
+  { id: "t147", title: "삐에로는 우릴 보고 웃지", artist: "김완선", subGenre: "city-pop", region: "kr", youtubeId: "KyM1zy-dPyo", duration: 277 },
+  { id: "t148", title: "챠우챠우", artist: "델리스파이스", subGenre: "indie-rock", region: "kr", youtubeId: "wecpRs9p00E", duration: 270 },
+  { id: "t149", title: "아름다운 것", artist: "언니네 이발관", subGenre: "indie-rock", region: "kr", youtubeId: "3iHBlNgjQQo", duration: 292 },
+  { id: "t150", title: "싸구려 커피", artist: "장기하와 얼굴들", subGenre: "indie-rock", region: "kr", youtubeId: "AMShjMwlCug", duration: 254 },
+  { id: "t151", title: "거울", artist: "국카스텐", subGenre: "indie-rock", region: "kr", youtubeId: "6n910kfzvx0", duration: 281 },
+  { id: "t152", title: "Antifreeze", artist: "검정치마", subGenre: "indie-rock", region: "kr", youtubeId: "PGADim6UzHE", duration: 244 },
+  { id: "t153", title: "보편적인 노래", artist: "브로콜리너마저", subGenre: "indie-rock", region: "kr", youtubeId: "zrXHySXfdhk", duration: 423 },
+  { id: "t154", title: "좋다", artist: "데이브레이크", subGenre: "indie-rock", region: "kr", youtubeId: "C2KQVD0GeaM", duration: 195 },
+  { id: "t155", title: "Stay", artist: "넬", subGenre: "modern-rock", region: "kr", youtubeId: "bmivgWKzGkM", duration: 219 },
+  { id: "t156", title: "매직 카펫 라이드", artist: "자우림", subGenre: "modern-rock", region: "kr", youtubeId: "JUdwUb6QN5w", duration: 215 },
+  { id: "t157", title: "나는 나비", artist: "YB", subGenre: "modern-rock", region: "kr", youtubeId: "U0Lljwv8djo", duration: 216 },
+  { id: "t158", title: "Never Ending Story", artist: "부활", subGenre: "modern-rock", region: "kr", youtubeId: "7ATP7h-pB2I", duration: 254 },
+  { id: "t159", title: "외톨이야", artist: "씨엔블루", subGenre: "modern-rock", region: "kr", youtubeId: "5mpQHCqKZQI", duration: 218 },
+  { id: "t160", title: "낭만고양이", artist: "체리필터", subGenre: "modern-rock", region: "kr", youtubeId: "5hMWfXmTHIQ", duration: 235 },
+  { id: "t161", title: "Desert Eagle", artist: "실리카겔", subGenre: "shoegaze", region: "kr", youtubeId: "IWYft_hOIgo", duration: 310 },
+  { id: "t162", title: "넌 내게 반했어", artist: "노브레인", subGenre: "punk", region: "kr", youtubeId: "Rm6R92J4bbY", duration: 224 },
+  { id: "t163", title: "Fly", artist: "에픽하이", subGenre: "boombap", region: "kr", youtubeId: "sHqLlyBlmQI", duration: 202 },
+  { id: "t164", title: "좋아보여", artist: "버벌진트", subGenre: "boombap", region: "kr", youtubeId: "4gDSvqpUjGA", duration: 209 },
+  { id: "t165", title: "양화", artist: "딥플로우", subGenre: "boombap", region: "kr", youtubeId: "ULownpnLKAc", duration: 283 },
+  { id: "t166", title: "작은 것들의 신", artist: "넉살", subGenre: "boombap", region: "kr", youtubeId: "4el2gZnzR4o", duration: 222 },
+  { id: "t167", title: "죽일 놈", artist: "다이나믹 듀오", subGenre: "boombap", region: "kr", youtubeId: "ppjRIEgcXIY", duration: 224 },
+  { id: "t168", title: "발레리노", artist: "리쌍", subGenre: "boombap", region: "kr", youtubeId: "G3qS8dD4kOk", duration: 266 },
+  { id: "t169", title: "Don't Call Me", artist: "염따", subGenre: "trap", region: "kr", youtubeId: "eC-MWUaOMfw", duration: 166 },
+  { id: "t170", title: "사이먼 도미닉", artist: "사이먼 도미닉", subGenre: "trap", region: "kr", youtubeId: "ckV2_1GjLVg", duration: 224 },
+  { id: "t171", title: "호구", artist: "기리보이", subGenre: "trap", region: "kr", youtubeId: "YSAiVRIq6Ig", duration: 229 },
+  { id: "t172", title: "하기나 해", artist: "그레이", subGenre: "melodic-rap", region: "kr", youtubeId: "kRPUfhPP-E8", duration: 229 },
+  { id: "t173", title: "아무노래", artist: "지코", subGenre: "melodic-rap", region: "kr", youtubeId: "yL6P7OR5WOM", duration: 228 },
+  { id: "t174", title: "빌런", artist: "스텔라장", subGenre: "neo-soul", region: "kr", youtubeId: "eWSrYT9zC-s", duration: 191 },
+  { id: "t175", title: "Let's go picnic", artist: "죠지", subGenre: "neo-soul", region: "kr", youtubeId: "Ba4RrhpLD7Y", duration: 232 },
+  { id: "t176", title: "도망가자", artist: "선우정아", subGenre: "neo-soul", region: "kr", youtubeId: "D0l1HdemykU", duration: 275 },
+  { id: "t177", title: "소녀", artist: "오혁", subGenre: "alt-rnb", region: "kr", youtubeId: "aLX3b3j6z3g", duration: 227 },
+  { id: "t178", title: "bath", artist: "offonoff", subGenre: "alt-rnb", region: "kr", youtubeId: "UhOVBzQ6wJk", duration: 262 },
+  { id: "t179", title: "양화대교", artist: "자이언티", subGenre: "alt-rnb", region: "kr", youtubeId: "vfDb8uTp2DU", duration: 230 },
+  { id: "t180", title: "잊어버리지마", artist: "크러쉬", subGenre: "alt-rnb", region: "kr", youtubeId: "s7l_sxaqTpk", duration: 220 },
+  { id: "t181", title: "아니 벌써", artist: "산울림", subGenre: "funk", region: "kr", youtubeId: "79E5IDyg1vo", duration: 342 },
+  { id: "t182", title: "요술왕자", artist: "술탄 오브 더 디스코", subGenre: "funk", region: "kr", youtubeId: "_Z24i2S8tiA", duration: 253 },
+  { id: "t183", title: "범 내려온다", artist: "이날치", subGenre: "funk", region: "kr", youtubeId: "SmTRaSg2fTQ", duration: 337 },
+  { id: "t184", title: "거북이", artist: "다비치", subGenre: "slow-jam", region: "kr", youtubeId: "12u5oZpowzs", duration: 224 },
+  { id: "t185", title: "그건 아마 우리의 잘못은 아닐 거야", artist: "백예린", subGenre: "slow-jam", region: "kr", youtubeId: "_EfRa_ywkEw", duration: 244 },
+  { id: "t186", title: "Bang Bus", artist: "250", subGenre: "house", region: "kr", youtubeId: "t97sOAW_G7U", duration: 241 },
+  { id: "t187", title: "Melodie", artist: "이디오테잎", subGenre: "house", region: "kr", youtubeId: "emoadwiK4TM", duration: 301 },
+  { id: "t188", title: "텅 빈 거리에서", artist: "015B", subGenre: "synth-pop", region: "kr", youtubeId: "4xhoZKk16Q4", duration: 307 },
+  { id: "t189", title: "난 알아요", artist: "서태지와 아이들", subGenre: "synth-pop", region: "kr", youtubeId: "OEDHEzs5kyk", duration: 205 },
 ];
