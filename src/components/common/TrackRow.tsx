@@ -46,6 +46,7 @@ export function TrackRow({
   saved,
   onPlay,
   compact = false,
+  savable = true,
 }: {
   track: CatalogTrack;
   isCurrent: boolean;
@@ -53,6 +54,10 @@ export function TrackRow({
   onPlay: () => void;
   /** 다른 표면 위에 놓이는 좁은 모양. 전체 화면 시트의 재생목록이 쓴다 */
   compact?: boolean;
+  /** 담기 버튼을 뺀다. **리스트 상세처럼 이미 담긴 것만 모인 목록**에서는
+      모든 줄이 체크 표시로 켜져 있어서 아무 것도 구별해 주지 않는다 —
+      거기서 곡을 빼는 것은 머리줄의 "선택하기" 가 한다 → `PlaylistDetail` */
+  savable?: boolean;
 }) {
   const length = formatDuration(track.duration);
   const Icon = isCurrent ? Pause : Play;
@@ -83,7 +88,11 @@ export function TrackRow({
             : `${track.artist} ${track.title} 재생할 수 없음`
         }
         className={`group flex w-full items-center gap-4 rounded-btn text-left transition duration-200 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none ${
-          compact ? "py-2.5 pr-14 pl-3" : "py-3.5 pr-14 pl-4"
+          compact ? "py-2.5 pl-3" : "py-3.5 pl-4"
+        } ${
+          // 오른쪽 여백은 담기 버튼 자리다. 버튼이 없으면 그만큼 비워 둘
+          // 이유도 없다 — 곡 길이가 줄 끝에서 40px 떨어져 뜬다
+          savable ? "pr-14" : "pr-4"
         } ${surface} ${playable ? "" : "opacity-55"}`}
       >
         <div
@@ -93,13 +102,15 @@ export function TrackRow({
         >
           {/* 커버는 유튜브가 갖고 있다. 틀 수 없는 곡은 커버도 없으므로
               회색 원만 남는다 — 깨진 이미지 아이콘보다 조용하다.
-              16:9 를 정사각형에 덮으므로 실제로 깔리는 폭은 1.78배다 */}
+              16:9 를 정사각형에 덮으므로 실제로 깔리는 폭은 1.78배다 —
+              `sizes` 는 상자 폭이 아니라 그 폭이다. 56 을 적으면 w=64 후보를
+              100px 로 늘려 그려서 뭉개진다 → `PlayerBar` */}
           {playable && (
             <Image
               src={`https://i.ytimg.com/vi/${track.youtubeId}/mqdefault.jpg`}
               alt=""
               fill
-              sizes={compact ? "80px" : "56px"}
+              sizes={compact ? "80px" : "100px"}
               className="object-cover"
             />
           )}
@@ -144,7 +155,13 @@ export function TrackRow({
         )}
       </button>
 
-      <LibraryButton track={track} saved={saved} className="absolute top-1/2 right-3 -translate-y-1/2" />
+      {savable && (
+        <LibraryButton
+          track={track}
+          saved={saved}
+          className="absolute top-1/2 right-3 -translate-y-1/2"
+        />
+      )}
     </div>
   );
 }

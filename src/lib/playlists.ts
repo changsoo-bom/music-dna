@@ -85,6 +85,21 @@ export function togglePlaylistTrack(playlistId: string, trackId: string) {
   );
 }
 
+/**
+ * 고른 곡을 리스트에서 뺀다. **한 번에 한 번만 쓴다** —
+ * `togglePlaylistTrack` 을 곡 수만큼 부르면 읽기·쓰기가 그만큼 반복되고,
+ * 중간에 한도에 걸려 쓰기가 조용히 실패하면 반쯤 지워진 채로 남는다.
+ */
+export function removePlaylistTracks(playlistId: string, trackIds: ReadonlySet<string>) {
+  save(
+    read().map((list) =>
+      list.id === playlistId
+        ? { ...list, trackIds: list.trackIds.filter((id) => !trackIds.has(id)) }
+        : list,
+    ),
+  );
+}
+
 /** 리스트를 지운다. 담긴 곡은 보관함이 따로 갖고 있으므로 곡이 사라지진 않는다 */
 export function deletePlaylist(id: string) {
   save(read().filter((list) => list.id !== id));

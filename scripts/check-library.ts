@@ -17,6 +17,7 @@ import {
   PLAYLIST_LIMIT,
   createPlaylist,
   deletePlaylist,
+  removePlaylistTracks,
   renamePlaylist,
   togglePlaylistTrack,
 } from "@/lib/playlists";
@@ -123,6 +124,17 @@ assert.deepEqual(lists()[0]?.trackIds, ["t001"], "다시 눌렀는데 안 빠졌
 // 담는 것은 그 리스트에만 들어간다. 다른 리스트가 같이 움직이면 어디에
 // 담았는지가 화면과 어긋난다
 assert.deepEqual(lists()[1]?.trackIds, [], "다른 리스트까지 곡이 들어갔다");
+
+// 고른 곡을 한 번에 뺀다(상세 화면의 선택 삭제). 안 고른 곡은 남고,
+// 리스트에 없는 id 를 골라도 나머지가 멀쩡해야 한다 — 화면과 저장소가
+// 한 프레임 어긋나면 지운 뒤에 없는 곡을 고른 채로 누르게 된다
+togglePlaylistTrack(first, "t002");
+togglePlaylistTrack(first, "t003");
+assert.deepEqual(lists()[0]?.trackIds, ["t003", "t002", "t001"], "선택 삭제 준비가 어긋났다");
+removePlaylistTracks(first, new Set(["t002", "t999"]));
+assert.deepEqual(lists()[0]?.trackIds, ["t003", "t001"], "고른 곡만 빠지지 않았다");
+assert.deepEqual(lists()[1]?.trackIds, [], "다른 리스트에서까지 곡이 빠졌다");
+removePlaylistTracks(first, new Set(["t003"]));
 
 // 이름을 바꾼다. 빈 이름·공백은 안 받는다 — 이름 없는 카드는 되돌릴 방법이 없다
 const target = lists()[0]!.id;

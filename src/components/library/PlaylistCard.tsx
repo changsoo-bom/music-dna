@@ -49,12 +49,16 @@ export function PlaylistCard({ playlist }: { playlist: Playlist }) {
       >
         <div className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-btn bg-ghost text-slate max-sm:h-20 max-sm:w-20">
           {cover ? (
-            /* 16:9 를 정사각형에 덮는다 — 곡 줄의 커버와 같은 처리다 → `TrackRow` */
+            /* 16:9 를 정사각형에 덮는다 — 곡 줄의 커버와 같은 처리다 → `TrackRow`
+
+               `sizes` 는 상자 폭이 아니라 그려지는 폭이다: 96 × 16/9 ≒ 171.
+               96 을 적으면 브라우저가 w=128 후보를 골라 171px 로 늘려 그린다.
+               그게 뭉개짐이었다 → `PlayerBar` 에 같은 계산이 적혀 있다. */
             <Image
               src={`https://i.ytimg.com/vi/${cover}/mqdefault.jpg`}
               alt=""
               fill
-              sizes="96px"
+              sizes="176px"
               className="object-cover"
             />
           ) : (
