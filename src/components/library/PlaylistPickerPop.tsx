@@ -29,6 +29,7 @@ import type { CatalogTrack } from "@/types/music";
 export function PlaylistPickerPop({ state, track }: { state: PopState; track: CatalogTrack }) {
   const playlists = usePlaylists();
   const full = playlists.length >= PLAYLIST_LIMIT;
+  const why = `리스트는 ${PLAYLIST_LIMIT}개까지 만들 수 있습니다`;
 
   /** 담고 닫는다. 닫는 길은 `close()` 하나로 모은다 — 창이 사라지는 방법이
       둘이면 애니메이션도 두 벌이 된다 */
@@ -96,7 +97,10 @@ export function PlaylistPickerPop({ state, track }: { state: PopState; track: Ca
             if (!full) createPlaylist();
           }}
           aria-disabled={full}
-          data-hint={full ? `리스트는 ${PLAYLIST_LIMIT}개까지 만들 수 있습니다` : undefined}
+          // `data-hint` 는 CSS 생성 콘텐츠라 낭독기가 안 읽는다 →
+          // `CreatePlaylistButton`
+          aria-label={full ? `새 리스트 만들기 — ${why}` : undefined}
+          data-hint={full ? why : undefined}
           className="flex w-full items-center gap-3 rounded-btn px-3 py-2.5 text-left font-medium transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none aria-disabled:opacity-40 aria-disabled:hover:bg-transparent"
         >
           {/* 아이콘 자리가 위의 체크 자리와 같은 폭이다. 안 맞추면 글자

@@ -22,7 +22,8 @@ import {
   renamePlaylist,
   togglePlaylistTrack,
 } from "@/lib/playlists";
-import { parsePlayed } from "@/lib/schemas/played";
+import { recordPlayed } from "@/lib/played-tracks";
+import { parsePlayed, parseRawIds } from "@/lib/schemas/played";
 import { parsePlaylists } from "@/lib/schemas/playlist";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 
@@ -39,7 +40,44 @@ Object.defineProperty(globalThis, "window", {
   },
 });
 
-// 최근 재생은 9개에서 잘린다. `parseTrackIds` 가 limit 인자를 받게 바뀐 자리다.
+/* ── 최근 재생 ────────────────────────────────────────────────── */
+
+const PLAYED_KEY = STORAGE_KEYS.playlist;
+const played = () => parseRawIds(store.get(PLAYED_KEY) ?? null);
+
+// 튼 곡이 맨 앞에 온다. 같은 곡을 다시 틀면 앞으로 당겨진다
+store.clear();
+recordPlayed("t001");
+recordPlayed("t002");
+assert.deepEqual(played(), ["t002", "t001"], "방금 튼 곡이 맨 앞이 아니다");
+recordPlayed("t001");
+assert.deepEqual(played(), ["t001", "t002"], "다시 튼 곡이 앞으로 안 당겨졌다");
+
+/**
+ * **카탈로그에 없는 id 는 살아남는다.**
+ *
+ * 쓰기 경로가 카탈로그로 거른 결과를 되쓰면(`parsePlayed`) 여기서 `ghost` 가
+ * 사라진다. 곡 목록이 배치로 갈릴 때마다 남의 이력을 지우는 버그가 정확히
+ * 이 모양이었다 → `parseRawIds`
+ */
+store.set(PLAYED_KEY, JSON.stringify(["ghost-track", "t001"]));
+recordPlayed("t002");
+assert.ok(played().includes("ghost-track"), "카탈로그에 없는 id 가 저장소에서 지워졌다");
+
+// 깨진 값은 빈 목록이다. **여기가 신뢰 경계다** — 저장소는 사람이 고칠 수 있고,
+// 던지면 `getSnapshot` 안에서 렌더 도중에 죽는다
+store.set(PLAYED_KEY, "{ 망가진 값");
+assert.deepEqual(played(), [], "JSON 이 아닌 값이 안 걸러졌다");
+store.set(PLAYED_KEY, JSON.stringify({ a: 1 }));
+assert.deepEqual(played(), [], "배열이 아닌 값이 안 걸러졌다");
+store.set(PLAYED_KEY, JSON.stringify(["t001", 42]));
+assert.deepEqual(played(), [], "문자열이 아닌 원소가 섞였는데 안 걸러졌다");
+
+// 중복은 읽을 때 접힌다. 안 접히면 목록에 같은 곡이 두 줄 서고 React 의 key 가 겹친다
+store.set(PLAYED_KEY, JSON.stringify(["t001", "t001", "t002"]));
+assert.deepEqual(played(), ["t001", "t002"], "중복 id 가 안 접혔다");
+
+// 9개에서 잘린다. `parseTrackIds` 가 limit 인자를 받게 바뀐 자리다.
 // 카탈로그에 실제로 있는 id 여야 한다 — 없는 id 는 파서가 떨어뜨려서 개수가 안 는다
 const many = JSON.stringify(CATALOG.slice(0, 12).map((track) => track.id));
 assert.equal(parsePlayed(many).length, 9, "최근 재생 상한이 9가 아니다");

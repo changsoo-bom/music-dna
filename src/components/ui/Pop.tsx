@@ -45,12 +45,22 @@ export function Pop({
   const ref = useRef<HTMLDialogElement>(null);
   const { open, beginClose, end } = state;
 
-  // 여닫는 것은 명령형이다 — `<dialog>` 는 속성만으로는 안 열린다
+  // 여닫는 것은 명령형이다 — `<dialog>` 는 속성만으로는 안 열린다.
+  //
+  // **정리 함수가 닫는다.** 모달 `<dialog>` 는 최상위 레이어에 올라가 있는데,
+  // 열린 채로 DOM 에서 뜯겨 나가면 `close` 이벤트가 안 오고 초점도 안
+  // 돌아온다. 부모가 `mounted` 와 무관한 이유로 사라지는 길이 실제로 있다 —
+  // 확인 창을 띄워 둔 사이에 다른 탭에서 그 리스트를 지우면 `PlaylistDetail`
+  // 이 "리스트를 찾을 수 없습니다" 로 갈아탄다.
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
+
+    return () => {
+      if (dialog.open) dialog.close();
+    };
   }, [open]);
 
   useEffect(() => {

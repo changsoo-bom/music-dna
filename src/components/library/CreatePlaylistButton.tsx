@@ -30,9 +30,14 @@ import { PLAYLIST_LIMIT, createPlaylist } from "@/lib/playlists";
  * **`disabled` 가 아니라 `aria-disabled` 다.** `disabled` 버튼은 초점을 못
  * 받아서 그 말풍선을 키보드로는 영영 못 본다 — 왜 안 되는지가 마우스에게만
  * 보이면 안 된다. 곡 줄이 재생 불가를 다루는 방식과 같다 → `TrackRow`
+ *
+ * 같은 이유로 이름에도 이유를 적는다. `data-hint` 는 CSS 생성 콘텐츠라
+ * (`content: attr(...)`) 낭독기가 안 읽는다 — 그쪽은 "사용 불가" 까지만
+ * 듣고 왜인지는 못 듣는다.
  */
 export function CreatePlaylistButton() {
   const full = usePlaylists().length >= PLAYLIST_LIMIT;
+  const why = `리스트는 ${PLAYLIST_LIMIT}개까지 만들 수 있습니다`;
 
   return (
     <button
@@ -41,7 +46,8 @@ export function CreatePlaylistButton() {
         if (!full) createPlaylist();
       }}
       aria-disabled={full}
-      data-hint={full ? `리스트는 ${PLAYLIST_LIMIT}개까지 만들 수 있습니다` : undefined}
+      aria-label={full ? `리스트 추가하기 — ${why}` : undefined}
+      data-hint={full ? why : undefined}
       className="inline-flex h-12 items-center gap-2 rounded-pill bg-white pr-6 pl-5 text-base font-medium tracking-[-0.02em] whitespace-nowrap text-ink shadow-lift transition duration-200 hover:-translate-y-px active:translate-y-0 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none aria-disabled:translate-y-0 aria-disabled:opacity-40"
     >
       <PlusIcon size={18} weight="bold" aria-hidden />
