@@ -1,12 +1,14 @@
 "use client";
 
 import { MusicNotesIcon, TrashIcon } from "@phosphor-icons/react/dist/ssr";
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
 import { ConfirmPop } from "@/components/ui/ConfirmPop";
 import { NAV_FORWARD } from "@/constants/nav";
 import { deletePlaylist } from "@/lib/playlists";
+import { toTracks } from "@/lib/schemas/played";
 import type { Playlist } from "@/types/music";
 
 /**
@@ -21,9 +23,14 @@ import type { Playlist } from "@/types/music";
  * 목록 두 종류가 세로로 이어지는 화면이라 오른쪽 끝이 한 줄로 안 맞으면
  * 바로 눈에 띈다.
  *
- * **커버는 아직 없다.** 담긴 곡의 썸네일로 채울 자리인데 빈 리스트도
- * 만들어지므로, 없을 때의 모양이 먼저 있어야 한다. 회색 사각에 음표
- * 하나 — `TrackRow` 가 틀 수 없는 곡에 쓰는 것과 같은 처리다.
+ * **커버는 가장 최근에 담은 곡의 썸네일이다.** `trackIds` 는 새로 담은 것이
+ * 맨 앞이라(`togglePlaylistTrack`) 앞에서부터 커버가 있는 첫 곡을 쓴다 —
+ * 카드가 마지막으로 무엇을 했는지 말해 주고, 리스트가 여럿일 때 이름보다
+ * 그림이 먼저 구별된다.
+ *
+ * 빈 리스트도 만들어지고 커버 없는 곡(`youtubeId` 미보강)만 담길 수도 있으므로
+ * 없을 때의 모양이 여전히 필요하다. 회색 사각에 음표 하나 — `TrackRow` 가
+ * 틀 수 없는 곡에 쓰는 것과 같은 처리다.
  *
  * 곡 줄과 같은 표면·같은 반경이다(`bg-lifted` · `rounded-btn`). 리스트는
  * 곡보다 큰 것이지 다른 종류의 것이 아니라서, 카드를 따로 만들면 한 페이지에
@@ -31,6 +38,7 @@ import type { Playlist } from "@/types/music";
  */
 export function PlaylistCard({ playlist }: { playlist: Playlist }) {
   const [asking, setAsking] = useState(false);
+  const cover = toTracks(playlist.trackIds).find((track) => track.youtubeId)?.youtubeId;
 
   return (
     <div className="relative">
@@ -39,12 +47,23 @@ export function PlaylistCard({ playlist }: { playlist: Playlist }) {
         transitionTypes={NAV_FORWARD}
         className="flex items-center gap-5 rounded-btn bg-lifted p-4 pr-16 transition duration-200 hover:bg-white hover:shadow-lift focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none max-sm:gap-4"
       >
-        <div className="grid h-24 w-24 shrink-0 place-items-center rounded-btn bg-ghost text-slate max-sm:h-20 max-sm:w-20">
-          <MusicNotesIcon size={30} weight="light" aria-hidden />
+        <div className="relative grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-btn bg-ghost text-slate max-sm:h-20 max-sm:w-20">
+          {cover ? (
+            /* 16:9 를 정사각형에 덮는다 — 곡 줄의 커버와 같은 처리다 → `TrackRow` */
+            <Image
+              src={`https://i.ytimg.com/vi/${cover}/mqdefault.jpg`}
+              alt=""
+              fill
+              sizes="96px"
+              className="object-cover"
+            />
+          ) : (
+            <MusicNotesIcon size={30} weight="light" aria-hidden />
+          )}
         </div>
 
         <div className="min-w-0">
-          <h2 className="truncate text-xl tracking-[-0.02em]">{playlist.name}</h2>
+          <h2 className="truncate text-[22px] font-semibold tracking-[-0.02em]">{playlist.name}</h2>
           <p className="mt-1.5 text-sm text-slate">총 {playlist.trackIds.length}곡</p>
           {/* 저장된 값이 `2026-08-25` 라 점만 바꾼다 — 날짜를 다시 파싱하면
               시간대에 따라 하루가 밀린다 */}
