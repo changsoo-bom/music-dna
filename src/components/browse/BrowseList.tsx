@@ -1,6 +1,7 @@
 "use client";
 
 import { Play } from "@phosphor-icons/react/dist/ssr";
+import { useState } from "react";
 
 import { TrackRow } from "@/components/common/TrackRow";
 import { useSavedTrackIds } from "@/hooks/use-playlists";
@@ -24,20 +25,41 @@ import type { Genre, Region } from "@/types/music";
  * 구독은 둘뿐이다(재생 중인 곡 하나, 보관함 하나). 줄마다 구독하면
  * 100줄이 100번 깨어난다 → `TrackRow`
  */
+
+/** 접힌 칸이 보여주는 곡 수. 2열이라 세 줄로 떨어진다 */
+const PREVIEW = 6;
+
 export function BrowseList({ region, genre }: { region: Region | null; genre: Genre | null }) {
   const play = usePlayerStore((state) => state.play);
   const sounding = usePlayerStore((state) => soundingId(state, "browse"));
   const savedIds = useSavedTrackIds();
 
+  /* 펼침은 **주소로 안 나간다.** 좁히는 값(`region`·`genre`)과 달리 이건
+     보여주는 양이라, 링크로 받은 사람이 같은 것을 봐야 할 이유가 없다
+     → `.claude/rules/state.md` 의 "클라이언트 전용 UI" */
+  const [expanded, setExpanded] = useState<ReadonlySet<Genre>>(new Set());
+
   const groups = browseGroups(region, genre);
+
+  /* 칸을 하나만 골랐으면 접지 않는다 — 그 화면은 이미 그 칸만 본다.
+     전체 화면에서만 앞 여섯 곡으로 접힌다. 카탈로그가 배치로 커지면서
+     Pop 한 칸이 마흔 줄이 됐고, 그러면 아래 칸들이 스크롤 밖으로 밀린다 */
+  const sections = groups.map((group) => ({
+    ...group,
+    shown:
+      genre === null && !expanded.has(group.genre) ? group.tracks.slice(0, PREVIEW) : group.tracks,
+  }));
 
   /**
    * 큐는 **지금 보이는 것 전부다.** 장르별로 끊으면 Pop 마지막 곡에서 재생이
    * 서고, 눈에 보이는 다음 줄과 다음에 나는 곡이 어긋난다. 반대로 안 보이는
    * 곡까지 넣으면 국내만 골라 놓고 틀었는데 해외 곡이 이어진다 — 좁힌 것이
    * 목록에만 걸리고 재생에는 안 걸리는 셈이다.
+   *
+   * 접힌 곡도 마찬가지로 안 보이는 곡이다. 여섯 번째를 눌러 놓고 일곱 번째가
+   * 나면, 화면 어디에도 없는 곡이 재생 중으로 표시된다.
    */
-  const queue = groups.flatMap((group) => group.tracks).filter(isPlayable);
+  const queue = sections.flatMap((section) => section.shown).filter(isPlayable);
 
   if (groups.length === 0) {
     return (
@@ -49,13 +71,15 @@ export function BrowseList({ region, genre }: { region: Region | null; genre: Ge
 
   return (
     <div className="flex min-w-0 flex-col gap-14 max-sm:gap-10">
-      {groups.map((group) => {
+      {sections.map((section) => {
         // 틀 수 있는 것만 튼다. 카탈로그가 배치로 채워지는 중이라 `youtubeId`
         // 가 아직 안 붙은 곡이 섞여 있다 → `TrackRow`
-        const groupQueue = group.tracks.filter(isPlayable);
+        const groupQueue = section.tracks.filter(isPlayable);
+        const foldable = genre === null && section.tracks.length > PREVIEW;
+        const open = section.shown.length === section.tracks.length;
 
         return (
-          <section key={group.genre}>
+          <section key={section.genre}>
             {/* 장르 이름과 조작이 헤어라인 한 줄을 나눠 쓴다. 목록이 여러 칸으로
                 이어질 때 그 줄이 칸의 시작을 말한다 — 큰 여백만으로는 스크롤
                 중에 어디서 갈렸는지가 안 읽힌다.
@@ -71,9 +95,9 @@ export function BrowseList({ region, genre }: { region: Region | null; genre: Ge
             >
               {genre === null && (
                 <h2 className="min-w-0 truncate text-[19px] font-medium tracking-[-0.01em]">
-                  {group.label}
+                  {section.label}
                   <span className="ml-2.5 text-sm tabular-nums text-slate">
-                    {group.tracks.length}
+                    {section.tracks.length}
                   </span>
                 </h2>
               )}
@@ -91,7 +115,7 @@ export function BrowseList({ region, genre }: { region: Region | null; genre: Ge
                 <button
                   type="button"
                   onClick={() => play("browse", groupQueue, 0)}
-                  aria-label={`${group.label} ${groupQueue.length}곡 전체 재생`}
+                  aria-label={`${section.label} ${groupQueue.length}곡 전체 재생`}
                   className="flex shrink-0 items-center gap-1.5 text-[13px] font-medium tracking-[-0.01em] whitespace-nowrap text-ink transition-opacity hover:opacity-55 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none"
                 >
                   {/* 재생 삼각형을 따로 밀지 않는다 — Phosphor 의 `Play`(fill)는
@@ -103,7 +127,7 @@ export function BrowseList({ region, genre }: { region: Region | null; genre: Ge
             </div>
 
             <ul className="mt-5 grid grid-cols-2 gap-3 max-md:grid-cols-1">
-              {group.tracks.map((track) => (
+              {section.shown.map((track) => (
                 <li key={track.id}>
                   <TrackRow
                     track={track}
@@ -120,6 +144,37 @@ export function BrowseList({ region, genre }: { region: Region | null; genre: Ge
                 </li>
               ))}
             </ul>
+
+            {/* 접힌 쪽은 **남은 수를 적는다.** "더 보기" 만 있으면 한 번 더
+                눌러야 끝인지, 서른 번을 더 눌러야 끝인지 누르기 전에는 모른다.
+                한 번에 그 칸을 다 편다 — 여섯씩 끊어 여러 번 누르게 하면
+                아래 칸으로 내려가는 길이 그만큼 멀어진다.
+
+                펼친 쪽은 수를 안 적는다. 접으면 몇 곡이 되는지가 아니라
+                **되돌린다**는 것이 이 버튼의 일이고, 그 수는 이미 칸 제목
+                옆에 있다.
+
+                자리는 안 옮긴다. 목록 끝에 그대로 두면 마흔 줄을 편 뒤
+                되돌리려고 다시 위로 올라갈 필요가 없다.
+
+                목록 폭 전체를 쓰는 헤어라인 테두리다. 알약을 놓으면 이 화면에서
+                떠 있어야 할 국내·해외 스위치와 무게가 겹친다 → `RegionSwitch` */}
+            {foldable && (
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() =>
+                  setExpanded((prev) => {
+                    const next = new Set(prev);
+                    if (!next.delete(section.genre)) next.add(section.genre);
+                    return next;
+                  })
+                }
+                className="mt-3 flex h-12 w-full items-center justify-center rounded-btn border border-hair text-sm font-medium tracking-[-0.01em] text-slate transition-colors hover:border-dust hover:text-ink focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none"
+              >
+                {open ? "접기" : `${section.label} ${section.tracks.length - PREVIEW}곡 더 보기`}
+              </button>
+            )}
           </section>
         );
       })}
