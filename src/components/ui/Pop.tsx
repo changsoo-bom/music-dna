@@ -72,7 +72,24 @@ export function Pop({
   return (
     <dialog
       ref={ref}
-      onClose={beginClose}
+      onClose={() => {
+        beginClose();
+
+        /* **초점이 갈 곳을 잃으면 본문 머리로 보낸다.**
+           `<dialog>` 는 닫힐 때 열기 전 요소로 초점을 돌려주는데, 그 요소가
+           그사이 사라지는 자리가 있다 — 리스트를 지우면 눌렀던 삭제 버튼도
+           같은 커밋에 없어진다. 그러면 초점이 `<body>` 로 떨어지고, 키보드로
+           쓰는 사람은 지울 때마다 페이지 맨 위에서 Tab 을 다시 시작한다.
+
+           `tabindex` 를 그 자리에서 붙인다. `<main>` 은 페이지마다 따로
+           있어서(라우트별 `page.tsx`) 여섯 군데에 같은 속성을 심느니
+           필요한 순간에 한 번 다는 편이 낫다. `-1` 이라 탭 순서에는 안 낀다. */
+        if (document.activeElement !== document.body) return;
+        const main = document.querySelector("main");
+        if (!main) return;
+        main.tabIndex = -1;
+        main.focus({ preventScroll: true });
+      }}
       // 자식의 전환도 여기까지 올라온다(호버가 걸린 줄 하나면 충분하다).
       // 창 자신이 움직인 것만 끝으로 친다
       onTransitionEnd={(event) => {

@@ -3,7 +3,6 @@
 import { PencilSimpleIcon, XIcon } from "@phosphor-icons/react/dist/ssr";
 import { useState } from "react";
 
-
 import { TrackRow } from "@/components/common/TrackRow";
 import { Arrow, ButtonLink, buttonClass } from "@/components/ui/Button";
 import { ConfirmPop } from "@/components/ui/ConfirmPop";
@@ -65,6 +64,8 @@ export function PlaylistDetail({ id }: { id: string }) {
       같은 이유다(`PlaylistCard`). 여기는 여러 곡이 한 번에 빠져서 잘못
       눌렀을 때 다시 담는 값이 더 크다 */
   const asking = usePop();
+  /** 물을 때 골라 둔 곡 수. 창이 닫히는 동안에도 문구가 안 흔들린다 */
+  const [askingCount, setAskingCount] = useState(0);
   const playlist = parsePlaylists(useStoredValue(STORAGE_KEYS.playlists)).find(
     (list) => list.id === id,
   );
@@ -242,7 +243,13 @@ export function PlaylistDetail({ id }: { id: string }) {
                 <button
                   type="button"
                   disabled={picked.size === 0}
-                  onClick={asking.show}
+                  onClick={() => {
+                    // 물을 때의 곡 수를 떠 둔다. 창은 닫히는 동안에도 그려지고
+                    // 그사이 선택 모드를 끄면 `picked` 가 비어서, 사라지는 창의
+                    // 글자가 "고른 2곡" → "고른 0곡" 으로 한 번 바뀐다
+                    setAskingCount(picked.size);
+                    asking.show();
+                  }}
                   className={ROW_ACTION}
                 >
                   삭제{picked.size > 0 && ` (${picked.size})`}
@@ -316,7 +323,7 @@ export function PlaylistDetail({ id }: { id: string }) {
         <ConfirmPop
           state={asking}
           title="삭제하시겠습니까?"
-          detail={`고른 ${picked?.size ?? 0}곡이 이 리스트에서 빠집니다. 곡 자체는 남아 있고, 다시 담을 수 있습니다.`}
+          detail={`고른 ${askingCount}곡이 이 리스트에서 빠집니다. 곡 자체는 남아 있고, 다시 담을 수 있습니다.`}
           onConfirm={() => {
             if (picked) removePlaylistTracks(playlist.id, picked);
             setPicked(null);
