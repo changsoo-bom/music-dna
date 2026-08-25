@@ -261,7 +261,7 @@ export function PlayerScreen({
 /**
  * 지금 듣고 있는 것의 목록.
  *
- * **저장된 리스트를 틀 때만 그 리스트를 그린다.** 나머지는 빠른 선곡이다 —
+ * **저장된 리스트를 틀 때만 그 리스트를 그린다**(`library:{id}`). 나머지는 빠른 선곡이다 —
  * 추천이나 전체보기에서 튼 곡은 재생과 동시에 빠른 선곡 맨 앞으로
  * 들어가므로(`recordPlayed`), 곁에 놓고 볼 목록은 그 다섯 장이 아니라
  * 빠른 선곡이다. 리스트만 다르다: 사람이 손으로 묶어 둔 것이고 빠른 선곡에
@@ -277,17 +277,19 @@ export function PlayerScreen({
  * 펴지만, 여기서는 지금 나는 곡 옆에 붙는 곁가지라 세로로 눕는 편이 읽힌다.
  */
 function PlayedQueue() {
-  const fromList = usePlayerStore((state) => state.queueId === "library");
+  // 리스트는 저마다 다른 큐 이름을 쓴다(`library:{id}`) → `use-player-store`
+  const listQueueId = usePlayerStore((state) =>
+    state.queueId?.startsWith("library:") ? state.queueId : null,
+  );
   const listQueue = usePlayerStore((state) => state.queue);
   const played = usePlayedTracks();
   const play = usePlayerStore((state) => state.play);
-
   const toggle = usePlayerStore((state) => state.toggle);
 
-  const listId = fromList ? "library" : "played";
+  const listId = listQueueId ?? "played";
   // 빠른 선곡은 담은 것을 전부 그리는 곳이 아니다 — 여기서 줄을 누르면 바로
   // 트는 자리라 틀 수 있는 곡만 온다
-  const queue = fromList ? listQueue : played.filter(isPlayable);
+  const queue = listQueueId ? listQueue : played.filter(isPlayable);
   /**
    * 지금 나는 곡. **목록 신원을 안 본다**(`soundingId` 와 다른 점).
    *
@@ -313,24 +315,8 @@ function PlayedQueue() {
 
   return (
     <section className="mt-14 w-full max-lg:text-left">
-      <h2 className="text-[13px] font-bold text-slate">{fromList ? "재생목록" : "빠른 선곡"}</h2>
+      <h2 className="text-[13px] font-bold text-slate">{listQueueId ? "재생목록" : "빠른 선곡"}</h2>
 
-      {/* **여기서만 스크롤한다**(`.scroll-panel`) — 목록이 아홉 줄까지 늘어도
-          커버와 조작은 제자리에 남는다.
-
-          높이가 **남는 자리를 그대로 먹는다.** 449px 은 이 목록 위아래로
-          시트가 이미 쓰고 있는 높이(여백·닫기·제목·아래 여백)의 합이고,
-          화면에서 그만큼을 뺀 나머지가 목록 몫이다. 고정값으로 잡으면 큰
-          화면에서는 아래가 비고 작은 화면에서는 시트가 넘친다 — 목록 안이
-          아니라 화면이 스크롤되면 여기까지 온 이유가 없다.
-
-          `dvh` 다. iOS 주소창이 접히고 펴질 때 `vh` 는 안 따라온다 —
-          `body` 의 `min-height` 와 같은 이유다.
-
-          바닥을 두 줄(8rem)로 막는다. 아주 낮은 창에서 계산값이 한 줄도
-          안 되는 높이로 떨어지면 목록이 아니라 잘린 그림이 된다.
-
-          오른쪽 여백은 막대 자리다. 없으면 곡 길이 위로 막대가 겹친다. */}
       {/* **여기서만 스크롤한다**(`.scroll-panel`) — 목록이 아홉 줄까지 늘어도
           커버와 조작은 제자리에 남는다.
 

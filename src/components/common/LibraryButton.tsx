@@ -1,9 +1,9 @@
 "use client";
 
 import { CheckIcon, PlusIcon } from "@phosphor-icons/react/dist/ssr";
-import { useState } from "react";
 
 import { PlaylistPickerPop } from "@/components/library/PlaylistPickerPop";
+import { usePop } from "@/hooks/use-pop";
 import type { CatalogTrack } from "@/types/music";
 
 /**
@@ -49,15 +49,15 @@ export function LibraryButton({
   saved: boolean;
   className?: string;
 }) {
-  const [picking, setPicking] = useState(false);
+  const picker = usePop();
   const Icon = saved ? CheckIcon : PlusIcon;
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setPicking(true)}
-        aria-expanded={picking}
+        onClick={picker.show}
+        aria-expanded={picker.open}
         aria-haspopup="dialog"
         aria-label={`${track.title} 리스트에 담기`}
         className={`grid h-10 w-10 shrink-0 place-items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none ${
@@ -70,8 +70,11 @@ export function LibraryButton({
       </button>
 
       {/* 열려 있는 동안에만 그린다. 줄마다 창을 미리 만들어 두면 아홉 줄에
-          리스트 구독이 아홉 개 붙는다 */}
-      {picking && <PlaylistPickerPop track={track} onClose={() => setPicking(false)} />}
+          리스트 구독이 아홉 개 붙는다.
+
+          `mounted` 는 닫히는 전환까지 포함이다 — `open` 이 꺼지는 즉시
+          걷어 가면 나가는 모습이 안 보인다 → `usePop` */}
+      {picker.mounted && <PlaylistPickerPop state={picker} track={track} />}
     </>
   );
 }

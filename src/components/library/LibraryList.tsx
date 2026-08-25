@@ -1,25 +1,10 @@
 "use client";
 
-import { TrackRow } from "@/components/common/TrackRow";
 import { PlaylistCard } from "@/components/library/PlaylistCard";
 import { ButtonLink } from "@/components/ui/Button";
-import { useLibrary } from "@/hooks/use-library";
-import { useStoredValue } from "@/hooks/use-stored-value";
-import { parsePlaylists } from "@/lib/schemas/playlist";
-import { STORAGE_KEYS } from "@/lib/storage-keys";
-import { isPlayable, soundingId, usePlayerStore } from "@/lib/use-player-store";
+import { usePlaylists } from "@/hooks/use-playlists";
+import { currentTrack, usePlayerStore } from "@/lib/use-player-store";
 
-/**
- * 보관함. 사람이 직접 담은 곡만 있고, 뺄 때까지 남는다.
- *
- * 빠른 선곡과 달리 **한 열이다.** 담은 곡은 훑어보는 것이 아니라 찾아보는
- * 것이라 위에서 아래로 읽는 편이 빠르고, 개수 제한이 없어서 줄 수를 화면
- * 폭으로 미리 정해 둘 수도 없다.
- *
- * 서버는 Local Storage 를 못 보므로 첫 렌더는 항상 빈 목록이다 — 비어 있는
- * 안내가 한 프레임 스칠 수 있다. 홈이 소개 화면에 쓴 것과 같은 대가고,
- * 이 페이지는 그 크기가 한 덩어리뿐이라 그대로 둔다.
- */
 /** 빈 줄의 글자 자리. 폭이 다 달라야 목록처럼 읽힌다 — 같으면 표가 된다.
     비율이라 좁은 화면에서도 오른쪽 버튼 자리를 안 넘는다 */
 const GHOST_ROWS = [
@@ -28,25 +13,40 @@ const GHOST_ROWS = [
   ["w-[30%]", "w-[23%]"],
 ] as const;
 
+/**
+ * 보관함. **사람이 이름을 붙여 묶은 리스트만 산다.**
+ *
+ * 한때 여기에 이름 없는 곡 목록이 하나 더 있었다(`STORAGE_KEYS.library`).
+ * 담기가 리스트를 고르는 일로 바뀌면서 그 목록에 쓰는 코드가 하나도 안
+ * 남았고, 아무도 못 담고 못 빼는 목록이 화면에만 서 있었다. 저장소도
+ * 화면도 같이 걷어낸다 — 담긴 곳이 둘이면 어디에 담았는지가 매번 갈린다.
+ *
+ * 한 열이다. 담은 것은 훑어보는 것이 아니라 찾아보는 것이라 위에서 아래로
+ * 읽는 편이 빠르고, 개수 제한이 없어서 줄 수를 화면 폭으로 미리 정해 둘
+ * 수도 없다.
+ *
+ * 서버는 Local Storage 를 못 보므로 첫 렌더는 항상 빈 목록이다 — 비어 있는
+ * 안내가 한 프레임 스칠 수 있다. 홈이 소개 화면에 쓴 것과 같은 대가고,
+ * 이 페이지는 그 크기가 한 덩어리뿐이라 그대로 둔다.
+ */
 export function LibraryList() {
-  const saved = useLibrary();
-  // 큐는 **틀 수 있는 곡만** 이다. 목록은 담은 것을 전부 그린다 —
-  // 재생 불가를 목록에서까지 빼면, 담아 놓고 열었을 때 "아직 담은 곡이
-  // 없습니다" 가 뜬다. 담긴 건 사실인데 화면이 거짓말을 하는 것이다.
-  const queue = saved.filter(isPlayable);
-  const play = usePlayerStore((state) => state.play);
-  // 구독은 하나다. 줄마다 구독하면 줄 수만큼 깨어난다 → `MyPlaylist`
-  const sounding = usePlayerStore((state) => soundingId(state, "library"));
-  // 훅 파일을 따로 두지 않는다 — 여는 화면이 여기 하나다
-  const playlists = parsePlaylists(useStoredValue(STORAGE_KEYS.playlists));
+  const playlists = usePlaylists();
+  /* **구독은 둘이고, 판정은 카드마다 한다.** 리스트는 저마다 다른 큐 이름을
+     쓰므로(`library:{id}`) "지금 나는 곡" 하나로는 어느 카드인지 못 가린다.
+     그렇다고 카드마다 스토어를 구독하면 리스트 수만큼 깨어난다 →
+     여기서 한 번 받아 카드마다 자기 이름과 맞춰 본다 → `PlaylistCard` */
+  const queueId = usePlayerStore((state) => state.queueId);
+  const soundingNow = usePlayerStore((state) =>
+    state.isPlaying ? (currentTrack(state)?.id ?? null) : null,
+  );
 
-  if (saved.length === 0 && playlists.length === 0) {
+  if (playlists.length === 0) {
     return (
       <div className="relative mt-10 max-sm:mt-6">
-        {/* **빈 줄 셋을 실제 줄의 기하로 깔아 둔다**(커버 56px 원 + 글자 두 줄).
-            점선 스타디움 박스는 "여기 뭔가 없다" 까지만 말했다. 곡이 쌓일 모양을
-            그려 두면 무엇이 들어오는 자리인지가 먼저 읽히고, 담은 뒤의 화면과
-            같은 리듬이라 목록이 채워질 때 자리가 튀지 않는다.
+        {/* **빈 줄 셋을 실제 줄의 기하로 깔아 둔다**(커버 + 글자 두 줄).
+            점선 스타디움 박스는 "여기 뭔가 없다" 까지만 말했다. 리스트가 쌓일
+            모양을 그려 두면 무엇이 들어오는 자리인지가 먼저 읽히고, 만든 뒤의
+            화면과 같은 리듬이라 목록이 채워질 때 자리가 튀지 않는다.
             아래로 갈수록 흐려진다 — 셋에서 끝나는 목록이 아니라는 뜻이다.
             장식이라 낭독기에서 지운다. */}
         <div
@@ -79,29 +79,15 @@ export function LibraryList() {
   }
 
   return (
-    <>
-      {playlists.length > 0 && (
-        <ul className="mt-10 flex flex-col gap-3 max-sm:mt-6">
-          {playlists.map((playlist) => (
-            <li key={playlist.id} className="card-enter">
-              <PlaylistCard playlist={playlist} sounding={sounding} />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <ul className="mt-6 flex flex-col gap-3">
-        {saved.map((track) => (
-          <li key={track.id} className="card-enter">
-            <TrackRow
-              track={track}
-              isCurrent={sounding === track.id}
-              saved
-              onPlay={() => play("library", queue, queue.findIndex((t) => t.id === track.id))}
-            />
-          </li>
-        ))}
-      </ul>
-    </>
+    <ul className="mt-10 flex flex-col gap-3 max-sm:mt-6">
+      {playlists.map((playlist) => (
+        <li key={playlist.id} className="card-enter">
+          <PlaylistCard
+            playlist={playlist}
+            sounding={queueId === `library:${playlist.id}` ? soundingNow : null}
+          />
+        </li>
+      ))}
+    </ul>
   );
 }

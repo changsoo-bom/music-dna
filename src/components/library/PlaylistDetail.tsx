@@ -3,10 +3,12 @@
 import { PencilSimpleIcon, XIcon } from "@phosphor-icons/react/dist/ssr";
 import { useState } from "react";
 
+
 import { TrackRow } from "@/components/common/TrackRow";
 import { Arrow, ButtonLink, buttonClass } from "@/components/ui/Button";
 import { ConfirmPop } from "@/components/ui/ConfirmPop";
 import { NAV_BACK } from "@/constants/nav";
+import { usePop } from "@/hooks/use-pop";
 import { useStoredValue } from "@/hooks/use-stored-value";
 import { removePlaylistTracks, renamePlaylist } from "@/lib/playlists";
 import { toTracks } from "@/lib/schemas/played";
@@ -14,8 +16,19 @@ import { parsePlaylists } from "@/lib/schemas/playlist";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { isPlayable, soundingId, usePlayerStore } from "@/lib/use-player-store";
 
-const ICON_BUTTON =
+const ICON_TARGET =
   "grid h-10 w-10 shrink-0 place-items-center rounded-full text-slate transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none";
+
+/**
+ * 열릴 때 초점과 전체 선택. **모듈 바깥에 둔다.**
+ *
+ * 콜백 ref 는 함수 identity 가 바뀌면 React 가 붙였다 떼기를 다시 한다.
+ * 이 입력칸은 `value` 가 state 라 키 입력마다 리렌더되므로, 렌더 안에서
+ * 화살표를 만들면 **타이핑할 때마다 전체 선택이 걸려 글자를 못 친다** —
+ * 지금은 React Compiler 가 메모해서 안 그럴 뿐이고, 이 컴포넌트에서
+ * 컴파일러가 손을 떼는 날 조용히 깨진다. 고정된 함수면 그 전제가 필요 없다.
+ */
+const selectAll = (el: HTMLInputElement | null) => el?.select();
 
 /**
  * 목록 머리줄의 텍스트 버튼. **라벨과 같은 13px 이다** —
@@ -48,17 +61,17 @@ export function PlaylistDetail({ id }: { id: string }) {
   /** 고른 곡. **`null` 이면 선택 모드가 아니다** — 이름 초안과 같은 방식이다.
       나갈 때 고른 것이 남아 있으면 다음에 켰을 때 이미 체크된 줄이 보인다 */
   const [picked, setPicked] = useState<ReadonlySet<string> | null>(null);
-  /** 빼기 전에 한 번 묻는 중. **되돌리기가 화면에 없다** — 리스트를 지울 때와
+  /** 빼기 전에 한 번 묻는 창. **되돌리기가 화면에 없다** — 리스트를 지울 때와
       같은 이유다(`PlaylistCard`). 여기는 여러 곡이 한 번에 빠져서 잘못
       눌렀을 때 다시 담는 값이 더 크다 */
-  const [asking, setAsking] = useState(false);
+  const asking = usePop();
   const playlist = parsePlaylists(useStoredValue(STORAGE_KEYS.playlists)).find(
     (list) => list.id === id,
   );
   const tracks = toTracks(playlist?.trackIds ?? []);
   const queue = tracks.filter(isPlayable);
   const play = usePlayerStore((state) => state.play);
-  const sounding = usePlayerStore((state) => soundingId(state, "library"));
+  const sounding = usePlayerStore((state) => soundingId(state, `library:${id}`));
 
   if (!playlist) {
     return (
@@ -97,8 +110,8 @@ export function PlaylistDetail({ id }: { id: string }) {
           <div className="row-enter flex w-full items-end gap-6 max-sm:flex-col max-sm:items-stretch max-sm:gap-3">
             <div className="relative max-w-[500px] flex-1">
               <input
-                // 열릴 때 초점과 전체 선택. ref 콜백이라 effect 가 필요 없다
-                ref={(el) => el?.select()}
+                // 열릴 때 초점과 전체 선택. ref 콜백이라 effect 가 필요 없다 → `selectAll`
+                ref={selectAll}
                 value={draft}
                 onChange={(event) => setDraft(event.currentTarget.value)}
                 aria-label="리스트 이름"
@@ -171,7 +184,7 @@ export function PlaylistDetail({ id }: { id: string }) {
               type="button"
               onClick={() => setDraft(playlist.name)}
               aria-label="리스트 이름 바꾸기"
-              className={ICON_BUTTON}
+              className={ICON_TARGET}
             >
               <PencilSimpleIcon size={20} weight="light" aria-hidden />
             </button>
@@ -187,9 +200,16 @@ export function PlaylistDetail({ id }: { id: string }) {
         <span className="tabular-nums"> · {playlist.createdAt.replaceAll("-", ".")}</span>
       </p>
 
+      {/* **"총 N곡" 과 여기가 서로를 부정하면 안 된다.** 개수는 저장된 사실
+          그대로고(`trackIds`), 목록은 카탈로그에 있는 곡만 그린다(`toTracks`)
+          — 담긴 곡이 전부 아직 안 채워진 자리면 "총 3곡" 밑에 "담긴 곡이
+          없습니다" 가 나란히 선다. 담긴 건 사실인데 화면이 거짓말을 하는
+          것이라, 그 경우는 다르게 말한다 → `LibraryList` 의 같은 판단 */}
       {tracks.length === 0 ? (
         <p className="mt-12 text-sm text-slate">
-          아직 담긴 곡이 없습니다. 곡 옆의 +를 누르면 여기에 쌓입니다.
+          {playlist.trackIds.length === 0
+            ? "아직 담긴 곡이 없습니다. 곡 옆의 +를 누르면 여기에 쌓입니다."
+            : `담긴 ${playlist.trackIds.length}곡은 아직 재생 준비 중입니다. 곧 여기에 나옵니다.`}
         </p>
       ) : (
         /* **전체 화면의 재생목록과 같은 모양이다** → `PlayedQueue`
@@ -222,7 +242,7 @@ export function PlaylistDetail({ id }: { id: string }) {
                 <button
                   type="button"
                   disabled={picked.size === 0}
-                  onClick={() => setAsking(true)}
+                  onClick={asking.show}
                   className={ROW_ACTION}
                 >
                   삭제{picked.size > 0 && ` (${picked.size})`}
@@ -276,7 +296,7 @@ export function PlaylistDetail({ id }: { id: string }) {
                     saved
                     onPlay={() =>
                       play(
-                        "library",
+                        `library:${playlist.id}`,
                         queue,
                         queue.findIndex((item) => item.id === track.id),
                       )
@@ -292,20 +312,15 @@ export function PlaylistDetail({ id }: { id: string }) {
       {/* 리스트를 지울 때와 같은 창을 쓴다 → `PlaylistCard`
           곡은 카탈로그에서 사라지는 게 아니라 이 리스트에서만 빠진다.
           그것까지 말해 줘야 "삭제" 가 어디까지 가는지가 읽힌다 */}
-      {asking && picked && (
+      {asking.mounted && (
         <ConfirmPop
+          state={asking}
           title="삭제하시겠습니까?"
-          detail={`고른 ${picked.size}곡이 이 리스트에서 빠집니다. 곡 자체는 남아 있고, 다시 담을 수 있습니다.`}
+          detail={`고른 ${picked?.size ?? 0}곡이 이 리스트에서 빠집니다. 곡 자체는 남아 있고, 다시 담을 수 있습니다.`}
           onConfirm={() => {
-            removePlaylistTracks(playlist.id, picked);
+            if (picked) removePlaylistTracks(playlist.id, picked);
             setPicked(null);
-            // **여기서도 닫는다.** `onClose` 는 `<dialog>` 가 실제로 닫힐 때
-            // 오는데, 그 전에 `picked` 가 비면서 이 창이 먼저 언마운트된다 —
-            // 이벤트를 받을 것이 없어져 `asking` 이 켜진 채로 남고, 다음에
-            // "선택하기" 를 누르는 순간 창이 저절로 열린다
-            setAsking(false);
           }}
-          onClose={() => setAsking(false)}
         />
       )}
     </>

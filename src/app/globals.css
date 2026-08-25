@@ -82,6 +82,22 @@
   --shadow-float: 0 24px 48px 0 rgb(0 0 0 / 0.08);
 }
 
+/* **스크롤바 자리를 항상 비워 둔다.**
+
+   전체 화면 재생이 열리면 아래 본문의 스크롤이 선다
+   (`body:has(dialog.player-screen[open])`). 그때 스크롤바가 사라지면서
+   뷰포트가 그 폭만큼 넓어지고, 시트에 안 덮인 것들 — 재생 바, 그리고
+   전환 사이에 남는 헤더(`view-transition-name: site-header`) — 이 옆으로
+   튄다. 자리를 미리 잡아 두면 스크롤이 서든 말든 폭이 안 바뀐다.
+
+   **끄고 켜지 않는다.** 한때 시트가 열릴 때만 `auto` 로 되돌렸는데,
+   그 전환 자체가 같은 점프를 만들었다 — 문제를 옮겼을 뿐이었다.
+   시트가 그 15px 을 못 덮는 것은 상관없다: 남는 띠도 `--canvas` 라
+   시트와 같은 색이다(`dialog.player-screen` 의 `width: 100%`). */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   /* 푸터를 바닥에 붙인다. 내용이 짧은 화면(검사 이력이 없는 홈)에서 푸터가
      화면 중간에 떠 있으면 페이지가 잘린 것처럼 보인다.
@@ -527,11 +543,11 @@ dialog.player-screen {
   position: fixed;
   inset: 0 auto var(--player-bar-h) 0;
   z-index: 60;
-  /* `100vw` 도 스크롤바 자리는 못 먹는다 — `vw` 의 기준은 창이 아니라
-     스크롤바 자리를 뺀 초기 포함 블록이다. 시트가 오른쪽 끝에 닿는 것은
-     열려 있는 동안 아래 본문의 스크롤이 서면서 그 자리가 없어지기 때문이다
-     (`body:has(dialog.player-screen[open])`). */
-  width: 100vw;
+  /* `100vw` 가 아니라 `100%` 다. 스크롤바 자리는 `scrollbar-gutter: stable`
+     이 항상 비워 두므로(위 `html`) 시트는 그 안쪽을 채우면 된다 — 남는 띠는
+     `--canvas` 라 시트와 같은 색이고, 대신 열고 닫을 때 폭이 안 바뀐다.
+     `100vw` 를 쓰면 스크롤바가 서는 페이지에서 시트가 그만큼 넘쳐 나간다. */
+  width: 100%;
   max-width: none;
   height: auto;
   max-height: none;

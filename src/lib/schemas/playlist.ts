@@ -31,5 +31,10 @@ export function parsePlaylists(raw: string | null): Playlist[] {
   }
 
   const lists = storedSchema.safeParse(parsed);
-  return lists.success ? lists.data : [];
+  if (!lists.success) return [];
+
+  // **같은 곡이 두 번 들어 있으면 한 줄로 접는다.** 쓰기 경로는 담긴 것을
+  // 다시 담지 않지만(`togglePlaylistTrack`) 저장소는 사람이 고칠 수 있고,
+  // 겹친 채로 나가면 목록에 같은 곡이 두 줄 생기면서 React 의 key 가 겹친다
+  return lists.data.map((list) => ({ ...list, trackIds: [...new Set(list.trackIds)] }));
 }

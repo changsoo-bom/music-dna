@@ -3,10 +3,9 @@
 import { MusicNotesIcon, Pause, Play, TrashIcon } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-
 import { ConfirmPop } from "@/components/ui/ConfirmPop";
 import { NAV_FORWARD } from "@/constants/nav";
+import { usePop } from "@/hooks/use-pop";
 import { deletePlaylist } from "@/lib/playlists";
 import { toTracks } from "@/lib/schemas/played";
 import { isPlayable, usePlayerStore } from "@/lib/use-player-store";
@@ -42,11 +41,12 @@ export function PlaylistCard({
   sounding,
 }: {
   playlist: Playlist;
-  /** 지금 `"library"` 큐에서 나고 있는 곡. **부모가 한 번 구독해서 내려준다**
-      — 카드마다 구독하면 리스트 수만큼 깨어난다 → `LibraryList` */
+  /** 이 리스트에서 지금 나고 있는 곡. **부모가 한 번 구독해서 내려준다**
+      — 카드마다 구독하면 리스트 수만큼 깨어난다. 큐 이름이 이 리스트 것이
+      아니면 `null` 이다 → `LibraryList` */
   sounding: string | null;
 }) {
-  const [asking, setAsking] = useState(false);
+  const asking = usePop();
   const tracks = toTracks(playlist.trackIds);
   const cover = tracks.find((track) => track.youtubeId)?.youtubeId;
   const queue = tracks.filter(isPlayable);
@@ -103,15 +103,23 @@ export function PlaylistCard({
           커버는 사진이라 아이콘만 얹으면 안 읽힌다 → `TrackRow`
           지금 나는 리스트는 계속 보이고, 나머지는 포인터가 올라올 때만 보인다.
 
+          **호버가 없는 기기에서는 계속 보인다**(`@media (hover: none)`).
+          `opacity: 0` 인 요소도 눌리기 때문에, 안 그러면 커버 96px 이 아무
+          표시 없는 재생 버튼이 된다 — 상세로 가려고 누른 손에 갑자기 음악이
+          난다. 카드의 나머지는 링크라, 같은 손짓이 자리에 따라 다른 일을
+          하는 셈이었다.
+
           틀 수 있는 곡이 없으면 안 나온다. 눌러도 아무 일이 없는 버튼은
           고장으로 읽힌다 */}
       {first && (
         <button
           type="button"
-          onClick={() => play("library", queue, 0)}
+          onClick={() => play(`library:${playlist.id}`, queue, 0)}
           aria-label={`${playlist.name} ${isCurrent ? "일시정지" : "재생"}`}
           className={`absolute top-1/2 left-4 grid h-24 w-24 -translate-y-1/2 place-items-center rounded-btn bg-ink/45 text-white transition-opacity duration-200 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none max-sm:h-20 max-sm:w-20 ${
-            isCurrent ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            isCurrent
+              ? "opacity-100"
+              : "opacity-0 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
           }`}
         >
           {/* 재생 삼각형을 따로 밀지 않는다 — Phosphor 의 `Play`(fill)는
@@ -126,7 +134,7 @@ export function PlaylistCard({
         type="button"
         onClick={() => {
           if (playlist.trackIds.length > 0) {
-            setAsking(true);
+            asking.show();
             return;
           }
           deletePlaylist(playlist.id);
@@ -137,12 +145,12 @@ export function PlaylistCard({
         <TrashIcon size={24} weight="light" aria-hidden />
       </button>
 
-      {asking && (
+      {asking.mounted && (
         <ConfirmPop
+          state={asking}
           title={`${playlist.name} 리스트를 지울까요?`}
           detail={`담긴 ${playlist.trackIds.length}곡이 이 리스트에서 빠집니다. 되돌릴 수 없습니다.`}
           onConfirm={() => deletePlaylist(playlist.id)}
-          onClose={() => setAsking(false)}
         />
       )}
     </div>

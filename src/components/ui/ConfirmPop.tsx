@@ -1,6 +1,9 @@
 "use client";
 
-import { closeAfterPop } from "@/lib/pop-close";
+import { useId } from "react";
+
+import { Pop } from "@/components/ui/Pop";
+import type { PopState } from "@/hooks/use-pop";
 
 /**
  * 두 버튼이 나눠 갖는 모양. 필 버튼의 잉크 테두리를 안 쓴다 — 창 안에서
@@ -18,9 +21,8 @@ const ACTION =
  * 서체도 반경도 색도 안 따라오고, 크롬 주소창 밑에 붙는 모양이라 무엇에 대한
  * 물음인지도 잘 안 읽힌다.
  *
- * **진짜 모달이다**(`showModal()`) — 묻는 동안 뒤에서 할 일이 없다. Escape 로
- * 닫는 것, 초점을 가두는 것, 뒤를 덮는 것은 브라우저가 해 준다
- * → `PlaylistPickerPop`
+ * 창 껍데기와 여닫는 일은 `Pop` 이 한다 — 여기는 안에 무엇이 들어가는지만
+ * 정한다. 부모는 `usePop()` 으로 상태를 만들어 내려준다.
  *
  * **취소가 DOM 의 처음이다.** 열릴 때 초점이 첫 번째 포커스 가능한 요소로
  * 가므로, 열자마자 Enter 를 누르면 지워지는 게 아니라 닫힌다. 되돌릴 수 없는
@@ -31,36 +33,41 @@ const ACTION =
  * 무엇을 지우는지는 글이 말한다 → `.claude/rules/styling.md`
  */
 export function ConfirmPop({
+  state,
   title,
   detail,
   confirmLabel = "삭제",
   onConfirm,
-  onClose,
 }: {
+  state: PopState;
   title: string;
   detail?: string;
   confirmLabel?: string;
   onConfirm: () => void;
-  onClose: () => void;
 }) {
+  /* **id 를 손으로 안 짓는다.** 닫히는 창과 새로 연 창이 잠깐 같이 DOM 에
+     있을 수 있어서, 고정값이면 그때 id 가 겹치고 낭독기가 닫히는 쪽 제목을
+     읽는다 → `usePop` */
+  const titleId = useId();
+  const detailId = useId();
+
   return (
-    <dialog
-      ref={(el) => {
-        if (el && !el.open) el.showModal();
-      }}
-      // 닫히는 애니메이션이 끝난 뒤에 언마운트한다 → `closeAfterPop`
-      onClose={(event) => closeAfterPop(event.currentTarget, onClose)}
-      // 배경을 누르면 닫는다. `<dialog>` 자체가 과녁이면 그건 바깥이다
-      onClick={(event) => {
-        if (event.target === event.currentTarget) event.currentTarget.close();
-      }}
-      aria-labelledby="confirm-title"
-      className="pop m-auto w-[min(24rem,calc(100vw-2rem))] rounded-stadium bg-lifted p-7 shadow-float"
+    <Pop
+      state={state}
+      labelledBy={titleId}
+      // 무엇이 얼마나 지워지는지는 이 줄에 있다. 안 묶으면 낭독기가
+      // 제목만 읽고, 되돌릴 수 없는 결정을 그 한 줄로 하게 된다
+      describedBy={detail ? detailId : undefined}
+      width="w-[min(24rem,calc(100vw-2rem))]"
     >
-      <p id="confirm-title" className="text-xl leading-snug tracking-[-0.02em]">
+      <p id={titleId} className="text-xl leading-snug tracking-[-0.02em]">
         {title}
       </p>
-      {detail && <p className="mt-2.5 text-sm text-slate">{detail}</p>}
+      {detail && (
+        <p id={detailId} className="mt-2.5 text-sm text-slate">
+          {detail}
+        </p>
+      )}
 
       {/* **버튼 둘이 같은 폭이다.** 되돌릴 수 없는 쪽이 더 크면 손이 그리로
           간다. 무게는 색으로만 나뉜다 — 흰 알약은 이 시스템에서 떠 있는
@@ -84,6 +91,6 @@ export function ConfirmPop({
           {confirmLabel}
         </button>
       </div>
-    </dialog>
+    </Pop>
   );
 }
