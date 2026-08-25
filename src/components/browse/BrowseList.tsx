@@ -1,40 +1,22 @@
 "use client";
 
+import { Play } from "@phosphor-icons/react/dist/ssr";
+
 import { TrackRow } from "@/components/common/TrackRow";
-import { GENRES, PARENT_OF } from "@/constants/genres";
-import { CATALOG } from "@/data/catalog";
 import { useSavedTrackIds } from "@/hooks/use-playlists";
+import { browseGroups } from "@/lib/browse";
 import { isPlayable, soundingId, usePlayerStore } from "@/lib/use-player-store";
-import type { CatalogTrack, Genre, Region } from "@/types/music";
-
-type BrowseGroup = {
-  genre: Genre;
-  label: string;
-  tracks: readonly CatalogTrack[];
-};
+import type { Genre, Region } from "@/types/music";
 
 /**
- * 카탈로그를 상위 장르로 묶는다. **모듈 스코프에서 한 번.**
+ * 전체보기의 곡 목록.
  *
- * 페이지가 만들어 prop 으로 넘기지 않는다 — 그러면 카탈로그가 두 번 실린다.
- * 이 파일이 `use-player-store` 를 통해 `CATALOG` 를 이미 클라이언트 번들에
- * 갖고 있는데(`radioPick`), RSC 페이로드로 같은 109곡을 또 직렬화하게 된다.
- * 주소에서 오는 것은 **고른 값 두 개**뿐이다.
+ * **좁히는 값은 주소에서 온다**(`region` · `genre`). 색인과 스위치는 링크고
+ * 이 화면은 고른 값을 받기만 한다 — 뒤로가기·공유가 공짜로 따라온다
+ * → `.claude/rules/state.md` · `GenreRail`
  *
- * 곡이 없는 상위 장르는 뺀다. "0곡" 헤더만 남는 칸이 생기지 않는다.
- */
-const GROUPS: readonly BrowseGroup[] = GENRES.map((genre) => ({
-  genre: genre.id,
-  label: genre.label,
-  tracks: CATALOG.filter((track) => PARENT_OF[track.subGenre] === genre.id),
-})).filter((group) => group.tracks.length > 0);
-
-/**
- * 전체보기. 카탈로그를 상위 장르로 묶어 편다.
- *
- * **좁히는 값은 주소에서 온다**(`region` · `genre`). 탭은 링크고 이 화면은
- * 고른 값을 받기만 한다 — 뒤로가기·공유가 공짜로 따라온다
- * → `.claude/rules/state.md` · `BrowseTabs`
+ * 좁히는 규칙 자체는 `browseGroups` 한 곳에 있다. 머리글의 곡 수는 서버가
+ * 세고 목록은 여기서 그리는데, 두 곳이 각자 세면 언젠가 어긋난다.
  *
  * 두 축은 곱해진다. 국내 힙합처럼 둘 다 고른 화면이 정상이고, 그 교집합이
  * 비면 "여기엔 아직 곡이 없다" 고 말한다 — 빈 목록만 남기면 고장으로 읽힌다.
@@ -47,65 +29,100 @@ export function BrowseList({ region, genre }: { region: Region | null; genre: Ge
   const sounding = usePlayerStore((state) => soundingId(state, "browse"));
   const savedIds = useSavedTrackIds();
 
-  const groups = GROUPS.filter((group) => genre === null || group.genre === genre)
-    .map((group) => ({
-      ...group,
-      tracks: region === null ? group.tracks : group.tracks.filter((t) => t.region === region),
-    }))
-    .filter((group) => group.tracks.length > 0);
+  const groups = browseGroups(region, genre);
 
   /**
    * 큐는 **지금 보이는 것 전부다.** 장르별로 끊으면 Pop 마지막 곡에서 재생이
    * 서고, 눈에 보이는 다음 줄과 다음에 나는 곡이 어긋난다. 반대로 안 보이는
    * 곡까지 넣으면 국내만 골라 놓고 틀었는데 해외 곡이 이어진다 — 좁힌 것이
    * 목록에만 걸리고 재생에는 안 걸리는 셈이다.
-   *
-   * 모듈 스코프에 못 둔다. 고른 값에 따라 달라지는 값이라 화면과 같이 움직여야
-   * 한다 — 109곡을 훑는 일이고 탭을 누를 때만 다시 돈다.
    */
   const queue = groups.flatMap((group) => group.tracks).filter(isPlayable);
 
   if (groups.length === 0) {
     return (
-      <p className="mt-16 text-sm text-slate">
-        고른 조건에 맞는 곡이 아직 없습니다. 위에서 다른 칸을 눌러 보세요.
+      <p className="text-sm text-slate">
+        고른 조건에 맞는 곡이 아직 없습니다. 왼쪽에서 다른 칸을 눌러 보세요.
       </p>
     );
   }
 
   return (
-    <div className="mt-12 flex flex-col gap-16 max-sm:mt-8 max-sm:gap-12">
-      {groups.map((group) => (
-        <section key={group.genre}>
-          {/* 장르를 하나만 골랐으면 제목이 탭 이름을 그대로 되풀이한다.
-              같은 말이 두 번 서면 둘 중 무엇이 화면의 주인인지가 흐려진다 */}
-          {genre === null && (
-            <h2 className="text-[clamp(22px,2.2vw,28px)] leading-tight">{group.label}</h2>
-          )}
-          <p className={`text-sm text-slate ${genre === null ? "mt-2" : ""}`}>
-            {group.tracks.length}곡
-          </p>
+    <div className="flex min-w-0 flex-col gap-14 max-sm:gap-10">
+      {groups.map((group) => {
+        // 틀 수 있는 것만 튼다. 카탈로그가 배치로 채워지는 중이라 `youtubeId`
+        // 가 아직 안 붙은 곡이 섞여 있다 → `TrackRow`
+        const groupQueue = group.tracks.filter(isPlayable);
 
-          <ul className="mt-6 grid grid-cols-3 gap-3 max-lg:grid-cols-2 max-sm:grid-cols-1">
-            {group.tracks.map((track) => (
-              <li key={track.id}>
-                <TrackRow
-                  track={track}
-                  isCurrent={sounding === track.id}
-                  saved={savedIds.has(track.id)}
-                  onPlay={() =>
-                    play(
-                      "browse",
-                      queue,
-                      queue.findIndex((item) => item.id === track.id),
-                    )
-                  }
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+        return (
+          <section key={group.genre}>
+            {/* 장르 이름과 조작이 헤어라인 한 줄을 나눠 쓴다. 목록이 여러 칸으로
+                이어질 때 그 줄이 칸의 시작을 말한다 — 큰 여백만으로는 스크롤
+                중에 어디서 갈렸는지가 안 읽힌다.
+
+                색인에서 장르를 하나만 골랐으면 제목을 안 그린다 — 그 이름은
+                왼쪽 기둥에도, 페이지 머리글에도 이미 있다. 같은 말이 세 번
+                서면 어느 것이 주인인지가 흐려진다. 줄은 남는다: 헤어라인이
+                목록의 시작을 말하고, 오른쪽 끝은 여전히 조작의 자리다 */}
+            <div
+              className={`flex items-baseline gap-4 border-b border-hair pb-3 ${
+                genre === null ? "justify-between" : "justify-end"
+              }`}
+            >
+              {genre === null && (
+                <h2 className="min-w-0 truncate text-[19px] font-medium tracking-[-0.01em]">
+                  {group.label}
+                  <span className="ml-2.5 text-sm tabular-nums text-slate">
+                    {group.tracks.length}
+                  </span>
+                </h2>
+              )}
+
+              {/* **이 칸만 튼다.** 큐가 이 장르로 끊기므로 마지막 곡 다음은
+                  옆 칸이 아니라 라디오가 이어 붙인다(`radioPick`) — 버튼이
+                  "전체 재생" 이라고 말했으면 그 전체가 어디까지인지가 목록과
+                  같아야 한다. 줄을 눌러 트는 것은 여전히 화면 전체가 큐다.
+
+                  텍스트 버튼이다. 이 화면에서 떠 있는 것은 스위치의 고른 칸
+                  하나뿐이라, 여기에 알약을 놓으면 그 하나가 둘이 된다.
+                  틀 수 있는 곡이 없으면 안 나온다 — 눌러도 아무 일이 없는
+                  버튼은 고장으로 읽힌다 */}
+              {groupQueue.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => play("browse", groupQueue, 0)}
+                  aria-label={`${group.label} ${groupQueue.length}곡 전체 재생`}
+                  className="flex shrink-0 items-center gap-1.5 text-[13px] font-medium tracking-[-0.01em] whitespace-nowrap text-ink transition-opacity hover:opacity-55 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none"
+                >
+                  {/* 재생 삼각형을 따로 밀지 않는다 — Phosphor 의 `Play`(fill)는
+                      잉크가 박스 안에서 이미 오른쪽에 그려져 있다 */}
+                  <Play size={13} weight="fill" aria-hidden />
+                  전체 재생
+                </button>
+              )}
+            </div>
+
+            <ul className="mt-5 grid grid-cols-2 gap-3 max-md:grid-cols-1">
+              {group.tracks.map((track) => (
+                <li key={track.id}>
+                  <TrackRow
+                    track={track}
+                    isCurrent={sounding === track.id}
+                    saved={savedIds.has(track.id)}
+                    onPlay={() =>
+                      play(
+                        "browse",
+                        queue,
+                        queue.findIndex((item) => item.id === track.id),
+                      )
+                    }
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
     </div>
   );
 }

@@ -261,14 +261,15 @@ export function PlayerScreen({
 /**
  * 지금 듣고 있는 것의 목록.
  *
- * **저장된 리스트를 틀 때만 그 리스트를 그린다**(`library:{id}`). 나머지는 빠른 선곡이다 —
- * 추천이나 전체보기에서 튼 곡은 재생과 동시에 빠른 선곡 맨 앞으로
- * 들어가므로(`recordPlayed`), 곁에 놓고 볼 목록은 그 다섯 장이 아니라
- * 빠른 선곡이다. 리스트만 다르다: 사람이 손으로 묶어 둔 것이고 빠른 선곡에
- * 통째로 들어가지도 않는다.
+ * **묶음을 틀었으면 그 묶음을 그린다.** 저장된 리스트(`library:{id}`)도,
+ * 전체보기의 카테고리 전체 재생(`browse`)도 마찬가지다 — 사람이 "이걸 다
+ * 틀어라" 라고 고른 것이라, 곁에 놓고 볼 목록은 그 묶음이다. 스토어의
+ * `queue` 가 `play` 가 받은 스냅숏이고 그것이 곧 재생 순서다. 라디오로
+ * 이어붙은 곡도 따라온다.
  *
- * 리스트일 때 그리는 것은 스토어의 `queue` 다. `play` 가 받은 스냅숏이라
- * 그것이 곧 재생 순서고, 라디오로 이어붙은 곡도 따라온다.
+ * **추천만 예외로 빠른 선곡을 그린다.** 저기는 다섯 장 중 하나를 집는
+ * 자리고, 집은 곡은 재생과 동시에 빠른 선곡 맨 앞으로 들어간다
+ * (`recordPlayed`) — 곁에 놓고 볼 목록은 그 다섯 장이 아니다.
  *
  * 제목이 어느 쪽인지 말한다. 같은 자리에 다른 목록이 뜨는데 이름이 하나면
  * 무엇을 보고 있는지 알 수 없다.
@@ -277,19 +278,19 @@ export function PlayerScreen({
  * 펴지만, 여기서는 지금 나는 곡 옆에 붙는 곁가지라 세로로 눕는 편이 읽힌다.
  */
 function PlayedQueue() {
-  // 리스트는 저마다 다른 큐 이름을 쓴다(`library:{id}`) → `use-player-store`
-  const listQueueId = usePlayerStore((state) =>
-    state.queueId?.startsWith("library:") ? state.queueId : null,
-  );
-  const listQueue = usePlayerStore((state) => state.queue);
+  const queueId = usePlayerStore((state) => state.queueId);
+  const storeQueue = usePlayerStore((state) => state.queue);
   const played = usePlayedTracks();
   const play = usePlayerStore((state) => state.play);
   const toggle = usePlayerStore((state) => state.toggle);
 
-  const listId = listQueueId ?? "played";
+  // 큐 이름이 없는 것은 아직 아무것도 안 튼 상태다. 이 화면은 곡이 있을 때만
+  // 열리므로 거의 안 오지만, 오면 빠른 선곡 쪽으로 읽는다
+  const fromRecommend = queueId === "recommend" || queueId === null;
+  const listId = fromRecommend ? "played" : queueId;
   // 빠른 선곡은 담은 것을 전부 그리는 곳이 아니다 — 여기서 줄을 누르면 바로
   // 트는 자리라 틀 수 있는 곡만 온다
-  const queue = listQueueId ? listQueue : played.filter(isPlayable);
+  const queue = fromRecommend ? played.filter(isPlayable) : storeQueue;
   /**
    * 지금 나는 곡. **목록 신원을 안 본다**(`soundingId` 와 다른 점).
    *
@@ -315,7 +316,7 @@ function PlayedQueue() {
 
   return (
     <section className="mt-14 w-full max-lg:text-left">
-      <h2 className="text-[13px] font-bold text-slate">{listQueueId ? "재생목록" : "빠른 선곡"}</h2>
+      <h2 className="text-[13px] font-bold text-slate">{fromRecommend ? "빠른 선곡" : "재생목록"}</h2>
 
       {/* **여기서만 스크롤한다**(`.scroll-panel`) — 목록이 아홉 줄까지 늘어도
           커버와 조작은 제자리에 남는다.
