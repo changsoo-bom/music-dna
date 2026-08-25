@@ -8,12 +8,12 @@ import type { CSSProperties, RefObject } from "react";
 import { TrackRow } from "@/components/common/TrackRow";
 import { SUB_GENRES } from "@/constants/genres";
 import { ORBIT_CIRCUMFERENCE } from "@/constants/orbit";
-import { useSavedTrackIds } from "@/hooks/use-playlists";
+import { usePlayedTracks } from "@/hooks/use-played-tracks";
 import { usePreference } from "@/hooks/use-preference";
 import { formatDuration } from "@/lib/format";
 import { moodAffinity } from "@/lib/quiz/scoring";
 import { trackMood } from "@/lib/report/recommend";
-import { currentTrack, usePlayerStore } from "@/lib/use-player-store";
+import { currentTrack, isPlayable, usePlayerStore } from "@/lib/use-player-store";
 
 /** 분위기 3축. 카탈로그가 곡마다 들고 있는 값 그대로다 */
 const AXES = [
@@ -259,38 +259,61 @@ export function PlayerScreen({
 }
 
 /**
- * **지금 트는 큐를 그대로 그린다.**
+ * 지금 듣고 있는 것의 목록.
  *
- * 전에는 여기가 늘 빠른 선곡이었다. 리스트를 틀어도 이 자리에는 빠른 선곡이
- * 떠 있어서, 화면이 말하는 다음 곡과 실제로 나올 곡이 달랐다 — 재생목록이
- * 재생 순서를 안 말하면 열어 볼 이유가 없다. 스토어의 `queue` 는 `play` 가
- * 받은 스냅숏이라 그것이 곧 재생 순서다.
+ * **저장된 리스트를 틀 때만 그 리스트를 그린다.** 나머지는 빠른 선곡이다 —
+ * 추천이나 전체보기에서 튼 곡은 재생과 동시에 빠른 선곡 맨 앞으로
+ * 들어가므로(`recordPlayed`), 곁에 놓고 볼 목록은 그 다섯 장이 아니라
+ * 빠른 선곡이다. 리스트만 다르다: 사람이 손으로 묶어 둔 것이고 빠른 선곡에
+ * 통째로 들어가지도 않는다.
  *
- * 큐가 곧 이 목록이므로 **목록 신원을 다시 볼 것이 없다**(`soundingId`).
- * 지금 나는 곡은 언제나 이 안에 있고, 여기서 누른 곡은 같은 `queueId` 로
- * 다시 트니 홈·보관함과의 토글 판정도 그대로 한 벌이다.
+ * 리스트일 때 그리는 것은 스토어의 `queue` 다. `play` 가 받은 스냅숏이라
+ * 그것이 곧 재생 순서고, 라디오로 이어붙은 곡도 따라온다.
+ *
+ * 제목이 어느 쪽인지 말한다. 같은 자리에 다른 목록이 뜨는데 이름이 하나면
+ * 무엇을 보고 있는지 알 수 없다.
  *
  * 카드가 아니라 줄이다. 홈에서는 이 목록이 화면의 주인공이라 3열 카드로
  * 펴지만, 여기서는 지금 나는 곡 옆에 붙는 곁가지라 세로로 눕는 편이 읽힌다.
  */
 function PlayedQueue() {
-  const queueId = usePlayerStore((state) => state.queueId);
-  const queue = usePlayerStore((state) => state.queue);
+  const fromList = usePlayerStore((state) => state.queueId === "library");
+  const listQueue = usePlayerStore((state) => state.queue);
+  const played = usePlayedTracks();
   const play = usePlayerStore((state) => state.play);
-  // 줄마다 구독하면 아홉 줄이 아홉 번 깨어난다. 한 번 받아서 줄마다 비교한다
+
+  const toggle = usePlayerStore((state) => state.toggle);
+
+  const listId = fromList ? "library" : "played";
+  // 빠른 선곡은 담은 것을 전부 그리는 곳이 아니다 — 여기서 줄을 누르면 바로
+  // 트는 자리라 틀 수 있는 곡만 온다
+  const queue = fromList ? listQueue : played.filter(isPlayable);
+  /**
+   * 지금 나는 곡. **목록 신원을 안 본다**(`soundingId` 와 다른 점).
+   *
+   * 추천에서 튼 곡은 큐 이름이 `"recommend"` 인데 이 자리에는 빠른 선곡이
+   * 뜬다. 신원까지 맞춰 보면 방금 누른 곡이 눈앞의 목록 맨 위에 있는데도
+   * 아무 표시가 안 붙는다 — 이 화면은 "지금 무엇을 듣고 있는가" 를 말하는
+   * 자리라 그러면 있으나 마나다.
+   *
+   * 아이콘과 행동이 갈리지 않게 **누르는 쪽을 여기 맞춘다**: 표시가 붙은
+   * 줄은 다시 눌렀을 때 일시정지다(아래 `onPlay`). 목록마다 판정이 갈려도
+   * 되는 이유가 이것이다 — 저기는 여러 목록이 같은 곡을 들고 있고,
+   * 여기는 목록이 하나뿐이다.
+   *
+   * 줄마다 구독하면 아홉 줄이 아홉 번 깨어난다. 한 번 받아서 줄마다 비교한다.
+   */
   const sounding = usePlayerStore((state) =>
     state.isPlaying ? (currentTrack(state)?.id ?? null) : null,
   );
-  // 보관함도 구독은 하나다 → `TrackRow`
-  const savedIds = useSavedTrackIds();
 
   // 이 화면은 곡이 있을 때만 열리므로 보통 비지 않는다. 그래도 비면 제목만
   // 남기지 않고 통째로 접는다 — 아무것도 없는 제목은 고장으로 보인다
-  if (!queueId || queue.length === 0) return null;
+  if (queue.length === 0) return null;
 
   return (
     <section className="mt-14 w-full max-lg:text-left">
-      <h2 className="text-[13px] font-bold text-slate">재생목록</h2>
+      <h2 className="text-[13px] font-bold text-slate">{fromList ? "재생목록" : "빠른 선곡"}</h2>
 
       {/* **여기서만 스크롤한다**(`.scroll-panel`) — 목록이 아홉 줄까지 늘어도
           커버와 조작은 제자리에 남는다.
@@ -333,12 +356,21 @@ function PlayedQueue() {
       <ul className="scroll-panel mt-4 flex max-h-[max(8rem,calc(100dvh-var(--player-bar-h)-var(--screen-chrome-h)))] flex-col pr-2">
         {queue.map((track, index) => (
           <li key={track.id}>
+            {/* **담기 버튼은 뺀다**(`savable`). 이 목록은 지금 나는 곡 옆에
+                붙는 곁가지고, 곡을 담는 것은 홈·보관함·추천에서 하는 일이다
+                — 여기까지 같은 버튼을 놓으면 시트가 목록 화면 노릇을 한다.
+                보관함 구독도 같이 사라진다 */}
             <TrackRow
               compact
+              savable={false}
               track={track}
               isCurrent={sounding === track.id}
-              saved={savedIds.has(track.id)}
-              onPlay={() => play(queueId, queue, index)}
+              saved={false}
+              // 표시가 붙은 줄은 일시정지다. 큐 이름이 달라도 마찬가지 —
+              // `play` 에 맡기면 다른 목록으로 보고 그 곡을 처음부터 다시 튼다
+              onPlay={() =>
+                sounding === track.id ? toggle() : play(listId, queue, index)
+              }
             />
           </li>
         ))}
