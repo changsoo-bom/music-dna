@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ViewTransition } from "react";
 
+import { CreatePlaylistButton } from "@/components/library/CreatePlaylistButton";
 import { LibraryList } from "@/components/library/LibraryList";
 
 export const metadata: Metadata = {
@@ -25,7 +26,11 @@ export default function LibraryPage() {
       <main className="shell flex-1 pb-28 max-sm:pb-16">
         <section className="pt-28 pb-24 max-sm:pt-16 max-sm:pb-14">
           <span className="eyebrow text-ink">보관함</span>
-          <h1 className="mt-5 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">담아 둔 곡</h1>
+          {/* 제목과 만들기 버튼이 한 줄이다. 좁은 화면에서는 버튼이 아래로 떨어진다 */}
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+            <h1 className="text-[clamp(28px,3.4vw,40px)] leading-[1.1]">나만의 리스트</h1>
+            <CreatePlaylistButton />
+          </div>
           <LibraryList />
         </section>
       </main>
