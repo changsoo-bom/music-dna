@@ -84,7 +84,7 @@ export function LibraryList() {
         <ul className="mt-10 flex flex-col gap-3 max-sm:mt-6">
           {playlists.map((playlist) => (
             <li key={playlist.id} className="card-enter">
-              <PlaylistCard playlist={playlist} />
+              <PlaylistCard playlist={playlist} sounding={sounding} />
             </li>
           ))}
         </ul>

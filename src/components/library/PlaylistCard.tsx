@@ -1,6 +1,6 @@
 "use client";
 
-import { MusicNotesIcon, TrashIcon } from "@phosphor-icons/react/dist/ssr";
+import { MusicNotesIcon, Pause, Play, TrashIcon } from "@phosphor-icons/react/dist/ssr";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -9,6 +9,7 @@ import { ConfirmPop } from "@/components/ui/ConfirmPop";
 import { NAV_FORWARD } from "@/constants/nav";
 import { deletePlaylist } from "@/lib/playlists";
 import { toTracks } from "@/lib/schemas/played";
+import { isPlayable, usePlayerStore } from "@/lib/use-player-store";
 import type { Playlist } from "@/types/music";
 
 /**
@@ -36,12 +37,28 @@ import type { Playlist } from "@/types/music";
  * 곡보다 큰 것이지 다른 종류의 것이 아니라서, 카드를 따로 만들면 한 페이지에
  * 표면이 두 벌 생긴다. 포인터가 올라오면 한 단계 떠오르는 것도 같다.
  */
-export function PlaylistCard({ playlist }: { playlist: Playlist }) {
+export function PlaylistCard({
+  playlist,
+  sounding,
+}: {
+  playlist: Playlist;
+  /** 지금 `"library"` 큐에서 나고 있는 곡. **부모가 한 번 구독해서 내려준다**
+      — 카드마다 구독하면 리스트 수만큼 깨어난다 → `LibraryList` */
+  sounding: string | null;
+}) {
   const [asking, setAsking] = useState(false);
-  const cover = toTracks(playlist.trackIds).find((track) => track.youtubeId)?.youtubeId;
+  const tracks = toTracks(playlist.trackIds);
+  const cover = tracks.find((track) => track.youtubeId)?.youtubeId;
+  const queue = tracks.filter(isPlayable);
+  const play = usePlayerStore((state) => state.play);
+  // 커버의 재생 버튼은 **첫 곡부터 트는 것**이라, 그 첫 곡이 지금 나고 있으면
+  // 다시 누르는 것은 일시정지다(`play` 가 같은 목록·같은 곡을 토글한다)
+  const first = queue[0];
+  const isCurrent = first ? sounding === first.id : false;
+  const Icon = isCurrent ? Pause : Play;
 
   return (
-    <div className="relative">
+    <div className="group relative">
       <Link
         href={`/library/${playlist.id}`}
         transitionTypes={NAV_FORWARD}
@@ -76,6 +93,32 @@ export function PlaylistCard({ playlist }: { playlist: Playlist }) {
           </p>
         </div>
       </Link>
+
+      {/* 커버 위의 재생. **링크 안이 아니라 형제다** — 버튼 안에 버튼을 넣을
+          수 없듯 링크 안에도 못 넣는다. 삭제 버튼이 오른쪽 끝을 차지하는 것과
+          같은 구조고, 여기서는 커버 자리에 정확히 겹쳐 놓는다(카드 여백이
+          `p-4` 라 `left-4`).
+
+          모양은 곡 줄의 커버와 같다 — 잉크를 반쯤 깔고 그 위에 아이콘.
+          커버는 사진이라 아이콘만 얹으면 안 읽힌다 → `TrackRow`
+          지금 나는 리스트는 계속 보이고, 나머지는 포인터가 올라올 때만 보인다.
+
+          틀 수 있는 곡이 없으면 안 나온다. 눌러도 아무 일이 없는 버튼은
+          고장으로 읽힌다 */}
+      {first && (
+        <button
+          type="button"
+          onClick={() => play("library", queue, 0)}
+          aria-label={`${playlist.name} ${isCurrent ? "일시정지" : "재생"}`}
+          className={`absolute top-1/2 left-4 grid h-24 w-24 -translate-y-1/2 place-items-center rounded-btn bg-ink/45 text-white transition-opacity duration-200 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none max-sm:h-20 max-sm:w-20 ${
+            isCurrent ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          }`}
+        >
+          {/* 재생 삼각형을 따로 밀지 않는다 — Phosphor 의 `Play`(fill)는
+              잉크가 박스 안에서 이미 오른쪽에 그려져 있다 */}
+          <Icon size={30} weight="fill" aria-hidden />
+        </button>
+      )}
 
       {/* **곡이 든 리스트는 한 번 묻는다.** 되돌리기가 화면에 없어서 잘못 누른
           삭제는 그대로 끝이다. 빈 리스트는 잃을 것이 없으므로 안 묻는다 */}
