@@ -557,6 +557,64 @@ html:has(dialog.player-screen[open]) {
   }
 }
 
+/* 묻고 고르는 작은 창(`ConfirmPop` · `PlaylistPickerPop`).
+
+   **전체 화면 시트와 다르게 페이드가 있다.** 저쪽은 화면을 통째로 덮으며
+   아래에서 올라오는 것이라 불투명도를 섞으면 두 겹으로 읽혔지만, 이건
+   본문 위에 떠 있는 종이 한 장이고 뒤가 비쳐 보이는 것이 정상이다.
+
+   0.24s 다. 물음에 답하려고 여는 창이라 시트(0.55s)처럼 오래 끌면
+   버튼을 누르러 가는 손을 기다리게 만든다. 8px 올라오며 살짝 커지는
+   정도로만 방향을 준다 — `translate` 와 `scale` 만 움직여서 레이아웃을
+   다시 재지 않는다.
+
+   `display` 와 `overlay` 는 원래 전환이 안 되는 속성이라 `allow-discrete`
+   로 열어 주고, 여는 쪽 시작 상태는 `@starting-style` 이 준다. 지원하지
+   않는 브라우저에서는 전환 없이 즉시 열린다: 기능은 그대로다.
+   prefers-reduced-motion 은 위 전역 블록이 duration 을 0 으로 만든다. */
+dialog.pop {
+  opacity: 0;
+  translate: 0 8px;
+  scale: 0.98;
+  transition:
+    opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    translate 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    scale 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    display 0.24s allow-discrete,
+    overlay 0.24s allow-discrete;
+}
+dialog.pop[open] {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
+}
+@starting-style {
+  dialog.pop[open] {
+    opacity: 0;
+    translate: 0 8px;
+    scale: 0.98;
+  }
+}
+
+/* 뒤를 덮는 면도 같이 켜진다. 창은 뜨는데 배경이 즉시 깔리면
+   덮개가 먼저 도착해서 창이 늦게 오는 것처럼 보인다. */
+dialog.pop::backdrop {
+  opacity: 0;
+  background: rgb(20 20 19 / 0.25);
+  transition:
+    opacity 0.24s ease,
+    display 0.24s allow-discrete,
+    overlay 0.24s allow-discrete;
+}
+dialog.pop[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  dialog.pop[open]::backdrop {
+    opacity: 0;
+  }
+}
+
 /* 값을 끄는 막대 둘 — 소리 크기(`.volume`)와 재생 위치(`.seek`).
    같은 그림이라 같은 규칙을 본다. 채워진 비율은 `--pct` 로 들어온다:
    소리 쪽은 React 가 인라인 style 로, 재생 위치 쪽은 0.5초 주기가
