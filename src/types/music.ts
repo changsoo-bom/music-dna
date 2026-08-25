@@ -7,6 +7,17 @@ export type ChartSlot = 1 | 2 | 3 | 4 | 5;
 
 export type Genre = "pop" | "rock" | "hiphop" | "rnb" | "electronic";
 
+/**
+ * 국내 곡인가 아닌가. **장르와 다른 축이다** — K-Pop 은 하위 장르지만
+ * 국내 발라드·인디록·힙합은 저마다 다른 장르에 흩어져 있어서, 장르만으로는
+ * "한국 노래" 를 못 고른다. 전체보기가 이 둘을 겹쳐서 좁힌다.
+ *
+ * **둘로만 가른다.** 나라별로 쪼개면 곡 하나에 국적이 여럿인 경우
+ * (한국에서 활동하는 일본 가수, 국제 공동작업)를 매번 판정해야 하는데,
+ * 화면이 묻는 것은 거기까지가 아니다.
+ */
+export type Region = "kr" | "intl";
+
 export type SubGenre =
   | "kpop" | "ballad" | "indie-pop" | "city-pop"
   | "indie-rock" | "modern-rock" | "shoegaze" | "punk"
@@ -95,6 +106,8 @@ export type CatalogTrack = {
   title: string;
   artist: string;
   subGenre: SubGenre;
+  /** 국내인가 해외인가. 전체보기의 첫 번째 탭 줄이 이 값으로 나뉜다 */
+  region: Region;
   /**
    * 하위 장르 기본 좌표에서 **달라지는 축만** 적는다.
    * 40곡 × 3개를 전부 손으로 적으면 대부분이 기본값의 복사본이 되고,

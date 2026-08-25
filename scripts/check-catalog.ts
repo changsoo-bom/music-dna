@@ -58,6 +58,21 @@ const allSubGenres = GENRES.flatMap((g) => g.children.map((c) => c.id));
 const empty = allSubGenres.filter((id) => !perSubGenre[id]);
 assert.deepEqual(empty, [], `곡이 하나도 없는 하위 장르: ${empty.join(", ")}`);
 
+/**
+ * **국내·해외가 둘 다 채워져 있다.**
+ *
+ * 전체보기의 첫 번째 탭 줄이 이 값으로 나뉘므로(`BrowseTabs`), 한쪽이 비면
+ * 탭 하나가 늘 빈 화면이다. 곡을 새로 넣으면서 `region` 을 안 적으면 타입이
+ * 막지만, 전부 한쪽으로 몰리는 것은 타입이 못 잡는다.
+ */
+const perRegion = CATALOG.reduce<Record<string, number>>((acc, t) => {
+  acc[t.region] = (acc[t.region] ?? 0) + 1;
+  return acc;
+}, {});
+for (const region of ["kr", "intl"] as const) {
+  assert.ok(perRegion[region], `region "${region}" 인 곡이 하나도 없다 — 탭 하나가 빈 화면이 된다`);
+}
+
 const perGenre = CATALOG.reduce<Record<string, number>>((acc, t) => {
   const parent = PARENT_OF[t.subGenre];
   acc[parent] = (acc[parent] ?? 0) + 1;
@@ -218,6 +233,6 @@ for (const track of CATALOG) {
 }
 
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 다시 찾기 3판 · 길이 표기 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${perRegion.kr}곡 / 해외 ${perRegion.intl}곡 · 다시 찾기 3판 · 길이 표기 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );

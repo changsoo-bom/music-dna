@@ -17,6 +17,7 @@ const QUEUE: PlayableTrack[] = ["a", "b", "c"].map((id) => ({
   id,
   title: id.toUpperCase(),
   artist: "누군가",
+  region: "kr",
   subGenre: "kpop",
   youtubeId: `yt-${id}`,
 }));
