@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { ViewTransition } from "react";
 
 import { BrowseList } from "@/components/browse/BrowseList";
@@ -9,10 +8,6 @@ import { GENRES } from "@/constants/genres";
 import { REGIONS, toRegion } from "@/constants/regions";
 import { browseGroups } from "@/lib/browse";
 import type { Genre } from "@/types/music";
-
-export const metadata: Metadata = {
-  title: "전체보기",
-};
 
 /**
  * 전체보기. 헤더의 두 칸 중 하나이고, 검사를 안 한 사람도 볼 수 있는 유일한

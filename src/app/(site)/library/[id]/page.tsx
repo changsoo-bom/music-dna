@@ -1,16 +1,10 @@
-import type { Metadata } from "next";
 import { ViewTransition } from "react";
 
 import { PlaylistDetail } from "@/components/library/PlaylistDetail";
 
-export const metadata: Metadata = {
-  title: "리스트",
-};
-
 /**
  * 리스트 상세. 이름도 곡도 저장소에 있어서 서버가 아는 것이 주소의 id 뿐이다
  * — 라우트는 그 id 를 넘기기만 하고 화면은 `PlaylistDetail` 이 그린다.
- * 제목(`metadata`)에 리스트 이름을 못 쓰는 것도 같은 이유다.
  *
  * `params` 는 Promise 다. 껍데기는 목록 화면과 같은 전환·여백을 쓴다.
  */

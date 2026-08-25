@@ -3,7 +3,6 @@ import { ViewTransition } from "react";
 import { QuizFlow } from "@/components/quiz/QuizFlow";
 
 export const metadata = {
-  title: "성향 검사 · My Music DNA",
   description: "다섯 문항으로 음악 취향을 좌표로 만듭니다.",
 };
 
