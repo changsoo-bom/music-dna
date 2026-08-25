@@ -37,6 +37,9 @@ export function RegionSwitch({ region, genre }: { region: Region | null; genre: 
           <Link
             key={item.id ?? "all"}
             href={browseHref({ region, genre }, { region: item.id })}
+            /* 좁히는 것은 이동이 아니다 — 보던 자리에서 목록만 바뀐다.
+               색인과 같은 이유다 → `GenreRail` */
+            scroll={false}
             aria-current={on ? "page" : undefined}
             className={`inline-flex h-9 shrink-0 items-center rounded-pill px-4 text-sm whitespace-nowrap transition duration-200 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none ${
               on ? "bg-white font-medium text-ink shadow-lift" : "text-slate hover:text-ink"

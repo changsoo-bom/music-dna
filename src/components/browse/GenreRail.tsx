@@ -51,6 +51,13 @@ export function GenreRail({
           <Link
             key={item.id ?? "all"}
             href={browseHref({ region, genre }, { genre: item.id })}
+            /* **좁히는 것은 이동이 아니다.** 기본 동작은 `<main>` 머리가
+               화면 밖에 있으면 거기로 스크롤해 주는 것인데, 이 색인은 붙어
+               다니느라(`sticky`) 목록 한참 아래에서도 눌린다. 그러면 Hip-hop
+               을 보다가 R&B 를 누른 순간 화면이 페이지 꼭대기로 튀고, 그게
+               페이지가 통째로 다시 그려진 것처럼 읽힌다.
+               보던 자리에서 목록만 바뀌는 것이 맞다 */
+            scroll={false}
             aria-current={on ? "page" : undefined}
             className={`flex shrink-0 items-baseline gap-3 border-l-2 py-2 pl-4 text-[15px] transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none max-lg:border-l-0 max-lg:border-b-2 max-lg:py-2.5 max-lg:pl-0 max-lg:pr-5 ${
               on
