@@ -18,8 +18,13 @@ export function isPlayable(track: CatalogTrack): track is PlayableTrack {
  * 맨 앞으로 올리므로(`recordPlayed`) 목록이 비교 도중에 재정렬되고, 추천은
  * New Search 로 통째로 갈린다. 목록에 이름을 붙여야 "같은 목록의 같은 곡" 을
  * 판정할 수 있다.
+ *
+ * **리스트는 이름 하나로 안 된다.** 저장된 리스트는 여럿이고 같은 곡이 여러
+ * 리스트에 담기는 것이 이 기능의 정상 사용이라, 전부 `"library"` 로 두면
+ * 첫 곡이 같은 두 리스트가 서로를 일시정지시킨다 — B를 틀려고 눌렀는데
+ * A가 멈춘다. 그래서 리스트만 자기 id 를 달고 다닌다.
  */
-export type QueueId = "recommend" | "played" | "library" | "browse";
+export type QueueId = "recommend" | "played" | "browse" | `library:${string}`;
 
 /**
  * 큐가 끝났을 때 이어 틀 곡을 카탈로그에서 고른다. **같은 종류에서 무작위로.**

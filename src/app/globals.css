@@ -82,10 +82,19 @@
   --shadow-float: 0 24px 48px 0 rgb(0 0 0 / 0.08);
 }
 
+/* **스크롤바 자리를 항상 비워 둔다.**
+
+   전체 화면 재생이 열리면 아래 본문의 스크롤이 선다
+   (`body:has(dialog.player-screen[open])`). 그때 스크롤바가 사라지면서
+   뷰포트가 그 폭만큼 넓어지고, 시트에 안 덮인 것들 — 재생 바, 그리고
+   전환 사이에 남는 헤더(`view-transition-name: site-header`) — 이 옆으로
+   튄다. 자리를 미리 잡아 두면 스크롤이 서든 말든 폭이 안 바뀐다.
+
+   **끄고 켜지 않는다.** 한때 시트가 열릴 때만 `auto` 로 되돌렸는데,
+   그 전환 자체가 같은 점프를 만들었다 — 문제를 옮겼을 뿐이었다.
+   시트가 그 15px 을 못 덮는 것은 상관없다: 남는 띠도 `--canvas` 라
+   시트와 같은 색이다(`dialog.player-screen` 의 `width: 100%`). */
 html {
-  /* 스크롤바 자리를 늘 비워 둔다. 전체 화면 재생이 열릴 때 본문 스크롤을
-     막는데, 그때 스크롤바가 사라지면서 화면이 그 폭만큼 옆으로 튄다.
-     자리를 미리 잡아 두면 튀지 않는다. */
   scrollbar-gutter: stable;
 }
 
@@ -229,6 +238,42 @@ h3 {
   animation: card-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* 줄이 왼쪽에서 들어온다. 선택 모드를 켜면 체크박스가 생기면서 목록 전체가
+   오른쪽으로 한 번에 밀리는데, 그 순간을 페이드 안에 넣으면 튀는 것으로
+   안 읽힌다. 밀리는 폭을 애니메이션할 수는 없다 - width 는 매 프레임
+   레이아웃을 다시 잡는다. 자리는 즉시 잡히고 그 위에 줄이 들어오는 것이다.
+
+   `key` 가 바뀔 때 다시 도는 구조라 CSS 는 이것뿐이다. 시차는 인라인
+   animation-delay 로 준다(card-enter 와 같은 방식) -> `PlaylistDetail`
+   card-enter 보다 짧고 얕다: 여기는 화면이 바뀌는 것이 아니라 같은 목록이
+   모양만 바꾸는 자리다. transform 과 opacity 만 움직인다. */
+@keyframes row-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+}
+.row-enter {
+  animation: row-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 목록이 통째로 제자리를 찾는다. 선택 모드에서 체크박스가 생기며 줄이 밀릴 때
+   쓴다 - 목록은 **한 덩어리로 움직인다.** 줄마다 시차를 주면 곡 하나하나가
+   따로 움직이는 것처럼 보여서 정신이 사납고, 목록이 아니라 낱장의 모음으로
+   읽힌다. 그래서 `ul` 하나에만 걸고 시차를 안 준다.
+
+   페이드가 없다. 사라지는 것도 나타나는 것도 아니고 자리만 옮기는 것이라,
+   투명도가 같이 움직이면 목록이 한 번 깜빡인 것으로 보인다.
+   -> `PlaylistDetail` */
+@keyframes row-shift {
+  from {
+    transform: translateX(-10px);
+  }
+}
+.row-shift {
+  animation: row-shift 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* 보관함에 담긴 순간 아이콘이 한 번 튄다.
    담기는 화면이 안 바뀌는 조작이다 — 목록은 다른 라우트에 있고 여기서는
    아이콘 하나가 + 에서 체크로 바뀔 뿐이라, 눌렀는지 아닌지가 잘 안 읽힌다.
@@ -287,6 +332,21 @@ html[data-dna="1"] .home-intro {
 }
 .header-drop {
   animation: header-drop 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  /* **헤더는 페이지 전환에서 안 움직인다.**
+
+     이름을 붙이면 이 요소가 전환의 독립된 그룹이 되어 나머지(루트 그룹)와
+     따로 논다. 홈·전체보기·보관함에 같은 이름의 헤더가 있으니 브라우저는
+     둘을 **같은 것**으로 보고 옛 자리에서 새 자리로 옮기는데, 그 두 자리가
+     같아서 결과적으로 가만히 있는다.
+
+     이름이 없으면 헤더가 루트 스냅샷에 섞여서 본문과 같이 밀린다 — 그러면
+     페이지가 바뀌는 게 아니라 사이트가 통째로 바뀌는 것처럼 읽힌다.
+     떠 있는 필은 화면 사이를 잇는 물건이라 그 자리에 남아야 한다.
+
+     검사 화면에는 헤더가 없으므로 그 전환에서는 새 쪽에만 이름이 있고,
+     브라우저 기본대로 들어오면서 나타난다. */
+  view-transition-name: site-header;
 }
 
 /* 페이지 전환. React 의 `<ViewTransition>` 이 붙이는 클래스를 CSS 로 받는다.
@@ -483,10 +543,11 @@ dialog.player-screen {
   position: fixed;
   inset: 0 auto var(--player-bar-h) 0;
   z-index: 60;
-  /* `100vw` 도 스크롤바 자리는 못 먹는다 — `vw` 의 기준은 창이 아니라
-     스크롤바 자리를 뺀 초기 포함 블록이다. 시트가 오른쪽 끝에 닿는 것은
-     열려 있는 동안 아래에서 그 자리를 내주기 때문이다(`scrollbar-gutter`). */
-  width: 100vw;
+  /* `100vw` 가 아니라 `100%` 다. 스크롤바 자리는 `scrollbar-gutter: stable`
+     이 항상 비워 두므로(위 `html`) 시트는 그 안쪽을 채우면 된다 — 남는 띠는
+     `--canvas` 라 시트와 같은 색이고, 대신 열고 닫을 때 폭이 안 바뀐다.
+     `100vw` 를 쓰면 스크롤바가 서는 페이지에서 시트가 그만큼 넘쳐 나간다. */
+  width: 100%;
   max-width: none;
   height: auto;
   max-height: none;
@@ -525,20 +586,67 @@ body:has(dialog.player-screen[open]) {
   overflow: hidden;
 }
 
-/* **시트가 떠 있는 동안에는 스크롤바 자리를 내준다.**
-   위에서 스크롤을 세우면 스크롤바가 사라지는데, `stable` 이 그 자리를 계속
-   붙잡고 있으면 오른쪽 끝에 아무것도 못 그리는 15px 이 남는다 — 시트도
-   재생 바도 거기 못 닿는다(`vw` 의 기준이 그 자리를 뺀 폭이다).
-   조작이 사라진 빈 띠로 읽히는 자리가 여기였다.
-
-   자리를 내줘도 화면은 안 튄다: 스크롤바가 사라지는 순간과 같은 순간이라
-   폭이 오갈 일이 없고, 뒤 본문은 시트가 덮고 있다. */
-html:has(dialog.player-screen[open]) {
-  scrollbar-gutter: auto;
-}
 @starting-style {
   dialog.player-screen[open] {
     translate: 0 100%;
+  }
+}
+
+/* 묻고 고르는 작은 창(`ConfirmPop` · `PlaylistPickerPop`).
+
+   **전체 화면 시트와 다르게 페이드가 있다.** 저쪽은 화면을 통째로 덮으며
+   아래에서 올라오는 것이라 불투명도를 섞으면 두 겹으로 읽혔지만, 이건
+   본문 위에 떠 있는 종이 한 장이고 뒤가 비쳐 보이는 것이 정상이다.
+
+   0.24s 다. 물음에 답하려고 여는 창이라 시트(0.55s)처럼 오래 끌면
+   버튼을 누르러 가는 손을 기다리게 만든다. 8px 올라오며 살짝 커지는
+   정도로만 방향을 준다 — `translate` 와 `scale` 만 움직여서 레이아웃을
+   다시 재지 않는다.
+
+   `display` 와 `overlay` 는 원래 전환이 안 되는 속성이라 `allow-discrete`
+   로 열어 주고, 여는 쪽 시작 상태는 `@starting-style` 이 준다. 지원하지
+   않는 브라우저에서는 전환 없이 즉시 열린다: 기능은 그대로다.
+   prefers-reduced-motion 은 위 전역 블록이 duration 을 0 으로 만든다. */
+dialog.pop {
+  opacity: 0;
+  translate: 0 8px;
+  scale: 0.98;
+  transition:
+    opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    translate 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    scale 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    display 0.24s allow-discrete,
+    overlay 0.24s allow-discrete;
+}
+dialog.pop[open] {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
+}
+@starting-style {
+  dialog.pop[open] {
+    opacity: 0;
+    translate: 0 8px;
+    scale: 0.98;
+  }
+}
+
+/* 뒤를 덮는 면도 같이 켜진다. 창은 뜨는데 배경이 즉시 깔리면
+   덮개가 먼저 도착해서 창이 늦게 오는 것처럼 보인다. */
+dialog.pop::backdrop {
+  opacity: 0;
+  background: rgb(20 20 19 / 0.25);
+  transition:
+    opacity 0.24s ease,
+    display 0.24s allow-discrete,
+    overlay 0.24s allow-discrete;
+}
+dialog.pop[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  dialog.pop[open]::backdrop {
+    opacity: 0;
   }
 }
 

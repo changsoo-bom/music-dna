@@ -1,7 +1,7 @@
 "use client";
 
 import { TrackRow } from "@/components/common/TrackRow";
-import { useLibrary } from "@/hooks/use-library";
+import { useSavedTrackIds } from "@/hooks/use-playlists";
 import { usePlayedTracks } from "@/hooks/use-played-tracks";
 import { isPlayable, soundingId, usePlayerStore } from "@/lib/use-player-store";
 
@@ -21,7 +21,7 @@ export function MyPlaylist() {
   const queue = played.filter(isPlayable);
   const play = usePlayerStore((state) => state.play);
   // 보관함도 구독은 하나다. 줄마다 `useLibrary()` 를 부르면 줄 수만큼 깨어난다
-  const savedIds = new Set(useLibrary().map((track) => track.id));
+  const savedIds = useSavedTrackIds();
   // 이 목록에서 나고 있는 곡. 추천에서 튼 같은 곡은 여기서 재생 아이콘이다 —
   // 눌렀을 때 멈추는 게 아니라 이 목록으로 옮겨 타기 때문이다.
   //

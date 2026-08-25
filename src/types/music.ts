@@ -115,3 +115,17 @@ export type SavedTrack = {
   trackId: string;
   savedAt: string;
 };
+
+/* ── 리스트 ───────────────────────────────────────────────────── */
+
+/**
+ * 사람이 만든 곡 목록. 이름은 만든 날짜에서 나오고 바꿀 수 있다.
+ * 담긴 곡은 id 로만 갖는다 — 카탈로그가 곡 정보의 주인이다.
+ */
+export type Playlist = {
+  id: string;
+  name: string;
+  /** `2026-08-25`. 그날의 지역 날짜다 */
+  createdAt: string;
+  trackIds: string[];
+};
