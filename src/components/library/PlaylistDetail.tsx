@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { TrackRow } from "@/components/common/TrackRow";
 import { Arrow, ButtonLink, buttonClass } from "@/components/ui/Button";
+import { ConfirmPop } from "@/components/ui/ConfirmPop";
 import { NAV_BACK } from "@/constants/nav";
 import { useStoredValue } from "@/hooks/use-stored-value";
 import { removePlaylistTracks, renamePlaylist } from "@/lib/playlists";
@@ -47,6 +48,10 @@ export function PlaylistDetail({ id }: { id: string }) {
   /** 고른 곡. **`null` 이면 선택 모드가 아니다** — 이름 초안과 같은 방식이다.
       나갈 때 고른 것이 남아 있으면 다음에 켰을 때 이미 체크된 줄이 보인다 */
   const [picked, setPicked] = useState<ReadonlySet<string> | null>(null);
+  /** 빼기 전에 한 번 묻는 중. **되돌리기가 화면에 없다** — 리스트를 지울 때와
+      같은 이유다(`PlaylistCard`). 여기는 여러 곡이 한 번에 빠져서 잘못
+      눌렀을 때 다시 담는 값이 더 크다 */
+  const [asking, setAsking] = useState(false);
   const playlist = parsePlaylists(useStoredValue(STORAGE_KEYS.playlists)).find(
     (list) => list.id === id,
   );
@@ -217,10 +222,7 @@ export function PlaylistDetail({ id }: { id: string }) {
                 <button
                   type="button"
                   disabled={picked.size === 0}
-                  onClick={() => {
-                    removePlaylistTracks(playlist.id, picked);
-                    setPicked(null);
-                  }}
+                  onClick={() => setAsking(true)}
                   className={ROW_ACTION}
                 >
                   삭제{picked.size > 0 && ` (${picked.size})`}
@@ -285,6 +287,26 @@ export function PlaylistDetail({ id }: { id: string }) {
             ))}
           </ul>
         </section>
+      )}
+
+      {/* 리스트를 지울 때와 같은 창을 쓴다 → `PlaylistCard`
+          곡은 카탈로그에서 사라지는 게 아니라 이 리스트에서만 빠진다.
+          그것까지 말해 줘야 "삭제" 가 어디까지 가는지가 읽힌다 */}
+      {asking && picked && (
+        <ConfirmPop
+          title="삭제하시겠습니까?"
+          detail={`고른 ${picked.size}곡이 이 리스트에서 빠집니다. 곡 자체는 남아 있고, 다시 담을 수 있습니다.`}
+          onConfirm={() => {
+            removePlaylistTracks(playlist.id, picked);
+            setPicked(null);
+            // **여기서도 닫는다.** `onClose` 는 `<dialog>` 가 실제로 닫힐 때
+            // 오는데, 그 전에 `picked` 가 비면서 이 창이 먼저 언마운트된다 —
+            // 이벤트를 받을 것이 없어져 `asking` 이 켜진 채로 남고, 다음에
+            // "선택하기" 를 누르는 순간 창이 저절로 열린다
+            setAsking(false);
+          }}
+          onClose={() => setAsking(false)}
+        />
       )}
     </>
   );
