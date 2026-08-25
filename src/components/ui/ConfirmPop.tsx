@@ -1,5 +1,7 @@
 "use client";
 
+import { closeAfterPop } from "@/lib/pop-close";
+
 /**
  * 두 버튼이 나눠 갖는 모양. 필 버튼의 잉크 테두리를 안 쓴다 — 창 안에서
  * 나란히 서는 둘이라 테두리가 있으면 상자 두 개로 읽힌다.
@@ -46,7 +48,8 @@ export function ConfirmPop({
       ref={(el) => {
         if (el && !el.open) el.showModal();
       }}
-      onClose={onClose}
+      // 닫히는 애니메이션이 끝난 뒤에 언마운트한다 → `closeAfterPop`
+      onClose={(event) => closeAfterPop(event.currentTarget, onClose)}
       // 배경을 누르면 닫는다. `<dialog>` 자체가 과녁이면 그건 바깥이다
       onClick={(event) => {
         if (event.target === event.currentTarget) event.currentTarget.close();
