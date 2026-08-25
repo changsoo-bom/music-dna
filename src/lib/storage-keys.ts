@@ -12,4 +12,6 @@ export const STORAGE_KEYS = {
   library: `${NAMESPACE}:libraryTracks:${VERSION}`,
   /** 내 플레이리스트 */
   playlist: `${NAMESPACE}:playlistTracks:${VERSION}`,
+  /** 사람이 만든 리스트 — 이름 있는 목록들 */
+  playlists: `${NAMESPACE}:playlists:${VERSION}`,
 } as const;

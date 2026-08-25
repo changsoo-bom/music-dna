@@ -49,10 +49,19 @@ export function parsePlayed(raw: string | null): CatalogTrack[] {
  * 조회를 싸게 만든다.
  */
 export function parseTrackIds(raw: string | null, limit = Number.POSITIVE_INFINITY): CatalogTrack[] {
-  return parseRawIds(raw)
+  return toTracks(parseRawIds(raw)).slice(0, limit);
+}
+
+/**
+ * id 목록 → 곡. 카탈로그에 없는 id 는 떨어진다.
+ *
+ * 리스트(`Playlist`)는 저장 형식이 문자열이 아니라 이미 배열이라 여기로
+ * 바로 들어온다. 색인을 두 벌 만들 이유가 없다.
+ */
+export function toTracks(ids: string[]): CatalogTrack[] {
+  return ids
     .map((id) => BY_ID.get(id))
-    .filter((track): track is CatalogTrack => track !== undefined)
-    .slice(0, limit);
+    .filter((track): track is CatalogTrack => track !== undefined);
 }
 
 /**

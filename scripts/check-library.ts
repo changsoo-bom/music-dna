@@ -13,7 +13,15 @@ import assert from "node:assert/strict";
 
 import { CATALOG } from "@/data/catalog";
 import { LIBRARY_LIMIT, toggleLibrary } from "@/lib/library";
+import {
+  PLAYLIST_LIMIT,
+  createPlaylist,
+  deletePlaylist,
+  renamePlaylist,
+  togglePlaylistTrack,
+} from "@/lib/playlists";
 import { parsePlayed, parseRawIds } from "@/lib/schemas/played";
+import { parsePlaylists } from "@/lib/schemas/playlist";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
 
 /** `window.localStorage` 최소 흉내. 이 파일이 브라우저를 필요로 하는 유일한 지점이다 */
@@ -78,6 +86,78 @@ assert.equal(saved()[0], "t001", "상한에서 새로 담은 곡이 안 들어�
 // 카탈로그에 실제로 있는 id 여야 한다 — 없는 id 는 파서가 떨어뜨려서 개수가 안 는다
 const many = JSON.stringify(CATALOG.slice(0, 12).map((track) => track.id));
 assert.equal(parsePlayed(many).length, 9, "최근 재생 상한이 9가 아니다");
+
+/* ── 리스트 ───────────────────────────────────────────────────── */
+
+const LIST_KEY = STORAGE_KEYS.playlists;
+const lists = () => parsePlaylists(store.get(LIST_KEY) ?? null);
+const noon = (day: number) => new Date(2026, 7, day, 12, 0, 0);
+
+// 이름은 만든 날의 **지역** 날짜다. UTC 로 지으면 오전 9시 전에 만든 것이
+// 어제 이름을 달고 나온다 — 한국 시각 오전 2시로 확인한다
+store.clear();
+createPlaylist(new Date(2026, 7, 25, 2, 0, 0));
+assert.equal(lists()[0]?.name, "20260825", "리스트 이름이 지역 날짜가 아니다");
+assert.equal(lists()[0]?.createdAt, "2026-08-25", "만든 날이 지역 날짜가 아니다");
+assert.deepEqual(lists()[0]?.trackIds, [], "새 리스트가 빈 채로 안 만들어졌다");
+
+// 같은 날 두 번 만들면 이름이 겹친다. 겹친 채로 두면 어느 카드에 담았는지 모른다
+createPlaylist(noon(25));
+assert.equal(lists()[0]?.name, "20260825 (2)", "같은 날 두 번째 리스트 이름이 안 갈렸다");
+createPlaylist(noon(25));
+assert.equal(lists()[0]?.name, "20260825 (3)", "세 번째 리스트 이름이 안 갈렸다");
+
+// 새 리스트가 맨 앞이다. 방금 만든 것이 안 보이면 만들어졌는지 확인이 안 된다
+createPlaylist(noon(26));
+assert.equal(lists()[0]?.name, "20260826", "새 리스트가 맨 앞이 아니다");
+assert.equal(lists().length, 4, "리스트가 덮어써졌다");
+
+// 곡을 담고 뺀다. 같은 버튼이 두 방향이라 두 번 누르면 원래대로다
+const first = lists()[0]!.id;
+togglePlaylistTrack(first, "t001");
+togglePlaylistTrack(first, "t002");
+assert.deepEqual(lists()[0]?.trackIds, ["t002", "t001"], "새로 담은 곡이 맨 앞이 아니다");
+togglePlaylistTrack(first, "t002");
+assert.deepEqual(lists()[0]?.trackIds, ["t001"], "다시 눌렀는데 안 빠졌다");
+
+// 담는 것은 그 리스트에만 들어간다. 다른 리스트가 같이 움직이면 어디에
+// 담았는지가 화면과 어긋난다
+assert.deepEqual(lists()[1]?.trackIds, [], "다른 리스트까지 곡이 들어갔다");
+
+// 이름을 바꾼다. 빈 이름·공백은 안 받는다 — 이름 없는 카드는 되돌릴 방법이 없다
+const target = lists()[0]!.id;
+renamePlaylist(target, "  드라이브  ");
+assert.equal(lists()[0]?.name, "드라이브", "이름이 안 바뀌었거나 공백이 안 깎였다");
+renamePlaylist(target, "   ");
+assert.equal(lists()[0]?.name, "드라이브", "공백만 있는 이름이 저장됐다");
+
+// 지우면 그것만 없어진다
+const before = lists().length;
+deletePlaylist(target);
+assert.equal(lists().length, before - 1, "삭제로 지워진 개수가 하나가 아니다");
+assert.ok(!lists().some((list) => list.id === target), "지운 리스트가 남았다");
+
+// 깨진 값은 빈 목록이다. 여기도 신뢰 경계다
+store.set(LIST_KEY, "{ 망가진 값");
+assert.deepEqual(lists(), [], "JSON 이 아닌 값이 안 걸러졌다");
+store.set(LIST_KEY, JSON.stringify([{ id: "1", name: "x" }]));
+assert.deepEqual(lists(), [], "모양이 안 맞는 리스트가 안 걸러졌다");
+
+// 상한이 있다
+store.set(
+  LIST_KEY,
+  JSON.stringify(
+    Array.from({ length: PLAYLIST_LIMIT }, (_, i) => ({
+      id: `x${i}`,
+      name: `x${i}`,
+      createdAt: "2026-01-01",
+      trackIds: [],
+    })),
+  ),
+);
+createPlaylist(noon(27));
+assert.equal(lists().length, PLAYLIST_LIMIT, "리스트가 상한을 넘었다");
+assert.equal(lists()[0]?.name, "20260827", "상한에서 새 리스트가 안 들어갔다");
 
 console.log("check-library: ok");
 
