@@ -3,7 +3,7 @@
 import { TrackRow } from "@/components/common/TrackRow";
 import { GENRES, PARENT_OF } from "@/constants/genres";
 import { CATALOG } from "@/data/catalog";
-import { useLibrary } from "@/hooks/use-library";
+import { useSavedTrackIds } from "@/hooks/use-playlists";
 import { isPlayable, soundingId, usePlayerStore } from "@/lib/use-player-store";
 import type { CatalogTrack, Genre } from "@/types/music";
 
@@ -48,7 +48,7 @@ const QUEUE = GROUPS.flatMap((group) => group.tracks).filter(isPlayable);
 export function BrowseList() {
   const play = usePlayerStore((state) => state.play);
   const sounding = usePlayerStore((state) => soundingId(state, "browse"));
-  const savedIds = new Set(useLibrary().map((track) => track.id));
+  const savedIds = useSavedTrackIds();
 
   return (
     <div className="flex flex-col gap-16 max-sm:gap-12">

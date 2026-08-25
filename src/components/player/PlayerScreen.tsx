@@ -8,7 +8,7 @@ import type { CSSProperties, RefObject } from "react";
 import { TrackRow } from "@/components/common/TrackRow";
 import { SUB_GENRES } from "@/constants/genres";
 import { ORBIT_CIRCUMFERENCE } from "@/constants/orbit";
-import { useLibrary } from "@/hooks/use-library";
+import { useSavedTrackIds } from "@/hooks/use-playlists";
 import { usePlayedTracks } from "@/hooks/use-played-tracks";
 import { usePreference } from "@/hooks/use-preference";
 import { formatDuration } from "@/lib/format";
@@ -275,7 +275,7 @@ function PlayedQueue() {
   // 줄마다 구독하면 아홉 줄이 아홉 번 깨어난다. 한 번 받아서 줄마다 비교한다
   const sounding = usePlayerStore((state) => soundingId(state, "played"));
   // 보관함도 구독은 하나다 → `TrackRow`
-  const savedIds = new Set(useLibrary().map((item) => item.id));
+  const savedIds = useSavedTrackIds();
 
   // 이 화면은 곡이 있을 때만 열리므로 보통 비지 않는다. 그래도 비면 제목만
   // 남기지 않고 통째로 접는다 — 아무것도 없는 제목은 고장으로 보인다
