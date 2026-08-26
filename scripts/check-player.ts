@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 
 import { PARENT_OF } from "@/constants/genres";
 import { CATALOG } from "@/data/catalog";
-import { currentTrack, isSounding, usePlayerStore } from "@/lib/use-player-store";
+import { browseSoundingId, currentTrack, isSounding, usePlayerStore } from "@/lib/use-player-store";
 import type { PlayableTrack } from "@/lib/use-player-store";
 
 const QUEUE: PlayableTrack[] = ["a", "b", "c"].map((id) => ({
@@ -117,6 +117,26 @@ assert.equal(store.getState().queue.length, 2, "큐가 누른 목록으로 바�
 store.getState().play("played", otherList, 0);
 assert.equal(store.getState().isPlaying, false, "같은 목록의 같은 곡이 토글되지 않았다");
 
+// **전체보기는 큐가 둘이다** — 줄을 눌러 트는 화면 전체(`browse`)와 칸의
+// 전체 재생(`browse:{genre}`). 한때 둘이 같은 이름을 써서, 화면 첫 곡이 나는
+// 중에 그 칸의 전체 재생을 누르면 위 토글 분기에 걸려 **재생 삼각형이 그려진
+// 버튼이 정지를 했다.** 첫 곡이 겹치는 것은 우연이 아니라 접힌 목록의 정상
+// 상태라 늘 그랬다 → `BrowseList`
+reset();
+store.getState().play("browse", QUEUE, 0);
+store.getState().play("browse:pop", [QUEUE[0], QUEUE[1]], 0);
+assert.equal(store.getState().isPlaying, true, "칸의 전체 재생이 정지를 했다");
+assert.equal(store.getState().queueId, "browse:pop", "큐 이름이 그 칸으로 안 바뀌었다");
+assert.equal(store.getState().queue.length, 2, "큐가 화면 전체로 남았다 — 칸 밖의 곡이 이어진다");
+
+// 어느 쪽으로 틀었든 목록의 그 줄에 표시가 붙는다. `soundingId` 는 이름이
+// 정확히 같아야 해서 둘 중 한쪽만 본다
+assert.equal(browseSoundingId(store.getState()), "a", "칸 전체 재생 중인데 표시가 안 붙는다");
+store.getState().play("browse", QUEUE, 1);
+assert.equal(browseSoundingId(store.getState()), "b", "줄 클릭으로 튼 곡에 표시가 안 붙는다");
+store.getState().toggle();
+assert.equal(browseSoundingId(store.getState()), null, "멈췄는데 표시가 남았다");
+
 // 막혔던 곡을 다시 고르면 한 번 더 시도한다.
 // 영영 무시하면 눌러도 아무 일이 안 나는 카드가 된다.
 reset();
@@ -178,5 +198,5 @@ assert.equal(
 );
 
 console.log(
-  `✓ 재생 큐 — 시작·토글·앞뒤·큐 끝에서 이어잇기·막힌 곡 건너뛰기·목록 전환·재정렬 후 토글·아이콘 일치`,
+  `✓ 재생 큐 — 시작·토글·앞뒤·큐 끝에서 이어잇기·막힌 곡 건너뛰기·목록 전환·전체보기 두 큐·재정렬 후 토글·아이콘 일치`,
 );

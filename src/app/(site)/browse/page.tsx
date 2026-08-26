@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { ViewTransition } from "react";
 
 import { BrowseList } from "@/components/browse/BrowseList";
@@ -9,13 +10,18 @@ import { REGIONS, toRegion } from "@/constants/regions";
 import { browseGroups } from "@/lib/browse";
 import type { Genre } from "@/types/music";
 
+/** 사이트 이름은 루트의 `template` 이 붙인다 → `app/layout.tsx` */
+export const metadata: Metadata = {
+  title: "전체보기",
+};
+
 /**
  * 전체보기. 헤더의 두 칸 중 하나이고, 검사를 안 한 사람도 볼 수 있는 유일한
  * 곡 목록이다 — 추천은 검사 결과가 있어야 나온다.
  *
  * **곡 목록을 prop 으로 안 넘긴다.** 여기서 묶어 넘기면 카탈로그가 두 번
  * 실린다 — `BrowseList` 는 재생 스토어를 통해 이미 그 데이터를 클라이언트
- * 번들에 갖고 있는데, RSC 페이로드로 같은 109곡이 또 직렬화된다.
+ * 번들에 갖고 있는데, RSC 페이로드로 카탈로그가 통째로 또 직렬화된다.
  * 여기서 `browseGroups` 를 부르는 것은 **수를 세기 위해서고**, 페이로드에
  * 실려 가는 것은 그 수뿐이다.
  *
@@ -87,7 +93,15 @@ export default async function BrowsePage({
           {/* 왼쪽이 색인, 오른쪽이 목록. 좁은 화면에서는 색인이 위로 눕는다 */}
           <div className="mt-10 grid grid-cols-[10rem_1fr] gap-x-12 max-lg:grid-cols-1 max-lg:gap-x-0 max-lg:gap-y-8 max-sm:mt-6">
             <GenreRail items={rail} region={region} genre={genre} />
-            <BrowseList region={region} genre={genre} />
+            {/* **좁히는 값이 바뀌면 목록을 새로 세운다.** 펼침은 주소로 안
+                나가는 클라이언트 state 인데(`BrowseList`), 소프트 내비게이션에서는
+                이 자리에 같은 컴포넌트가 남아 그 state 가 따라온다 — 전체 화면에서
+                Pop 을 펴 놓고 국내로 넘어가면 아무도 안 편 국내 Pop 이 마흔 줄로
+                펼쳐져 있고, 뒤로가기로 주소를 되돌려도 펼침만 안 돌아온다.
+                주소가 상태를 되돌린다는 이 화면의 전제와 어긋난다.
+                `key` 로 리마운트시킨다 — effect 안에서 초기화하지 말라는
+                `.claude/rules/react.md` 가 지정한 도구가 이것이다 */}
+            <BrowseList key={`${region ?? ""}:${genre ?? ""}`} region={region} genre={genre} />
           </div>
         </section>
       </main>

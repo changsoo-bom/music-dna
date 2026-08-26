@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { ViewTransition } from "react";
 
 import { CreatePlaylistButton } from "@/components/library/CreatePlaylistButton";
 import { LibraryList } from "@/components/library/LibraryList";
+
+/** 사이트 이름은 루트의 `template` 이 붙인다 → `app/layout.tsx` */
+export const metadata: Metadata = {
+  title: "보관함",
+};
 
 /**
  * 보관함. 담은 곡을 모아 보는 한 덩어리뿐이라 라우트는 조립만 한다.

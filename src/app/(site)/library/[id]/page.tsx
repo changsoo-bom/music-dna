@@ -1,6 +1,16 @@
+import type { Metadata } from "next";
 import { ViewTransition } from "react";
 
 import { PlaylistDetail } from "@/components/library/PlaylistDetail";
+
+/**
+ * **리스트 이름을 못 쓴다.** 이름은 Local Storage 에 있고 서버는 그걸 못 본다
+ * — 아래 화면이 이름을 클라이언트에서 그리는 것과 같은 이유다. 사이트 이름은
+ * 루트의 `template` 이 붙인다 → `app/layout.tsx`
+ */
+export const metadata: Metadata = {
+  title: "리스트",
+};
 
 /**
  * 리스트 상세. 이름도 곡도 저장소에 있어서 서버가 아는 것이 주소의 id 뿐이다

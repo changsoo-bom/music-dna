@@ -28,8 +28,9 @@ const ICON_BUTTON =
 /** 커버 그림. **`hq720` 을 먼저 쓰고, 없으면 `hqdefault` 로 떨어진다.**
 
     `hq720`(1280×720)은 16:9 원본 그대로라 원으로 잘라도 깨끗하지만
-    **원본이 720p 이상일 때만 만들어진다** — 카탈로그 109곡 중 11곡은 404 다.
-    커버가 통째로 빈 채로 나오던 자리가 여기다. `maxresdefault` 는 그 11곡에
+    **원본이 720p 이상일 때만 만들어진다** — 카탈로그에도 404 가 나는 곡이
+    섞여 있다(수를 안 적는다. 카탈로그가 배치로 커지는 중이라 적는 순간 낡는다).
+    커버가 통째로 빈 채로 나오던 자리가 여기다. `maxresdefault` 는 그 곡들에
     똑같이 없고, 항상 있는 16:9 는 `mqdefault`(320×180)뿐인데 이 크기를 못 채운다.
 
     그래서 `hqdefault`(480×360)로 떨어진다. 16:9 를 4:3 으로 맞추려고 위아래에
@@ -287,6 +288,13 @@ function PlayedQueue() {
   // 큐 이름이 없는 것은 아직 아무것도 안 튼 상태다. 이 화면은 곡이 있을 때만
   // 열리므로 거의 안 오지만, 오면 빠른 선곡 쪽으로 읽는다
   const fromRecommend = queueId === "recommend" || queueId === null;
+  /* **제목은 무엇을 그리고 있는지를 말한다.** 추천에서 튼 경우는 빠른 선곡을
+     대신 그리는 것이고, 홈 빠른 선곡에서 튼 경우(`play("played", …)`)는 그
+     목록 자체다 — 사람에게는 둘 다 "빠른 선곡" 한 이름이라, 같은 목록이
+     어디서 눌렀느냐에 따라 두 이름으로 뜨면 안 된다.
+     그리는 **내용**은 아래에서 따로 갈린다: `"played"` 는 누른 순간의
+     스냅숏(`storeQueue`)을 그대로 쓴다 */
+  const showsPlayed = fromRecommend || queueId === "played";
   const listId = fromRecommend ? "played" : queueId;
   // 빠른 선곡은 담은 것을 전부 그리는 곳이 아니다 — 여기서 줄을 누르면 바로
   // 트는 자리라 틀 수 있는 곡만 온다
@@ -316,7 +324,7 @@ function PlayedQueue() {
 
   return (
     <section className="mt-14 w-full max-lg:text-left">
-      <h2 className="text-[13px] font-bold text-slate">{fromRecommend ? "빠른 선곡" : "재생목록"}</h2>
+      <h2 className="text-[13px] font-bold text-slate">{showsPlayed ? "빠른 선곡" : "재생목록"}</h2>
 
       {/* **여기서만 스크롤한다**(`.scroll-panel`) — 목록이 아홉 줄까지 늘어도
           커버와 조작은 제자리에 남는다.

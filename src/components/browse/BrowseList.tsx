@@ -6,7 +6,7 @@ import { useState } from "react";
 import { TrackRow } from "@/components/common/TrackRow";
 import { useSavedTrackIds } from "@/hooks/use-playlists";
 import { browseGroups } from "@/lib/browse";
-import { isPlayable, soundingId, usePlayerStore } from "@/lib/use-player-store";
+import { browseSoundingId, isPlayable, usePlayerStore } from "@/lib/use-player-store";
 import type { Genre, Region } from "@/types/music";
 
 /**
@@ -31,7 +31,9 @@ const PREVIEW = 6;
 
 export function BrowseList({ region, genre }: { region: Region | null; genre: Genre | null }) {
   const play = usePlayerStore((state) => state.play);
-  const sounding = usePlayerStore((state) => soundingId(state, "browse"));
+  // 이 화면의 큐는 둘이다(줄 클릭 `browse` · 칸의 전체 재생 `browse:{genre}`).
+  // 어느 쪽으로 틀었든 표시는 그 줄에 붙어야 한다 → `browseSoundingId`
+  const sounding = usePlayerStore(browseSoundingId);
   const savedIds = useSavedTrackIds();
 
   /* 펼침은 **주소로 안 나간다.** 좁히는 값(`region`·`genre`)과 달리 이건
@@ -114,7 +116,20 @@ export function BrowseList({ region, genre }: { region: Region | null; genre: Ge
               {groupQueue.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => play("browse", groupQueue, 0)}
+                  onClick={() => {
+                    // **전체를 튼다고 했으면 전체가 보여야 한다.** 접힌 채로
+                    // 틀면 일곱 번째 곡부터는 화면 어디에도 없는 곡이 재생
+                    // 중이 된다 — 위 `queue` 주석이 못박은 규칙이 여기에도
+                    // 걸린다. 버튼이 "51곡 전체 재생" 이라고 말한 이상,
+                    // 그 51곡이 곧 이 칸의 모습이어야 한다
+                    if (foldable) {
+                      setExpanded((prev) => new Set(prev).add(section.genre));
+                    }
+                    // **칸 전용 큐 이름이다**(`browse:{genre}`). 줄 클릭과 같은
+                    // 이름을 쓰면 화면 첫 곡이 나는 중에 눌렀을 때 스토어의
+                    // 토글 분기에 걸려 재생 버튼이 정지를 한다 → `QueueId`
+                    play(`browse:${section.genre}`, groupQueue, 0);
+                  }}
                   aria-label={`${section.label} ${groupQueue.length}곡 전체 재생`}
                   className="flex shrink-0 items-center gap-1.5 text-[13px] font-medium tracking-[-0.01em] whitespace-nowrap text-ink transition-opacity hover:opacity-55 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none"
                 >

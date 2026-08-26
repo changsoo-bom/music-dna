@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import { PARENT_OF } from "@/constants/genres";
 import { CATALOG } from "@/data/catalog";
-import type { CatalogTrack } from "@/types/music";
+import type { CatalogTrack, Genre } from "@/types/music";
 
 /** 큐에 담기려면 재생할 것이 있어야 한다 */
 export type PlayableTrack = CatalogTrack & { youtubeId: string };
@@ -23,8 +23,19 @@ export function isPlayable(track: CatalogTrack): track is PlayableTrack {
  * 리스트에 담기는 것이 이 기능의 정상 사용이라, 전부 `"library"` 로 두면
  * 첫 곡이 같은 두 리스트가 서로를 일시정지시킨다 — B를 틀려고 눌렀는데
  * A가 멈춘다. 그래서 리스트만 자기 id 를 달고 다닌다.
+ *
+ * **전체보기도 같은 이유로 둘이다.** 줄을 눌러 트는 큐는 화면 전체(`browse`)고,
+ * 칸의 "전체 재생" 은 그 칸만(`browse:{genre}`)이다. 같은 이름을 쓰면 화면 첫
+ * 곡이 나는 중에 그 칸의 전체 재생을 눌렀을 때 아래 `play` 의 토글 분기에
+ * 걸려서 **재생 버튼이 정지를 한다** — 첫 곡이 겹치는 것은 우연이 아니라
+ * 접힌 목록의 정상 상태다.
  */
-export type QueueId = "recommend" | "played" | "browse" | `library:${string}`;
+export type QueueId =
+  | "recommend"
+  | "played"
+  | "browse"
+  | `browse:${Genre}`
+  | `library:${string}`;
 
 /**
  * 큐가 끝났을 때 이어 틀 곡을 카탈로그에서 고른다. **같은 종류에서 무작위로.**
@@ -209,6 +220,17 @@ export function currentTrack(state: PlayerState): PlayableTrack | null {
  */
 export function soundingId(state: PlayerState, queueId: QueueId): string | null {
   if (!state.isPlaying || state.queueId !== queueId) return null;
+  return currentTrack(state)?.id ?? null;
+}
+
+/**
+ * 전체보기에서 지금 소리를 내고 있는 곡의 id. **큐가 둘이라 따로 있다** —
+ * 줄을 눌러 튼 것(`browse`)과 칸의 전체 재생(`browse:{genre}`)은 서로 다른
+ * 큐지만 **같은 화면이 튼 것**이라, 어느 쪽이든 그 줄에 표시가 붙어야 한다.
+ * `soundingId` 로는 한 번에 한쪽만 볼 수 있다.
+ */
+export function browseSoundingId(state: PlayerState): string | null {
+  if (!state.isPlaying || !state.queueId?.startsWith("browse")) return null;
   return currentTrack(state)?.id ?? null;
 }
 
