@@ -83,7 +83,6 @@ export default async function SearchPage({
      이라 더 그렇다 */
   const rest = own ? mine.filter((track) => track.artist !== own.name) : [];
 
-
   /* 카드가 말할 한 줄. **카탈로그가 아는 것만 적는다.**
 
      장르는 **가수의 곡 전부가 같은 하위 장르일 때만** 적는다. 카탈로그가
@@ -174,7 +173,7 @@ export default async function SearchPage({
               `경서예지` 의 곡이 구분선 없이 이어 붙으면 그 사람의 곡으로
               읽힌다 */}
           {own && <SearchList tracks={own.tracks} />}
-          {own && rest.length > 0 && (
+          {rest.length > 0 && (
             <>
               <Heading>다른 가수의 곡</Heading>
               <SearchList tracks={rest} />

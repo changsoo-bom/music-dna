@@ -1,9 +1,8 @@
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
-import { SearchField } from "@/components/common/SearchField";
+import { HeaderSearch } from "@/components/common/HeaderSearch";
 import { SiteNav } from "@/components/common/SiteNav";
-import { NAV_BACK, NAV_FORWARD } from "@/constants/nav";
+import { NAV_BACK } from "@/constants/nav";
 
 /**
  * 떠 있는 흰 필 헤더. 뷰포트 상단에 붙지 않고 24px 아래에 뜬다.
@@ -51,8 +50,12 @@ export function SiteHeader() {
           이고 `auto` 의 최소값은 min-content 라, 좁아지면 트랙이 줄어드는 게
           아니라 **필 밖으로 넘친다.** 640px 에서 헤더 안쪽이 528px 인데
           가운데 메뉴가 ~165px 을 먹으면 양쪽이 각 ~181px 이고 오른쪽에
-          176px 짜리 필드가 들어간다 — 한 자릿수 px 여유였다. 이제 넘치는
-          대신 필드가 줄어든다 */}
+          176px 짜리 필드가 들어간다 — 한 자릿수 px 여유였다.
+
+          **트랙만 줄여서는 모자란다.** 안에 든 필드가 고정폭이면 트랙이
+          줄어도 필드는 그대로라 칸을 넘쳐 가운데 메뉴 위로 흘러넘친다
+          (끝 정렬이라 왼쪽으로). 필드가 `max-w-*` 로 줄어야 실제로 안 넘친다
+          → `HeaderSearch` */}
       <header className="header-drop mx-auto grid max-w-[1280px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center py-3 pr-8 pl-8 rounded-pill bg-white shadow-lift max-sm:flex max-sm:justify-between max-sm:pr-5 max-sm:pl-5">
         {/* 로고만 굵고 자간이 넓다. 셋이 같은 굵기가 되면 어디가 집인지 안 보인다 */}
         <Link
@@ -74,27 +77,19 @@ export function SiteHeader() {
             (`둘러보기`·`보관함`)과 하는 일(검색)이 나란히 있으면 셋 중 어느
             것이 이동인지 안 읽힌다. 테두리 하나로만 구별한다 — 헤더가 이미
             떠 있는 흰 필이라 여기에 표면을 하나 더 깔면 종이가 세 겹이 된다
-            → `.claude/rules/styling.md` */}
-        {/* 필드와 돋보기는 **한 칸을 나눠 쓴다.** 칸이 셋인 격자에 넷째 아이가
-            들어오면 그 아이는 다음 줄로 떨어진다 — 좁은 화면에서 헤더가 두
-            줄이 되는 사고가 여기서 난다 */}
-        <div className="min-w-0 justify-self-end">
-          {/* **결과 화면에서는 이 칸을 페이지에 넘긴다.** 헤더는 레이아웃에
-              살아서 `?q=` 를 모르므로, 여기 남겨 두면 결과를 보는 내내 칸이
-              비어 있다 → `SearchField` 의 `hideOnResults` */}
-          <SearchField hideOnResults className="w-56 max-lg:w-44 max-sm:hidden" />
+            → `.claude/rules/styling.md`
 
-          {/* 좁은 화면에서는 필드가 로고와 메뉴 사이를 못 버틴다. 아이콘만
-              남기고 결과 화면으로 보낸다 — 거기 같은 필드가 있다
-              → `SearchPage` */}
-          <Link
-            href="/search"
-            transitionTypes={NAV_FORWARD}
-            aria-label="곡·아티스트 검색"
-            className="hidden text-slate transition-colors hover:text-ink max-sm:block"
-          >
-            <MagnifyingGlassIcon size={18} weight="bold" aria-hidden />
-          </Link>
+            필드와 돋보기가 **한 칸을 나눠 쓴다.** 칸이 셋인 격자에 넷째 아이가
+            들어오면 그 아이는 다음 줄로 떨어진다.
+
+            **칸을 늘려 두고 안에서 오른쪽으로 붙인다.** `justify-self-end` 로
+            칸을 내용만큼 줄이면 안쪽 `max-w-*` 가 잴 기준이 사라진다.
+            `min-w-0` 은 늘어난 칸이 제 min-content 아래로 줄어들 수 있게
+            한다 — 트랙을 0 까지 열어 놓고 아이템이 안 줄면 소용이 없다.
+
+            결과 화면에서는 이 칸이 통째로 접힌다 → `HeaderSearch` */}
+        <div className="flex min-w-0 justify-end">
+          <HeaderSearch />
         </div>
       </header>
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { SearchField } from "@/components/common/SearchField";
 import { ButtonLink, buttonClass } from "@/components/ui/Button";
 
 /**
@@ -21,7 +22,19 @@ export default function SearchError({ reset }: { reset: () => void }) {
     <main className="shell flex-1 pb-28 max-sm:pb-16">
       <section className="pt-28 pb-24 max-sm:pt-16 max-sm:pb-14">
         <span className="eyebrow text-ink">검색하지 못했습니다</span>
-        <h1 className="mt-5 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">
+
+        {/* **이 화면에도 칸이 있어야 한다.** 헤더의 칸은 `/search` 에서
+            접힌다(`HeaderSearch`) — 결과 화면이 자기 칸을 갖기 때문인데,
+            그 화면이 죽으면 이 화면이 대신 뜨므로 여기까지 없으면 **검색이
+            실패한 자리에 검색 입구가 하나도 없다.** 남는 것이 같은 말을
+            그대로 다시 던지는 `다시 찾기` 뿐이 된다.
+
+            찾던 말은 안 물린다. 여기는 클라이언트 경계라 `?q=` 를 받지
+            못하고, **다른 말로 찾아보라는 것이 이 자리의 제안**이라 빈 칸이
+            맞다 — 같은 말을 다시 던지는 것은 옆 버튼이 한다 */}
+        <SearchField className="mt-5 w-72 max-md:w-full" />
+
+        <h1 className="mt-8 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">
           잠시 뒤에 다시 찾아보세요
         </h1>
         <p className="mt-4 max-w-[46ch] text-sm text-slate">

@@ -8,8 +8,13 @@ import type { CatalogTrack } from "@/types/music";
  * `newjeans` 로 치는 사람이 같은 곡을 찾는데 카탈로그에는 한 가지로만 적혀
  * 있다. `아이 유` 와 `아이유` 도 같다. 대신 공백이 뜻을 가르는 이름은 못
  * 가르는데, 그런 이름이 이 카탈로그에 없다.
+ *
+ * **`export` 인 이유는 검사 스크립트가 이 규칙을 복제하지 않고 그대로 쓰기
+ * 위해서다.** 같은 식을 스크립트에 손으로 다시 적으면, 여기에 구두점 제거가
+ * 추가되는 날 단언은 초록인데 화면은 한쪽 표기의 곡을 통째로 남의 곡으로
+ * 민다 — 그 시나리오가 그 단언의 존재 이유다 → `scripts/check-catalog.ts`
  */
-function fold(value: string) {
+export function fold(value: string) {
   return value.toLowerCase().replaceAll(/\s+/g, "");
 }
 

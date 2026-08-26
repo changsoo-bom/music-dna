@@ -4,7 +4,7 @@ import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import { REGIONS } from "@/constants/regions";
 import { CATALOG } from "@/data/catalog";
 import { browseGroups, browseHref } from "@/lib/browse";
-import { catalogArtist, searchTracks } from "@/lib/search";
+import { catalogArtist, fold, searchTracks } from "@/lib/search";
 import { classify } from "@/lib/youtube/classify";
 import { isSongLength, looksLikeSong, songsFirst } from "@/lib/youtube/song";
 import { QUESTIONS } from "@/lib/quiz/questions";
@@ -390,6 +390,12 @@ assert.ok(
   [...perArtistGenres.values()].some((genres) => genres.size > 1),
   "하위 장르가 갈리는 가수가 없다 — 카드의 만장일치 조건이 죽은 코드다",
 );
+// **반대쪽도 박는다.** 위 단언만 있으면 "장르 줄이 안 그려지는 경우" 만
+// 지키는 셈이라, 언젠가 전 가수가 다장르가 되면 그 줄이 조용히 사라진다
+assert.ok(
+  [...perArtistGenres.values()].some((genres) => genres.size === 1),
+  "한 장르뿐인 가수가 없다 — 카드에 장르 줄이 한 번도 안 그려진다",
+);
 
 /* **한 가수는 한 지역이다.** 카드가 `tracks[0].region` 을 대표로 세우는
    근거이고, 장르와 달리 이쪽은 만장일치를 안 따진다 */
@@ -410,7 +416,9 @@ for (const [artist, regions] of perArtistRegions) {
    `${artist} — ${title}` 키라 이걸 못 잡는다 */
 const foldedNames = new Map<string, Set<string>>();
 for (const track of CATALOG) {
-  const key = track.artist.toLowerCase().replaceAll(/\s+/g, "");
+  // **`fold` 를 그대로 쓴다.** 같은 식을 여기 다시 적으면 규칙이 갈리는 날
+  // 단언만 초록이 된다 — 그 시나리오가 이 단언의 존재 이유다
+  const key = fold(track.artist);
   const seen = foldedNames.get(key) ?? new Set<string>();
   seen.add(track.artist);
   foldedNames.set(key, seen);
@@ -424,7 +432,10 @@ assert.equal(readableCount(999), "999", "천 미만이 단위로 접혔다");
 assert.equal(readableCount(1_000), "1천", "천 경계를 못 넘었다");
 assert.equal(readableCount(9_999), "9천", "1만 미만이 만으로 올라갔다 — 반올림하면 안 된다");
 assert.equal(readableCount(10_000), "1만", "만 경계를 못 넘었다");
-assert.equal(readableCount(123_456_789), "1억", "억 경계를 못 넘었다");
+// 억도 **경계 양쪽**을 짚는다. 넉넉히 큰 수 하나만 보면 `>=` 를 `>` 로
+// 바꾸는 off-by-one 이 그대로 통과한다 — 나머지 둘과 같은 값어치가 되도록
+assert.equal(readableCount(99_999_999), "9999만", "억 직전이 억으로 올라갔다");
+assert.equal(readableCount(100_000_000), "1억", "억 경계를 못 넘었다");
 
 /* 6. 가수 질의 판정 ────────────────────────────────────────
       **틀리면 100 units 을 쓰고 엉뚱한 사람의 채널을 가수라고 세운다.**
@@ -549,6 +560,6 @@ assert.equal(
 const kr = CATALOG.filter((track) => track.region === "kr").length;
 
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 검색 11건 · 카탈로그 가수 20건 · 가수 판정 9건 · 노래 거르기 27건 · 다시 찾기 3판 · 길이 표기 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 검색 11건 · 카탈로그 가수 15건 · 구독자 표기 7건 · 가수 판정 9건 · 노래 거르기 27건 · 다시 찾기 3판 · 길이 표기 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );
