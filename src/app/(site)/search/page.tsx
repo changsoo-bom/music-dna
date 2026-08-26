@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { ViewTransition } from "react";
 
 import { SearchField } from "@/components/common/SearchField";
-import { ArtistCard } from "@/components/search/ArtistCard";
+import { ArtistCard, readableCount } from "@/components/search/ArtistCard";
 import { SearchList } from "@/components/search/SearchList";
 import { ButtonLink } from "@/components/ui/Button";
+import { SUB_GENRES } from "@/constants/genres";
 import { NAV_FORWARD } from "@/constants/nav";
-import { searchTracks } from "@/lib/search";
+import { REGIONS } from "@/constants/regions";
+import { catalogArtist, searchTracks } from "@/lib/search";
 import { searchYoutube } from "@/lib/youtube/search";
 
 /** 사이트 이름은 루트의 `template` 이 붙인다 → `app/layout.tsx` */
@@ -70,6 +72,31 @@ export default async function SearchPage({
   const found = remote?.status === "artist" || remote?.status === "tracks" ? remote.tracks : [];
   const nothing = query && mine.length === 0 && found.length === 0;
 
+  // 친 말이 우리 카탈로그에 있는 가수인가 → `catalogArtist`
+  const own = catalogArtist(query);
+
+  // **가수를 찾아왔으면 그 사람의 곡이 먼저다.** `searchTracks` 는 제목이
+  // 맞은 곡을 앞에 세우는데(`rankOf`), 사람을 찾아온 화면에서는 남의 곡이
+  // 첫 줄에 오는 셈이다. 목록에 든 곡은 그대로고 순서만 바뀐다 —
+  // `own.tracks` 는 언제나 `mine` 의 부분집합이다(이름이 맞으면 그 사람의
+  // 곡은 전부 걸린다)
+  const list = own ? [...own.tracks, ...mine.filter((track) => track.artist !== own.name)] : mine;
+
+  /* 카드가 말할 한 줄. **카탈로그가 아는 것만 적는다** — 곡 수와 지역과 장르는
+     우리가 손으로 적어 넣은 값이라 틀릴 수가 없다. 사진 자리에는 첫 곡의
+     썸네일을 쓴다: 가수 사진은 카탈로그에 없고, 지어내는 대신 그 사람의 것
+     중에 우리가 가진 것을 놓는다 */
+  const ownCover = own?.tracks.find((track) => track.youtubeId)?.youtubeId;
+  const ownMeta = own
+    ? [
+        `${own.tracks.length}곡`,
+        REGIONS.find((region) => region.id === own.tracks[0].region)?.label,
+        SUB_GENRES[own.tracks[0].subGenre].ko,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : undefined;
+
   return (
     <ViewTransition
       enter={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
@@ -80,22 +107,49 @@ export default async function SearchPage({
         <section className="pt-28 pb-24 max-sm:pt-16 max-sm:pb-14">
           <span className="eyebrow text-ink">검색</span>
 
-          <div className="mt-5 flex items-end justify-between gap-6 border-b border-hair pb-7 max-md:flex-col max-md:items-stretch max-md:gap-5">
-            <h1 className="text-[clamp(28px,3.4vw,40px)] leading-[1.1] tabular-nums">
-              {query ? `“${query}” ${mine.length + found.length}곡` : "무엇을 찾으시나요"}
-            </h1>
+          {/* **좁은 화면에서만 필드가 여기 있다.** 헤더의 필드는 로고와 메뉴
+              사이를 못 버텨서 돋보기 링크로 접히는데(`SiteHeader`), 그 링크가
+              오는 곳이 여기라 여기까지 없으면 좁은 화면에 검색 입구가 없다.
+              넓은 화면에서는 헤더에 필드가 서 있다 — 같은 화면에 같은 일을
+              하는 칸이 둘이면 어느 쪽이 진짜인지 묻게 된다.
 
-            {/* **이 화면에도 필드가 있다.** 결과를 보다 검색어를 고치는 자리가
-                여기라, 헤더까지 올라갔다 오게 하지 않는다. 좁은 화면에서는
-                헤더에 필드가 아예 없으므로(`SiteHeader`) 여기가 유일한 입구다.
-
-                `key` 로 리마운트시킨다 — 비제어 입력이라 주소가 바뀌어도
-                `defaultValue` 가 안 따라온다. 뒤로가기로 이전 검색어에 돌아왔을
-                때 칸에는 방금 친 말이 남아 있으면, 화면과 칸이 다른 말을 한다.
-                effect 로 값을 되돌리지 말라는 `.claude/rules/react.md` 가
-                지정한 도구가 `key` 다 */}
-            <SearchField key={query} query={query} className="w-72 max-md:w-full" />
+              `key` 로 리마운트시킨다 — 비제어 입력이라 주소가 바뀌어도
+              `defaultValue` 가 안 따라온다. 뒤로가기로 이전 검색어에 돌아왔을
+              때 칸에는 방금 친 말이 남아 있으면, 화면과 칸이 다른 말을 한다.
+              effect 로 값을 되돌리지 말라는 `.claude/rules/react.md` 가
+              지정한 도구가 `key` 다 */}
+          <div className="mt-5 hidden max-sm:block">
+            <SearchField key={query} query={query} className="w-full" />
           </div>
+
+          {/* **사람을 찾아왔으면 화면 맨 위가 그 사람이다.** 카탈로그가 아는
+              가수가 먼저다 — 우리가 손으로 적은 값이라 틀릴 수가 없고, 밖에서
+              찾아온 채널은 쏠림으로 미루어 짐작한 것이다(`classify`).
+              그 채널의 곡은 아래 목록에 그대로 선다 */}
+          {own ? (
+            <ArtistCard
+              name={own.name}
+              thumbnail={ownCover && `https://i.ytimg.com/vi/${ownCover}/mqdefault.jpg`}
+              meta={ownMeta}
+            />
+          ) : artist ? (
+            <ArtistCard
+              name={artist.name}
+              thumbnail={artist.thumbnail}
+              meta={
+                artist.subscribers === undefined
+                  ? undefined
+                  : `구독자 ${readableCount(artist.subscribers)}`
+              }
+              about={artist.about}
+            />
+          ) : (
+            <div className="mt-5 border-b border-hair pb-7">
+              <h1 className="text-[clamp(28px,3.4vw,40px)] leading-[1.1] tabular-nums">
+                {query ? `“${query}” ${mine.length + found.length}곡` : "무엇을 찾으시나요"}
+              </h1>
+            </div>
+          )}
 
           {!query && (
             <p className="mt-10 max-w-[46ch] text-sm text-slate max-sm:mt-6">
@@ -104,14 +158,12 @@ export default async function SearchPage({
             </p>
           )}
 
-          {artist && <ArtistCard artist={artist} />}
-
-          {mine.length > 0 && (
+          {list.length > 0 && (
             <>
               {/* 밖에서도 찾아왔을 때만 어느 목록인지 말한다. 하나뿐이면
                   머리글이 페이지 제목과 같은 말을 두 번 하는 셈이다 */}
               {found.length > 0 && <Heading note="담을 수 있습니다">카탈로그</Heading>}
-              <SearchList tracks={mine} />
+              <SearchList tracks={list} />
             </>
           )}
 

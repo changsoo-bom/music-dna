@@ -4,7 +4,7 @@ import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import { REGIONS } from "@/constants/regions";
 import { CATALOG } from "@/data/catalog";
 import { browseGroups, browseHref } from "@/lib/browse";
-import { searchTracks } from "@/lib/search";
+import { catalogArtist, searchTracks } from "@/lib/search";
 import { classify } from "@/lib/youtube/classify";
 import { isSongLength, looksLikeSong, songsFirst } from "@/lib/youtube/song";
 import { QUESTIONS } from "@/lib/quiz/questions";
@@ -328,6 +328,44 @@ assert.ok(
   "카탈로그에 없는 곡이 결과에 섞였다",
 );
 
+/* 5-1. 검색어가 가수인가 ──────────────────────────────────────
+        틀리면 **엉뚱한 사람의 화면이 뜬다.** 목록이 한 줄 어긋나는 것과
+        달리 이건 화면 맨 위에서 큰 글씨로 틀린다 → `catalogArtist` */
+
+assert.equal(catalogArtist(""), null, "빈 검색어로 가수를 세웠다");
+assert.equal(catalogArtist("   "), null, "공백만 쳤는데 가수를 세웠다");
+assert.equal(catalogArtist("zzzzz"), null, "없는 이름으로 가수를 세웠다");
+
+// 제목은 사람이 아니다. `Bags` 는 Clairo 의 곡이지 가수 이름이 아니다
+assert.equal(catalogArtist("bags"), null, "곡 제목을 가수로 세웠다");
+
+const artistClairo = catalogArtist("clairo");
+assert.equal(artistClairo?.name, "Clairo", "아티스트 이름을 그대로 쳤는데 못 알아봤다");
+assert.deepEqual(
+  idsOf(catalogArtist("CLA IRO")?.tracks ?? []),
+  idsOf(artistClairo?.tracks ?? []),
+  "대소문자·띄어쓰기가 가수 판정을 바꾼다",
+);
+assert.ok(
+  artistClairo!.tracks.length > 0 &&
+    artistClairo!.tracks.every((track) => track.artist === "Clairo"),
+  "가수의 곡에 다른 사람의 곡이 섞였다",
+);
+
+// **화면이 기대는 것**: 가수의 곡은 검색 결과에 전부 들어 있다. 여기가
+// 무너지면 목록이 결과보다 길어져 머리글의 곡 수와 어긋난다 → `SearchPage`
+assert.ok(
+  artistClairo!.tracks.every((track) => searchTracks("clairo").includes(track)),
+  "가수의 곡인데 검색 결과에는 없다",
+);
+
+// 후보가 여럿이면 판정하지 않는다 — The 1975 · The Clash · The Killers …
+assert.equal(catalogArtist("The"), null, "여러 사람에게 걸리는 말로 한 사람을 세웠다");
+
+// 다만 **이름을 그대로 친 경우는 예외다.** `경서` 는 `경서예지` 로도 시작하지만
+// 친 그대로인 사람이 있다
+assert.equal(catalogArtist("경서")?.name, "경서", "이름을 정확히 쳤는데 못 알아봤다");
+
 /* 6. 가수 질의 판정 ────────────────────────────────────────
       **틀리면 100 units 을 쓰고 엉뚱한 사람의 채널을 가수라고 세운다.**
       YouTube 에 물어보는 대신 결과의 쏠림으로 판정하는 자리라(`classify`),
@@ -451,6 +489,6 @@ assert.equal(
 const kr = CATALOG.filter((track) => track.region === "kr").length;
 
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 검색 11건 · 가수 판정 9건 · 노래 거르기 27건 · 다시 찾기 3판 · 길이 표기 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 검색 11건 · 카탈로그 가수 10건 · 가수 판정 9건 · 노래 거르기 27건 · 다시 찾기 3판 · 길이 표기 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );
