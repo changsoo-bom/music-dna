@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import { ViewTransition } from "react";
 
 import { SearchField } from "@/components/common/SearchField";
-import { ArtistCard, readableCount } from "@/components/search/ArtistCard";
+import { ArtistCard } from "@/components/search/ArtistCard";
 import { SearchList } from "@/components/search/SearchList";
 import { ButtonLink } from "@/components/ui/Button";
 import { SUB_GENRES } from "@/constants/genres";
 import { NAV_FORWARD } from "@/constants/nav";
 import { REGIONS } from "@/constants/regions";
+import { readableCount } from "@/lib/format";
 import { catalogArtist, searchTracks } from "@/lib/search";
 import { searchYoutube } from "@/lib/youtube/search";
 
@@ -75,23 +76,35 @@ export default async function SearchPage({
   // 친 말이 우리 카탈로그에 있는 가수인가 → `catalogArtist`
   const own = catalogArtist(query);
 
-  // **가수를 찾아왔으면 그 사람의 곡이 먼저다.** `searchTracks` 는 제목이
-  // 맞은 곡을 앞에 세우는데(`rankOf`), 사람을 찾아온 화면에서는 남의 곡이
-  // 첫 줄에 오는 셈이다. 목록에 든 곡은 그대로고 순서만 바뀐다 —
-  // `own.tracks` 는 언제나 `mine` 의 부분집합이다(이름이 맞으면 그 사람의
-  // 곡은 전부 걸린다)
-  const list = own ? [...own.tracks, ...mine.filter((track) => track.artist !== own.name)] : mine;
+  /* **검색어에 걸렸지만 그 사람 곡은 아닌 것.** 보통 비어 있지만 이름이
+     이름으로 시작하는 경우가 있다 — `경서` 를 치면 `경서예지` 도 걸린다.
+     그때 카드는 "1곡" 인데 아래에 두 줄이 서므로, 나머지가 남의 곡임을
+     화면이 말하지 않으면 **그 곡이 이 가수의 곡으로 읽힌다.** 카드가 `h1`
+     이라 더 그렇다 */
+  const rest = own ? mine.filter((track) => track.artist !== own.name) : [];
 
-  /* 카드가 말할 한 줄. **카탈로그가 아는 것만 적는다** — 곡 수와 지역과 장르는
-     우리가 손으로 적어 넣은 값이라 틀릴 수가 없다. 사진 자리에는 첫 곡의
-     썸네일을 쓴다: 가수 사진은 카탈로그에 없고, 지어내는 대신 그 사람의 것
-     중에 우리가 가진 것을 놓는다 */
+
+  /* 카드가 말할 한 줄. **카탈로그가 아는 것만 적는다.**
+
+     장르는 **가수의 곡 전부가 같은 하위 장르일 때만** 적는다. 카탈로그가
+     손으로 적어 둔 것은 *곡의* 장르지 *가수의* 장르가 아니다 — Daft Punk 는
+     펑크·하우스·신스팝 셋에 걸쳐 있고, 첫 곡을 대표로 세우면 화면이 그
+     사람을 "펑크" 라고 부른다. 게다가 `catalog.ts` 의 줄 순서가 바뀌면
+     그 값이 조용히 달라진다. 갈리는 가수가 지금 다섯이다(이문세·실리카겔·
+     아이유·Daft Punk·검정치마). 모르면 안 적는 편이 낫다 — `.filter(Boolean)`
+     이 그 줄을 접는다.
+
+     지역은 안전하다. 한 가수가 국내와 해외에 동시에 있지 않다.
+
+     사진 자리에는 첫 곡의 썸네일을 쓴다: 가수 사진은 카탈로그에 없고,
+     지어내는 대신 그 사람의 것 중에 우리가 가진 것을 놓는다 */
   const ownCover = own?.tracks.find((track) => track.youtubeId)?.youtubeId;
+  const ownGenres = new Set(own?.tracks.map((track) => track.subGenre));
   const ownMeta = own
     ? [
         `${own.tracks.length}곡`,
         REGIONS.find((region) => region.id === own.tracks[0].region)?.label,
-        SUB_GENRES[own.tracks[0].subGenre].ko,
+        ownGenres.size === 1 ? SUB_GENRES[own.tracks[0].subGenre].ko : undefined,
       ]
         .filter(Boolean)
         .join(" · ")
@@ -107,20 +120,18 @@ export default async function SearchPage({
         <section className="pt-28 pb-24 max-sm:pt-16 max-sm:pb-14">
           <span className="eyebrow text-ink">검색</span>
 
-          {/* **좁은 화면에서만 필드가 여기 있다.** 헤더의 필드는 로고와 메뉴
-              사이를 못 버텨서 돋보기 링크로 접히는데(`SiteHeader`), 그 링크가
-              오는 곳이 여기라 여기까지 없으면 좁은 화면에 검색 입구가 없다.
-              넓은 화면에서는 헤더에 필드가 서 있다 — 같은 화면에 같은 일을
-              하는 칸이 둘이면 어느 쪽이 진짜인지 묻게 된다.
+          {/* **이 화면에서는 칸이 여기 하나다.** 헤더 것은 스스로 접는다
+              (`hideOnResults`) — 헤더는 레이아웃에 살아서 `?q=` 를 모르므로
+              거기 남겨 두면 결과를 보는 내내 빈 칸이 서 있고, `아이유` 를
+              `아이유 밤편지` 로 좁히려면 처음부터 다시 쳐야 한다. 지금 찾고
+              있는 말을 물고 있을 수 있는 것은 이쪽뿐이다.
 
               `key` 로 리마운트시킨다 — 비제어 입력이라 주소가 바뀌어도
               `defaultValue` 가 안 따라온다. 뒤로가기로 이전 검색어에 돌아왔을
               때 칸에는 방금 친 말이 남아 있으면, 화면과 칸이 다른 말을 한다.
               effect 로 값을 되돌리지 말라는 `.claude/rules/react.md` 가
               지정한 도구가 `key` 다 */}
-          <div className="mt-5 hidden max-sm:block">
-            <SearchField key={query} query={query} className="w-full" />
-          </div>
+          <SearchField key={query} query={query} className="mt-5 w-72 max-md:w-full" />
 
           {/* **사람을 찾아왔으면 화면 맨 위가 그 사람이다.** 카탈로그가 아는
               가수가 먼저다 — 우리가 손으로 적은 값이라 틀릴 수가 없고, 밖에서
@@ -158,12 +169,24 @@ export default async function SearchPage({
             </p>
           )}
 
-          {list.length > 0 && (
+          {/* **가수를 세웠으면 그 사람의 곡만 카드 밑에 붙는다.** 검색어에
+              걸린 남의 곡은 머리글 아래로 내린다 — `경서` 를 쳤을 때
+              `경서예지` 의 곡이 구분선 없이 이어 붙으면 그 사람의 곡으로
+              읽힌다 */}
+          {own && <SearchList tracks={own.tracks} />}
+          {own && rest.length > 0 && (
+            <>
+              <Heading>다른 가수의 곡</Heading>
+              <SearchList tracks={rest} />
+            </>
+          )}
+
+          {!own && mine.length > 0 && (
             <>
               {/* 밖에서도 찾아왔을 때만 어느 목록인지 말한다. 하나뿐이면
                   머리글이 페이지 제목과 같은 말을 두 번 하는 셈이다 */}
               {found.length > 0 && <Heading note="담을 수 있습니다">카탈로그</Heading>}
-              <SearchList tracks={list} />
+              <SearchList tracks={mine} />
             </>
           )}
 

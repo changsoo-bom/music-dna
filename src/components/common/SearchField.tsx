@@ -1,7 +1,7 @@
 "use client";
 
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { NAV_FORWARD } from "@/constants/nav";
 
@@ -25,12 +25,33 @@ import { NAV_FORWARD } from "@/constants/nav";
 export function SearchField({
   query = "",
   className = "",
+  hideOnResults = false,
 }: {
   /** 결과 화면에서 지금 찾고 있는 말. 필드가 그것을 물고 시작한다 */
   query?: string;
   className?: string;
+  /**
+   * 결과 화면에서는 이 필드를 안 그린다. **헤더가 켠다.**
+   *
+   * 헤더는 레이아웃에 살아서 `?q=` 를 모른다 — `searchParams` 는 페이지가
+   * 받고, 레이아웃까지 올라오지 않는다. 그래서 결과를 보는 동안 헤더 칸은
+   * 늘 비어 있고, `아이유` 로 찾은 것을 `아이유 밤편지` 로 좁히려면 처음부터
+   * 다시 쳐야 한다.
+   *
+   * **한 화면에 칸은 하나다.** 결과 화면에서만 그 하나를 페이지가 갖는다 —
+   * 거기서는 지금 찾고 있는 말을 물고 있을 수 있다. 다른 화면에서는 헤더가
+   * 갖는다.
+   *
+   * `useSearchParams` 로 헤더가 직접 읽는 방법도 있지만, 그러면 레이아웃을
+   * 쓰는 **모든** 화면이 정적 렌더에서 이탈하고 Suspense 경계를 요구한다.
+   * `usePathname` 은 그 대가가 없다.
+   */
+  hideOnResults?: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+
+  if (hideOnResults && pathname === "/search") return null;
 
   return (
     <form

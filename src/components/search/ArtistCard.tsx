@@ -63,11 +63,3 @@ export function ArtistCard({
     </div>
   );
 }
-
-/** 구독자 수를 사람이 읽는 단위로. `1234567` → `123만` */
-export function readableCount(value: number) {
-  if (value >= 100_000_000) return `${Math.floor(value / 100_000_000)}억`;
-  if (value >= 10_000) return `${Math.floor(value / 10_000)}만`;
-  if (value >= 1_000) return `${Math.floor(value / 1_000)}천`;
-  return String(value);
-}

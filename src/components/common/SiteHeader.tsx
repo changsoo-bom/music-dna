@@ -45,8 +45,15 @@ export function SiteHeader() {
       {/* **좁은 화면에서는 격자를 놓는다.** `1fr auto 1fr` 은 양쪽 칸을 같은
           폭으로 맞추는데, 거기서는 왼쪽이 로고(넓다)고 오른쪽이 돋보기
           하나(좁다)라 오른쪽 칸이 로고만큼 부풀어 필이 화면 밖으로 나간다.
-          넓은 화면에서는 반대쪽이 검색 필드라 그 등폭이 정확히 원하는 것이다 */}
-      <header className="header-drop mx-auto grid max-w-[1280px] grid-cols-[1fr_auto_1fr] items-center py-3 pr-8 pl-8 rounded-pill bg-white shadow-lift max-sm:flex max-sm:justify-between max-sm:pr-5 max-sm:pl-5">
+          넓은 화면에서는 반대쪽이 검색 필드라 그 등폭이 정확히 원하는 것이다.
+
+          **`1fr` 이 아니라 `minmax(0,1fr)` 이다.** `1fr` 은 `minmax(auto,1fr)`
+          이고 `auto` 의 최소값은 min-content 라, 좁아지면 트랙이 줄어드는 게
+          아니라 **필 밖으로 넘친다.** 640px 에서 헤더 안쪽이 528px 인데
+          가운데 메뉴가 ~165px 을 먹으면 양쪽이 각 ~181px 이고 오른쪽에
+          176px 짜리 필드가 들어간다 — 한 자릿수 px 여유였다. 이제 넘치는
+          대신 필드가 줄어든다 */}
+      <header className="header-drop mx-auto grid max-w-[1280px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center py-3 pr-8 pl-8 rounded-pill bg-white shadow-lift max-sm:flex max-sm:justify-between max-sm:pr-5 max-sm:pl-5">
         {/* 로고만 굵고 자간이 넓다. 셋이 같은 굵기가 되면 어디가 집인지 안 보인다 */}
         <Link
           href="/"
@@ -71,8 +78,11 @@ export function SiteHeader() {
         {/* 필드와 돋보기는 **한 칸을 나눠 쓴다.** 칸이 셋인 격자에 넷째 아이가
             들어오면 그 아이는 다음 줄로 떨어진다 — 좁은 화면에서 헤더가 두
             줄이 되는 사고가 여기서 난다 */}
-        <div className="justify-self-end">
-          <SearchField className="w-56 max-lg:w-44 max-sm:hidden" />
+        <div className="min-w-0 justify-self-end">
+          {/* **결과 화면에서는 이 칸을 페이지에 넘긴다.** 헤더는 레이아웃에
+              살아서 `?q=` 를 모르므로, 여기 남겨 두면 결과를 보는 내내 칸이
+              비어 있다 → `SearchField` 의 `hideOnResults` */}
+          <SearchField hideOnResults className="w-56 max-lg:w-44 max-sm:hidden" />
 
           {/* 좁은 화면에서는 필드가 로고와 메뉴 사이를 못 버틴다. 아이콘만
               남기고 결과 화면으로 보낸다 — 거기 같은 필드가 있다

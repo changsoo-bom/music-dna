@@ -17,11 +17,20 @@ const ITEMS = [
  * 안 일어나는 것이 화면 어디에도 안 적혀 있었다. 사이트 껍데기가 하는 일의
  * 절반은 방향 안내다.
  *
- * **지금 칸은 잉크색이고 점이 켜진다.** 점은 이 시스템의 아이브로우 장치를
- * 그대로 가져온 것이다(`globals.css` 의 `.eyebrow::before`) — 섹션이 어디인지
- * 말하는 표시라 "여기가 지금 자리다" 와 같은 말을 한다. 예약색을 버튼에
- * 쓰지 말라는 규칙은 지킨다. 이건 눌리는 것이 아니라 상태다
- * → `.claude/rules/styling.md`
+ * **지금 칸은 잉크색이고 점이 켜진다.** 예약색을 버튼에 쓰지 말라는 규칙은
+ * 지킨다 — 이건 눌리는 것이 아니라 상태다 → `.claude/rules/styling.md`
+ *
+ * **`--signal` 이 아니라 `--signal-lt` 다.** 토큰 표가 "캐러셀 활성
+ * 인디케이터" 를 이쪽에 적어 두었고(`docs/design-reference.md`), 네비의
+ * 활성 점은 캐러셀의 활성 점과 같은 종류의 물건이다. `--signal` 쪽은
+ * **동의·법적 확인 액션**을 함께 지고 있어서, 사이트 껍데기에 상시 켜 두면
+ * 그 신호가 가장 빨리 닳는다. 재생 바도 같은 이유로 `-lt` 를 고른다
+ * (`globals.css`).
+ *
+ * 아이브로우(`.eyebrow::before`)와 모양이 닮은 것은 의도다 — 저쪽이 섹션이
+ * 어디인지 말하듯 이쪽은 자리가 어디인지 말한다. 다만 **같은 색은 아니다**:
+ * `/search` 한 화면에 아이브로우 점이 이미 둘(검색·가수) 있어서, 셋이 같은
+ * 색이면 뜻이 셋인 점이 한 색으로 뭉친다.
  *
  * **점 자리는 꺼져 있어도 비워 둔다.** 켜질 때 자리를 만들면 이동할 때마다
  * 글자가 옆으로 밀리는데, 헤더는 페이지가 바뀌어도 안 움직이는 것이 일이다.
@@ -57,7 +66,7 @@ export function SiteNav({ className = "" }: { className?: string }) {
           >
             <span
               aria-hidden
-              className={`h-[5px] w-[5px] shrink-0 rounded-full bg-signal transition-opacity duration-200 max-sm:hidden ${
+              className={`h-[5px] w-[5px] shrink-0 rounded-full bg-signal-lt transition-opacity duration-200 max-sm:hidden ${
                 here ? "opacity-100" : "opacity-0"
               }`}
             />
