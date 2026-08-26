@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files. .env.example 만 예외 — 어떤 변수가 필요한지는 커밋돼야 알 수 있다
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -46,3 +47,8 @@ next-env.d.ts
 # bkit (machine-local runtime/logs; state/ is shared)
 .bkit/runtime/
 .bkit/audit/
+
+# enrich 중간 산출물 (검수용, 커밋하지 않는다)
+scripts/enrich-out.json
+.bkit/snapshots/
+.bkit/decisions/

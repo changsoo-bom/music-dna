@@ -25,16 +25,21 @@ src/
 ├── components/
 │   ├── ui/                   # 전역 프리미티브 (Button, Chip, SatelliteButton…)
 │   ├── common/               # 공통 조합 컴포넌트 (index.ts 배럴)
-│   └── report/{feature}/     # 도메인 컴포넌트 — genre, clock, mood, drift, artist, recommend
+│   ├── quiz/                 # 성향 검사 화면
+│   └── report/{feature}/     # 도메인 컴포넌트 — genre, mood, artist, recommend
 │
 ├── hooks/                    # use-*.ts
 ├── lib/
-│   ├── spotify/              # 외부 API 클라이언트 — 파싱 + 검증 + 캐싱
-│   ├── report/               # 재생 기록 → 지표 계산
+│   ├── youtube/              # 외부 API 클라이언트 — 파싱 + 검증 + 캐싱
+│   ├── quiz/                 # 성향 검사 문항·배점 (questions, scoring)
+│   ├── report/               # 선택한 곡 → 지표 계산
 │   ├── schemas/{domain}.ts   # Zod 스키마 (+ index.ts 배럴)
 │   └── utils.ts
-├── types/                    # 도메인별 타입 (`music.ts` …)
-└── constants/
+├── data/                     # 저장소에 커밋된 데이터 (곡 카탈로그)
+├── types/                    # 도메인별 타입 (`music.ts`, `quiz.ts` …)
+└── constants/                # 장르 분류 · 페르소나 문구 등 고정 데이터
+
+scripts/                      # src/ 밖. 커밋 전 검증 (`pnpm check`)
 ```
 
 #### 원칙

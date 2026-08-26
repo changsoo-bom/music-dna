@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="MY MUSIC DNA">
+  <!--
+    헤더 로고와 같은 마크다. 겹친 두 원 — 왼쪽이 --chart-2, 오른쪽이 --chart-1.
+
+    화면에서는 mix-blend-multiply 가 겹친 자리를 만드는데, 여기서는 그 결과색을
+    직접 그린다(#002c0f = b4521e × 00897c). 파비콘을 그리는 쪽은 블렌드 모드를
+    받아 준다는 보장이 없고, 안 받으면 뒤 원이 앞 원을 덮어 마크가 아예 달라진다.
+
+    흰 원을 깐다. 탭 배경은 밝을 수도 어두울 수도 있어서 배경 없이 두면 어두운
+    탭에서 겹친 자리(거의 잉크색)가 구멍처럼 읽힌다. 시스템에서 --white 는 떠
+    있는 것들의 표면이고(네비 필·칩), 탭 아이콘은 정확히 그 자리다.
+
+    16px 로 줄어드는 그림이라 마크만 있고 글자는 없다.
+  -->
+  <circle cx="16" cy="16" r="16" fill="#ffffff" />
+  <circle cx="10.5" cy="16" r="7.5" fill="#b4521e" />
+  <circle cx="21.5" cy="16" r="7.5" fill="#00897c" />
+  <clipPath id="lens">
+    <circle cx="10.5" cy="16" r="7.5" />
+  </clipPath>
+  <circle cx="21.5" cy="16" r="7.5" fill="#002c0f" clip-path="url(#lens)" />
+</svg>
