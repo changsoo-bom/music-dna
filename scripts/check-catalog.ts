@@ -4,6 +4,7 @@ import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import { REGIONS } from "@/constants/regions";
 import { CATALOG } from "@/data/catalog";
 import { browseGroups, browseHref } from "@/lib/browse";
+import { searchTracks } from "@/lib/search";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
 import { maxPerGenre, nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
@@ -289,9 +290,45 @@ assert.ok(
   "곡이 없는 칸이 목록에 남았다",
 );
 
+/* 5. 검색 ──────────────────────────────────────────────────
+      `searchTracks` 도 순수 함수라 화면 없이 다 본다. 여기서 막고 싶은 것은
+      **조용한 빈 결과**다 — 대소문자나 띄어쓰기 하나로 아무것도 안 나오면
+      사용자에게는 "그 곡이 없다" 로만 보이고, 없는 것은 곡이 아니라 규칙이다. */
+
+const idsOf = (tracks: readonly { id: string }[]) => tracks.map((track) => track.id);
+
+// 빈 검색어는 빈 결과다. 전부 돌려주면 두 번째 전체보기가 된다
+assert.deepEqual(searchTracks(""), [], "빈 검색어에 결과가 나왔다");
+assert.deepEqual(searchTracks("   "), [], "공백만 쳤는데 결과가 나왔다");
+
+// 대소문자와 띄어쓰기를 안 가린다. 표기는 하나뿐인데 치는 방법은 여럿이다
+const clairo = searchTracks("clairo");
+assert.ok(clairo.length >= 2, `아티스트로 찾은 곡이 ${clairo.length}곡뿐이다`);
+assert.deepEqual(idsOf(searchTracks("CLAIRO")), idsOf(clairo), "대문자로 치면 다른 결과가 나온다");
+assert.deepEqual(idsOf(searchTracks(" Clairo ")), idsOf(clairo), "앞뒤 공백이 결과를 바꾼다");
+assert.deepEqual(idsOf(searchTracks("cla iro")), idsOf(clairo), "가운데 공백이 결과를 바꾼다");
+assert.ok(
+  clairo.every((track) => track.artist === "Clairo"),
+  "아티스트로 찾았는데 다른 사람의 곡이 섞였다",
+);
+
+// **제목이 아티스트보다 앞이다.** 친 그대로인 곡이 아래에 있으면 검색이
+// 고장 난 것처럼 보인다
+assert.equal(searchTracks("bags")[0].title, "Bags", "제목이 그대로 맞는 곡이 첫 줄이 아니다");
+assert.equal(searchTracks("난춘")[0].artist, "새소년", "한글 제목으로 못 찾았다");
+
+// 없는 말은 빈 결과다. 여기가 무너지면 검색이 아무거나 돌려준다
+assert.deepEqual(searchTracks("zzzzz"), [], "없는 말에 결과가 나왔다");
+
+// 찾은 곡은 전부 카탈로그의 곡이다 — 목록이 그리는 것이 곧 이 결과다
+assert.ok(
+  searchTracks("a").every((track) => CATALOG.includes(track)),
+  "카탈로그에 없는 곡이 결과에 섞였다",
+);
+
 const kr = CATALOG.filter((track) => track.region === "kr").length;
 
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 다시 찾기 3판 · 길이 표기 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 검색 11건 · 다시 찾기 3판 · 길이 표기 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );

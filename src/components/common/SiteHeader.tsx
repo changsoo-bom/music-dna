@@ -1,5 +1,7 @@
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
+import { SearchField } from "@/components/common/SearchField";
 import { NAV_BACK, NAV_FORWARD } from "@/constants/nav";
 
 /**
@@ -7,6 +9,11 @@ import { NAV_BACK, NAV_FORWARD } from "@/constants/nav";
  *
  * 오른쪽 메뉴는 로고보다 약하다(`font-medium` · `text-slate`). 굵기와 색이
  * 로고와 같아지면 셋이 같은 층으로 읽혀서 어디가 집인지 안 보인다.
+ *
+ * **검색은 메뉴 왼쪽에 선다.** 가는 곳(`전체보기`·`보관함`)과 하는 일(검색)은
+ * 다른 종류라 같은 줄에 나란히 두면 셋 중 어느 것이 이동인지 안 읽힌다.
+ * 좁은 화면에서는 필드가 로고와 메뉴 사이를 못 버텨서 돋보기만 남고,
+ * 필드는 결과 화면이 갖는다 → `SearchField`
  *
  * **여기서 나가는 길에도 방향이 있다.** 로고는 집으로 돌아가는 길이라
  * `NAV_BACK`, 메뉴 두 칸은 들어가는 길이라 `NAV_FORWARD` 다 — 검사 화면을
@@ -29,7 +36,23 @@ export function SiteHeader() {
           MY MUSIC DNA
         </Link>
 
-        <nav className="ml-auto flex items-center gap-7 font-medium text-slate max-sm:gap-5">
+        {/* **검색은 메뉴가 아니라 조작이라 메뉴 앞에 선다.** 테두리 하나로만
+            구별한다 — 헤더가 이미 떠 있는 흰 필이라 여기에 표면을 하나 더
+            깔면 종이가 세 겹이 된다 → `.claude/rules/styling.md` */}
+        <SearchField className="ml-auto w-56 max-lg:w-44 max-sm:hidden" />
+
+        {/* 좁은 화면에서는 필드가 로고와 메뉴 사이를 못 버틴다. 아이콘만 남기고
+            결과 화면으로 보낸다 — 거기 같은 필드가 있다 */}
+        <Link
+          href="/search"
+          transitionTypes={NAV_FORWARD}
+          aria-label="곡·아티스트 검색"
+          className="ml-auto hidden text-slate transition-colors hover:text-ink max-sm:block"
+        >
+          <MagnifyingGlassIcon size={18} weight="bold" aria-hidden />
+        </Link>
+
+        <nav className="flex items-center gap-7 ml-7 font-medium text-slate max-sm:gap-5 max-sm:ml-5">
           <Link href="/browse" transitionTypes={NAV_FORWARD} className="transition-colors hover:text-ink">
             전체보기
           </Link>

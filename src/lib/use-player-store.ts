@@ -35,6 +35,7 @@ export type QueueId =
   | "played"
   | "browse"
   | `browse:${Genre}`
+  | "search"
   | `library:${string}`;
 
 /**
