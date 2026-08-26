@@ -65,7 +65,7 @@ assert.deepEqual(empty, [], `곡이 하나도 없는 하위 장르: ${empty.join
 /**
  * **국내·해외 × 장르 열 칸이 전부 차 있다.**
  *
- * 전체보기는 두 축을 곱해서 좁힌다(`RegionSwitch` × `GenreRail`). 한 칸이
+ * 둘러보기는 두 축을 곱해서 좁힌다(`RegionSwitch` × `GenreRail`). 한 칸이
  * 비면 `browseGroups` 가 그 칸을 통째로 떨어뜨려서 **색인에서 장르 줄이
  * 사라지고**, 이미 공유된 `/browse?region=kr&genre=electronic` 은 빈 안내문만
  * 남는 화면이 된다.
@@ -83,7 +83,7 @@ for (const region of REGIONS) {
     ).length;
     assert.ok(
       count >= 4,
-      `${region.label} ${genre.label} 이 ${count}곡이다 — 전체보기에서 그 칸이 색인에 안 뜬다`,
+      `${region.label} ${genre.label} 이 ${count}곡이다 — 둘러보기에서 그 칸이 색인에 안 뜬다`,
     );
   }
 }
@@ -247,7 +247,7 @@ for (const track of CATALOG) {
   );
 }
 
-/* 4. 전체보기 — 좁히는 규칙 ────────────────────────────────
+/* 4. 둘러보기 — 좁히는 규칙 ────────────────────────────────
       `browseGroups`·`browseHref` 는 순수 함수라 화면을 안 열어도 여기서 다 본다.
       특히 `browseHref` 의 **`undefined`=유지 / `null`=해제** 규약은 틀려도
       타입이 안 잡는다: "장르 해제" 를 `undefined` 로 적으면 해제가 아니라
@@ -298,7 +298,7 @@ assert.ok(
 
 const idsOf = (tracks: readonly { id: string }[]) => tracks.map((track) => track.id);
 
-// 빈 검색어는 빈 결과다. 전부 돌려주면 두 번째 전체보기가 된다
+// 빈 검색어는 빈 결과다. 전부 돌려주면 두 번째 둘러보기가 된다
 assert.deepEqual(searchTracks(""), [], "빈 검색어에 결과가 나왔다");
 assert.deepEqual(searchTracks("   "), [], "공백만 쳤는데 결과가 나왔다");
 

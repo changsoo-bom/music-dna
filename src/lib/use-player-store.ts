@@ -40,7 +40,7 @@ export function isCatalogTrack(track: AnyTrack): track is CatalogTrack {
  * 첫 곡이 같은 두 리스트가 서로를 일시정지시킨다 — B를 틀려고 눌렀는데
  * A가 멈춘다. 그래서 리스트만 자기 id 를 달고 다닌다.
  *
- * **전체보기도 같은 이유로 둘이다.** 줄을 눌러 트는 큐는 화면 전체(`browse`)고,
+ * **둘러보기도 같은 이유로 둘이다.** 줄을 눌러 트는 큐는 화면 전체(`browse`)고,
  * 칸의 "전체 재생" 은 그 칸만(`browse:{genre}`)이다. 같은 이름을 쓰면 화면 첫
  * 곡이 나는 중에 그 칸의 전체 재생을 눌렀을 때 아래 `play` 의 토글 분기에
  * 걸려서 **재생 버튼이 정지를 한다** — 첫 곡이 겹치는 것은 우연이 아니라
@@ -249,7 +249,7 @@ export function soundingId(state: PlayerState, queueId: QueueId): string | null 
 }
 
 /**
- * 전체보기에서 지금 소리를 내고 있는 곡의 id. **큐가 둘이라 따로 있다** —
+ * 둘러보기에서 지금 소리를 내고 있는 곡의 id. **큐가 둘이라 따로 있다** —
  * 줄을 눌러 튼 것(`browse`)과 칸의 전체 재생(`browse:{genre}`)은 서로 다른
  * 큐지만 **같은 화면이 튼 것**이라, 어느 쪽이든 그 줄에 표시가 붙어야 한다.
  * `soundingId` 로는 한 번에 한쪽만 볼 수 있다.

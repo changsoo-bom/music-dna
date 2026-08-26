@@ -25,7 +25,7 @@ export default function SearchError({ reset }: { reset: () => void }) {
           잠시 뒤에 다시 찾아보세요
         </h1>
         <p className="mt-4 max-w-[46ch] text-sm text-slate">
-          카탈로그는 그대로 있습니다. 전체보기에서는 계속 둘러보실 수 있습니다.
+          카탈로그는 그대로 있습니다. 둘러보기에서는 곡을 계속 보실 수 있습니다.
         </p>
 
         <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -33,7 +33,7 @@ export default function SearchError({ reset }: { reset: () => void }) {
             다시 찾기
           </button>
           <ButtonLink href="/browse" variant="text">
-            전체보기로 가기
+            둘러보기로 가기
           </ButtonLink>
         </div>
       </section>

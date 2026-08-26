@@ -47,7 +47,7 @@ function Heading({ children, note }: { children: React.ReactNode; note?: string 
  * 않고 상태를 돌려주고, 화면은 그 사정을 한 줄로 말한다. 예상 못 한 실패는
  * `error.tsx` 가 받는다 → `.claude/rules/data.md` 의 "외부 API 실패는 국소화"
  *
- * ## 전체보기와 다른 화면인 이유
+ * ## 둘러보기와 다른 화면인 이유
  *
  * 저기는 색인으로 둘러보는 자리고 여기는 이름을 알고 찾아온 자리다. 한 화면에
  * 겹치면 필터가 셋(지역·장르·검색어)이 되는데 그중 하나가 나머지 둘을
@@ -145,10 +145,10 @@ export default async function SearchPage({
             <div className="mt-10 max-sm:mt-6">
               <p className="text-[22px] font-medium tracking-[-0.02em]">찾는 곡이 없습니다</p>
               <p className="mt-4 max-w-[46ch] text-sm text-slate">
-                이름의 일부만 쳐 보거나, 전체보기에서 둘러보세요.
+                이름의 일부만 쳐 보거나, 둘러보기에서 장르로 찾아보세요.
               </p>
               <ButtonLink href="/browse" transitionTypes={NAV_FORWARD} variant="text" className="mt-6">
-                전체보기로 가기
+                둘러보기로 가기
               </ButtonLink>
             </div>
           )}

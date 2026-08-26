@@ -10,7 +10,7 @@ import { browseSoundingId, isPlayable, usePlayerStore } from "@/lib/use-player-s
 import type { Genre, Region } from "@/types/music";
 
 /**
- * 전체보기의 곡 목록.
+ * 둘러보기의 곡 목록.
  *
  * **좁히는 값은 주소에서 온다**(`region` · `genre`). 색인과 스위치는 링크고
  * 이 화면은 고른 값을 받기만 한다 — 뒤로가기·공유가 공짜로 따라온다

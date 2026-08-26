@@ -10,7 +10,7 @@ import { NAV_BACK, NAV_FORWARD } from "@/constants/nav";
  * 오른쪽 메뉴는 로고보다 약하다(`font-medium` · `text-slate`). 굵기와 색이
  * 로고와 같아지면 셋이 같은 층으로 읽혀서 어디가 집인지 안 보인다.
  *
- * **검색은 메뉴 왼쪽에 선다.** 가는 곳(`전체보기`·`보관함`)과 하는 일(검색)은
+ * **검색은 메뉴 왼쪽에 선다.** 가는 곳(`둘러보기`·`보관함`)과 하는 일(검색)은
  * 다른 종류라 같은 줄에 나란히 두면 셋 중 어느 것이 이동인지 안 읽힌다.
  * 좁은 화면에서는 필드가 로고와 메뉴 사이를 못 버텨서 돋보기만 남고,
  * 필드는 결과 화면이 갖는다 → `SearchField`
@@ -54,7 +54,7 @@ export function SiteHeader() {
 
         <nav className="flex items-center gap-7 ml-7 font-medium text-slate max-sm:gap-5 max-sm:ml-5">
           <Link href="/browse" transitionTypes={NAV_FORWARD} className="transition-colors hover:text-ink">
-            전체보기
+            둘러보기
           </Link>
           <Link href="/library" transitionTypes={NAV_FORWARD} className="transition-colors hover:text-ink">
             보관함

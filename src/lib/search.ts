@@ -38,11 +38,11 @@ function rankOf(track: CatalogTrack, folded: string): number {
  * 종류의 어긋남은 아무도 안 고친다 → `browseGroups`
  *
  * **빈 검색어는 빈 결과다.** 전부 돌려주면 `/search` 가 카탈로그 전체를 그리는
- * 두 번째 전체보기가 된다. 그 화면은 이미 있고 거기엔 색인과 필터가 붙어
+ * 두 번째 둘러보기가 된다. 그 화면은 이미 있고 거기엔 색인과 필터가 붙어
  * 있다 — 여기는 찾을 것이 있어서 온 사람의 자리다.
  *
  * 지역이나 장르로 좁히지 않는다. 검색은 축이 하나여야 결과를 믿을 수 있다.
- * 좁히는 일은 전체보기가 한다.
+ * 좁히는 일은 둘러보기가 한다.
  */
 export function searchTracks(query: string): CatalogTrack[] {
   const folded = fold(query);

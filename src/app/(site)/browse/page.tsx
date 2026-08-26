@@ -12,11 +12,11 @@ import type { Genre } from "@/types/music";
 
 /** 사이트 이름은 루트의 `template` 이 붙인다 → `app/layout.tsx` */
 export const metadata: Metadata = {
-  title: "전체보기",
+  title: "둘러보기",
 };
 
 /**
- * 전체보기. 헤더의 두 칸 중 하나이고, 검사를 안 한 사람도 볼 수 있는 유일한
+ * 둘러보기. 헤더의 두 칸 중 하나이고, 검사를 안 한 사람도 볼 수 있는 유일한
  * 곡 목록이다 — 추천은 검사 결과가 있어야 나온다.
  *
  * **곡 목록을 prop 으로 안 넘긴다.** 여기서 묶어 넘기면 카탈로그가 두 번
@@ -78,7 +78,7 @@ export default async function BrowsePage({
     >
       <main className="shell flex-1 pb-28 max-sm:pb-16">
         <section className="pt-28 pb-24 max-sm:pt-16 max-sm:pb-14">
-          <span className="eyebrow text-ink">전체보기</span>
+          <span className="eyebrow text-ink">둘러보기</span>
 
           {/* 제목과 가장 큰 갈래가 한 줄을 나눠 쓴다. `items-end` 라 큰 제목의
               밑변과 스위치의 밑변이 같은 선에 놓인다. 아래 헤어라인이 머리글과
