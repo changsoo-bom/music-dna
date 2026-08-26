@@ -230,7 +230,11 @@ export function soundingId(state: PlayerState, queueId: QueueId): string | null 
  * `soundingId` 로는 한 번에 한쪽만 볼 수 있다.
  */
 export function browseSoundingId(state: PlayerState): string | null {
-  if (!state.isPlaying || !state.queueId?.startsWith("browse")) return null;
+  const id = state.queueId;
+  // **두 이름을 이름으로 부른다.** 접두사만 보면 언젠가 `"browse-history"` 같은
+  // 이름이 조용히 걸리는데, 그때 잡아 줄 검사는 못 쓴다 — 아직 없는 이름은
+  // 단언할 수가 없다. 이 저장소의 다른 자리가 전부 등가 비교인 이유와 같다
+  if (!state.isPlaying || !(id === "browse" || id?.startsWith("browse:"))) return null;
   return currentTrack(state)?.id ?? null;
 }
 

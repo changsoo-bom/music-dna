@@ -137,6 +137,17 @@ assert.equal(browseSoundingId(store.getState()), "b", "줄 클릭으로 튼 곡�
 store.getState().toggle();
 assert.equal(browseSoundingId(store.getState()), null, "멈췄는데 표시가 남았다");
 
+// **전체보기 밖의 목록에는 안 붙는다.** 이 단언이 없으면 판정을 넓히다가
+// `startsWith("b")` 로 만들어도 아무것도 안 빨개진다 — 그러면 추천에서 튼 곡이
+// 전체보기 목록에서도 일시정지 아이콘을 달고, 눌러도 안 멈춘다
+reset();
+store.getState().play("recommend", QUEUE, 0);
+assert.equal(browseSoundingId(store.getState()), null, "추천에서 튼 곡에 전체보기 표시가 붙었다");
+store.getState().play("library:abc", QUEUE, 0);
+assert.equal(browseSoundingId(store.getState()), null, "리스트에서 튼 곡에 전체보기 표시가 붙었다");
+store.getState().play("played", QUEUE, 0);
+assert.equal(browseSoundingId(store.getState()), null, "빠른 선곡에서 튼 곡에 전체보기 표시가 붙었다");
+
 // 막혔던 곡을 다시 고르면 한 번 더 시도한다.
 // 영영 무시하면 눌러도 아무 일이 안 나는 카드가 된다.
 reset();

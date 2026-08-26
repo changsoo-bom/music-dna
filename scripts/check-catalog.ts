@@ -292,6 +292,6 @@ assert.ok(
 const kr = CATALOG.filter((track) => track.region === "kr").length;
 
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 9건 · 다시 찾기 3판 · 길이 표기 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 다시 찾기 3판 · 길이 표기 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );

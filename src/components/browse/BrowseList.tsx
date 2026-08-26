@@ -31,9 +31,12 @@ const PREVIEW = 6;
 
 export function BrowseList({ region, genre }: { region: Region | null; genre: Genre | null }) {
   const play = usePlayerStore((state) => state.play);
+  const toggle = usePlayerStore((state) => state.toggle);
   // 이 화면의 큐는 둘이다(줄 클릭 `browse` · 칸의 전체 재생 `browse:{genre}`).
   // 어느 쪽으로 틀었든 표시는 그 줄에 붙어야 한다 → `browseSoundingId`
   const sounding = usePlayerStore(browseSoundingId);
+  // 어느 쪽 큐로 틀었는지. 칸 버튼이 자기가 튼 칸을 다시 누른 것인지 판별한다
+  const queueId = usePlayerStore((state) => state.queueId);
   const savedIds = useSavedTrackIds();
 
   /* 펼침은 **주소로 안 나간다.** 좁히는 값(`region`·`genre`)과 달리 이건
@@ -77,6 +80,7 @@ export function BrowseList({ region, genre }: { region: Region | null; genre: Ge
         // 틀 수 있는 것만 튼다. 카탈로그가 배치로 채워지는 중이라 `youtubeId`
         // 가 아직 안 붙은 곡이 섞여 있다 → `TrackRow`
         const groupQueue = section.tracks.filter(isPlayable);
+        const groupId = `browse:${section.genre}` as const;
         const foldable = genre === null && section.tracks.length > PREVIEW;
         const open = section.shown.length === section.tracks.length;
 
@@ -125,10 +129,18 @@ export function BrowseList({ region, genre }: { region: Region | null; genre: Ge
                     if (foldable) {
                       setExpanded((prev) => new Set(prev).add(section.genre));
                     }
+                    // **이 버튼은 토글이 아니다.** 재생 삼각형에 "전체 재생"
+                    // 이라고 적혀 있는 것이 정지를 하면 안 된다. 그런데 스토어의
+                    // `play` 는 같은 큐의 같은 곡이면 토글로 빠지므로, 이 칸을
+                    // 이미 첫 곡부터 틀고 있는 경우가 정확히 거기 걸린다 —
+                    // 그때는 이미 하라는 일을 하고 있으니 아무 일도 안 한다.
+                    // 멈춰 있으면 `sounding` 이 `null` 이라 여기 안 걸리고
+                    // 아래 `play` 가 토글로 빠져 이어 튼다.
+                    if (queueId === groupId && sounding === groupQueue[0].id) return;
                     // **칸 전용 큐 이름이다**(`browse:{genre}`). 줄 클릭과 같은
-                    // 이름을 쓰면 화면 첫 곡이 나는 중에 눌렀을 때 스토어의
-                    // 토글 분기에 걸려 재생 버튼이 정지를 한다 → `QueueId`
-                    play(`browse:${section.genre}`, groupQueue, 0);
+                    // 이름을 쓰면 화면 첫 곡이 나는 중에 눌렀을 때 같은 토글
+                    // 분기에 걸린다 → `QueueId`
+                    play(groupId, groupQueue, 0);
                   }}
                   aria-label={`${section.label} ${groupQueue.length}곡 전체 재생`}
                   className="flex shrink-0 items-center gap-1.5 text-[13px] font-medium tracking-[-0.01em] whitespace-nowrap text-ink transition-opacity hover:opacity-55 focus-visible:ring-2 focus-visible:ring-ink focus-visible:outline-none"
@@ -148,12 +160,20 @@ export function BrowseList({ region, genre }: { region: Region | null; genre: Ge
                     track={track}
                     isCurrent={sounding === track.id}
                     saved={savedIds.has(track.id)}
+                    /* **아이콘과 행동이 같은 조건에서 갈린다.** 표시는 두 큐를
+                       다 보는데(`sounding`) 누르는 쪽만 `"browse"` 로 좁으면,
+                       칸의 전체 재생으로 튼 줄이 일시정지 아이콘을 달고도
+                       눌렀을 때 안 멈춘다 — 큐만 화면 전체로 조용히 바뀐다.
+                       지금 나는 곡을 누른 것은 언제나 일시정지다
+                       → `soundingId` · `PlayerScreen` 의 재생목록 */
                     onPlay={() =>
-                      play(
-                        "browse",
-                        queue,
-                        queue.findIndex((item) => item.id === track.id),
-                      )
+                      sounding === track.id
+                        ? toggle()
+                        : play(
+                            "browse",
+                            queue,
+                            queue.findIndex((item) => item.id === track.id),
+                          )
                     }
                   />
                 </li>
