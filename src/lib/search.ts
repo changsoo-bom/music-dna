@@ -8,8 +8,13 @@ import type { CatalogTrack } from "@/types/music";
  * `newjeans` 로 치는 사람이 같은 곡을 찾는데 카탈로그에는 한 가지로만 적혀
  * 있다. `아이 유` 와 `아이유` 도 같다. 대신 공백이 뜻을 가르는 이름은 못
  * 가르는데, 그런 이름이 이 카탈로그에 없다.
+ *
+ * **`export` 인 이유는 검사 스크립트가 이 규칙을 복제하지 않고 그대로 쓰기
+ * 위해서다.** 같은 식을 스크립트에 손으로 다시 적으면, 여기에 구두점 제거가
+ * 추가되는 날 단언은 초록인데 화면은 한쪽 표기의 곡을 통째로 남의 곡으로
+ * 민다 — 그 시나리오가 그 단언의 존재 이유다 → `scripts/check-catalog.ts`
  */
-function fold(value: string) {
+export function fold(value: string) {
   return value.toLowerCase().replaceAll(/\s+/g, "");
 }
 
@@ -44,6 +49,42 @@ function rankOf(track: CatalogTrack, folded: string): number {
  * 지역이나 장르로 좁히지 않는다. 검색은 축이 하나여야 결과를 믿을 수 있다.
  * 좁히는 일은 둘러보기가 한다.
  */
+/**
+ * 친 말이 **카탈로그에 있는 가수 이름인가.** 맞으면 그 가수와 그 사람의 곡
+ * 전부를 돌려준다.
+ *
+ * `searchTracks` 와 따로 있는 이유는 **묻는 것이 다르기 때문이다** — 저기는
+ * "이 말이 든 곡" 을 찾고 여기는 "이 말이 사람인가" 를 묻는다. 사람이면 화면
+ * 맨 위가 곡 목록의 머리글이 아니라 그 사람이 된다.
+ *
+ * **후보가 둘 이상이면 판정하지 않는다.** `이` 를 치면 이문세·이하이·이적이
+ * 다 걸리는데, 그중 하나를 골라 세우면 나머지 둘을 찾던 사람에게 엉뚱한
+ * 사람의 화면이 뜬다. 애매하면 그냥 곡 목록이다 — `classify` 가 밖에서 하는
+ * 판정과 같은 태도다.
+ *
+ * 곡 목록이 아니라 **카탈로그 전체에서 다시 고른다.** 검색 결과에는 제목이
+ * 맞아 걸린 남의 곡도 섞여 있고, 반대로 이 사람의 곡은 전부 걸려 있다 —
+ * 어느 쪽이든 "이 가수의 곡" 은 카탈로그가 답이다.
+ */
+export function catalogArtist(query: string): { name: string; tracks: CatalogTrack[] } | null {
+  const folded = fold(query);
+  if (!folded) return null;
+
+  // 이름이 검색어로 시작하는 가수들. 키를 눕힌 이름으로 잡아 `NewJeans` 와
+  // `new jeans` 가 두 사람이 되지 않게 한다
+  const names = new Map<string, string>();
+  for (const track of CATALOG) {
+    if (fold(track.artist).startsWith(folded)) names.set(fold(track.artist), track.artist);
+  }
+  // **이름을 그대로 친 사람은 언제나 그 사람이다.** `경서` 와 `경서예지` 처럼
+  // 한쪽이 다른 쪽으로 시작하는 이름이 있는데, 후보 수만 세면 이름을 정확히
+  // 친 사람이 애매하다는 이유로 그냥 목록을 본다
+  const name = names.get(folded) ?? (names.size === 1 ? [...names.values()][0] : null);
+  if (!name) return null;
+
+  return { name, tracks: CATALOG.filter((track) => track.artist === name) };
+}
+
 export function searchTracks(query: string): CatalogTrack[] {
   const folded = fold(query);
   if (!folded) return [];

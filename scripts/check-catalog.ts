@@ -4,14 +4,14 @@ import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import { REGIONS } from "@/constants/regions";
 import { CATALOG } from "@/data/catalog";
 import { browseGroups, browseHref } from "@/lib/browse";
-import { searchTracks } from "@/lib/search";
+import { catalogArtist, fold, searchTracks } from "@/lib/search";
 import { classify } from "@/lib/youtube/classify";
 import { isSongLength, looksLikeSong, songsFirst } from "@/lib/youtube/song";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
 import { maxPerGenre, nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
 import { PLAYED_LIMIT, parsePlayed } from "@/lib/schemas/played";
-import { formatDuration } from "@/lib/format";
+import { formatDuration, readableCount } from "@/lib/format";
 import type { Genre, SubGenre } from "@/types/music";
 
 /**
@@ -328,6 +328,115 @@ assert.ok(
   "카탈로그에 없는 곡이 결과에 섞였다",
 );
 
+/* 5-1. 검색어가 가수인가 ──────────────────────────────────────
+        틀리면 **엉뚱한 사람의 화면이 뜬다.** 목록이 한 줄 어긋나는 것과
+        달리 이건 화면 맨 위에서 큰 글씨로 틀린다 → `catalogArtist` */
+
+assert.equal(catalogArtist(""), null, "빈 검색어로 가수를 세웠다");
+assert.equal(catalogArtist("   "), null, "공백만 쳤는데 가수를 세웠다");
+assert.equal(catalogArtist("zzzzz"), null, "없는 이름으로 가수를 세웠다");
+
+// 제목은 사람이 아니다. `Bags` 는 Clairo 의 곡이지 가수 이름이 아니다
+assert.equal(catalogArtist("bags"), null, "곡 제목을 가수로 세웠다");
+
+const artistClairo = catalogArtist("clairo");
+assert.equal(artistClairo?.name, "Clairo", "아티스트 이름을 그대로 쳤는데 못 알아봤다");
+assert.deepEqual(
+  idsOf(catalogArtist("CLA IRO")?.tracks ?? []),
+  idsOf(artistClairo?.tracks ?? []),
+  "대소문자·띄어쓰기가 가수 판정을 바꾼다",
+);
+assert.ok(
+  artistClairo!.tracks.length > 0 &&
+    artistClairo!.tracks.every((track) => track.artist === "Clairo"),
+  "가수의 곡에 다른 사람의 곡이 섞였다",
+);
+
+// **화면이 기대는 것**: 가수의 곡은 검색 결과에 전부 들어 있다. 여기가
+// 무너지면 목록이 결과보다 길어져 머리글의 곡 수와 어긋난다 → `SearchPage`
+assert.ok(
+  artistClairo!.tracks.every((track) => searchTracks("clairo").includes(track)),
+  "가수의 곡인데 검색 결과에는 없다",
+);
+
+// 후보가 여럿이면 판정하지 않는다 — The 1975 · The Clash · The Killers …
+assert.equal(catalogArtist("The"), null, "여러 사람에게 걸리는 말로 한 사람을 세웠다");
+
+// 다만 **이름을 그대로 친 경우는 예외다.** `경서` 는 `경서예지` 로도 시작하지만
+// 친 그대로인 사람이 있다
+assert.equal(catalogArtist("경서")?.name, "경서", "이름을 정확히 쳤는데 못 알아봤다");
+
+/* **화면이 기대는 것 2**: 검색 결과에 그 가수의 곡이 아닌 것이 섞일 수 있다.
+   `경서` 를 치면 `경서예지` 도 걸린다 — 카드는 "1곡" 인데 목록은 2곡이다.
+   위의 부분집합 단언은 이 방향을 안 본다. 여기가 참인 한 화면은 나머지를
+   **다른 머리글 아래로** 내려야 한다 → `SearchPage` 의 `rest` */
+const mixedHit = searchTracks("경서").filter((track) => track.artist !== "경서");
+assert.ok(
+  mixedHit.length > 0,
+  "`경서` 검색에 남의 곡이 안 걸린다 — 화면의 `다른 가수의 곡` 머리글이 죽은 코드가 된다",
+);
+
+/* **가수의 장르는 곡의 장르가 아니다.** 카드가 `tracks[0]` 의 하위 장르를
+   대표로 세우면 여러 장르에 걸친 가수를 한 장르로 부르고, `catalog.ts` 의
+   줄 순서가 바뀌면 그 값이 조용히 달라진다. 갈리는 가수가 실제로 있다는
+   것을 여기에 박아 둔다 — 없어지는 날 화면의 만장일치 조건이 죽은 코드가 된다 */
+const perArtistGenres = new Map<string, Set<string>>();
+for (const track of CATALOG) {
+  const seen = perArtistGenres.get(track.artist) ?? new Set<string>();
+  seen.add(track.subGenre);
+  perArtistGenres.set(track.artist, seen);
+}
+assert.ok(
+  [...perArtistGenres.values()].some((genres) => genres.size > 1),
+  "하위 장르가 갈리는 가수가 없다 — 카드의 만장일치 조건이 죽은 코드다",
+);
+// **반대쪽도 박는다.** 위 단언만 있으면 "장르 줄이 안 그려지는 경우" 만
+// 지키는 셈이라, 언젠가 전 가수가 다장르가 되면 그 줄이 조용히 사라진다
+assert.ok(
+  [...perArtistGenres.values()].some((genres) => genres.size === 1),
+  "한 장르뿐인 가수가 없다 — 카드에 장르 줄이 한 번도 안 그려진다",
+);
+
+/* **한 가수는 한 지역이다.** 카드가 `tracks[0].region` 을 대표로 세우는
+   근거이고, 장르와 달리 이쪽은 만장일치를 안 따진다 */
+const perArtistRegions = new Map<string, Set<string>>();
+for (const track of CATALOG) {
+  const seen = perArtistRegions.get(track.artist) ?? new Set<string>();
+  seen.add(track.region);
+  perArtistRegions.set(track.artist, seen);
+}
+for (const [artist, regions] of perArtistRegions) {
+  assert.equal(regions.size, 1, `${artist} 의 곡이 국내와 해외에 나뉘어 있다 — 카드가 한쪽만 말한다`);
+}
+
+/* **눕힌 이름과 적힌 이름이 1:1 이다.** `catalogArtist` 는 후보를 눕힌 이름으로
+   모으고 곡은 적힌 이름으로 거른다. 표기가 갈린 가수(`NewJeans`/`new jeans`)가
+   들어오면 한쪽 표기의 곡이 통째로 "다른 가수의 곡" 으로 밀려난다.
+   지금은 0건이고, 이 단언이 앞으로도 0건으로 묶어 둔다 — 기존 중복 검사는
+   `${artist} — ${title}` 키라 이걸 못 잡는다 */
+const foldedNames = new Map<string, Set<string>>();
+for (const track of CATALOG) {
+  // **`fold` 를 그대로 쓴다.** 같은 식을 여기 다시 적으면 규칙이 갈리는 날
+  // 단언만 초록이 된다 — 그 시나리오가 이 단언의 존재 이유다
+  const key = fold(track.artist);
+  const seen = foldedNames.get(key) ?? new Set<string>();
+  seen.add(track.artist);
+  foldedNames.set(key, seen);
+}
+for (const [key, names] of foldedNames) {
+  assert.equal(names.size, 1, `한 가수가 두 표기로 적혀 있다(${key}): ${[...names].join(" / ")}`);
+}
+
+/* 구독자 수 표기 — 경계에서만 틀린다. **버림이라 9,999 는 아직 1만이 아니다** */
+assert.equal(readableCount(999), "999", "천 미만이 단위로 접혔다");
+assert.equal(readableCount(1_000), "1천", "천 경계를 못 넘었다");
+assert.equal(readableCount(9_999), "9천", "1만 미만이 만으로 올라갔다 — 반올림하면 안 된다");
+assert.equal(readableCount(10_000), "1만", "만 경계를 못 넘었다");
+// 억도 **경계 양쪽**을 짚는다. 넉넉히 큰 수 하나만 보면 `>=` 를 `>` 로
+// 바꾸는 off-by-one 이 그대로 통과한다 — 나머지 둘과 같은 값어치가 되도록
+assert.equal(readableCount(99_999_999), "9999만", "억 직전이 억으로 올라갔다");
+assert.equal(readableCount(100_000_000), "1억", "억 경계를 못 넘었다");
+
 /* 6. 가수 질의 판정 ────────────────────────────────────────
       **틀리면 100 units 을 쓰고 엉뚱한 사람의 채널을 가수라고 세운다.**
       YouTube 에 물어보는 대신 결과의 쏠림으로 판정하는 자리라(`classify`),
@@ -451,6 +560,6 @@ assert.equal(
 const kr = CATALOG.filter((track) => track.region === "kr").length;
 
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 검색 11건 · 가수 판정 9건 · 노래 거르기 27건 · 다시 찾기 3판 · 길이 표기 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 검색 11건 · 카탈로그 가수 15건 · 구독자 표기 7건 · 가수 판정 9건 · 노래 거르기 27건 · 다시 찾기 3판 · 길이 표기 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );
