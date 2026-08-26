@@ -37,7 +37,18 @@ export function ArtistCard({
     <div className="mt-5 flex items-center gap-6 rounded-btn bg-lifted p-6 max-sm:mt-4 max-sm:gap-4 max-sm:p-4">
       {thumbnail && (
         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full bg-ghost max-sm:h-20 max-sm:w-20">
-          <Image src={thumbnail} alt="" fill sizes="96px" className="object-cover" />
+          {/* **`sizes` 는 상자 폭이 아니라 그려지는 폭이다.** 카탈로그 쪽
+              썸네일은 16:9(320×180)고 상자는 정사각형이라 `object-cover` 가
+              높이를 맞춰 확대한다 — 96px 상자에 실제로 깔리는 폭은
+              96 × 16/9 ≒ 171px 다. 96 을 적으면 브라우저가 그만한 후보를
+              골라서 171px 로 늘려 그린다. 그게 뭉개짐이었다
+              → `PlayerBar` · `PlaylistCard` 에 같은 계산이 적혀 있다.
+
+              채널 사진(정사각형)에는 이 값이 두 배쯤 크다. 후보를 하나 더
+              내려받는 대신 가로세로를 안 따지는 쪽을 골랐다 — 두 출처가
+              한 상자를 쓰는데 `sizes` 만 갈라지면, 다음에 고치는 사람이
+              둘 중 어느 쪽 수인지 알 수 없다 */}
+          <Image src={thumbnail} alt="" fill sizes="176px" className="object-cover" />
         </div>
       )}
 
