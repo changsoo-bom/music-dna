@@ -127,6 +127,14 @@ export default async function SearchPage({
           {/* **밖에 나갔다가 못 가져온 경우를 구별해서 말한다.** 셋 다 "결과
               없음" 으로 뭉뚱그리면, 다시 눌러 보면 되는 상황과 소용없는 상황이
               같은 얼굴이 된다 */}
+          {/* 키가 안 꽂힌 배포에서는 이 줄이 뜬다. **아무 말도 안 하면 검색이
+              고장 난 것으로 보인다** — 카탈로그에 없는 곡을 치면 "찾는 곡이
+              없습니다" 만 나오는데, 실제로는 밖에 나가 보지도 않았다 */}
+          {remote?.status === "off" && (
+            <p className="mt-10 max-w-[52ch] text-sm text-slate max-sm:mt-6">
+              YouTube 검색은 아직 켜져 있지 않습니다. 카탈로그 결과만 보여 드립니다.
+            </p>
+          )}
           {remote?.status === "quota" && (
             <p className="mt-10 max-w-[52ch] text-sm text-slate max-sm:mt-6">
               오늘 YouTube 에서 찾아볼 수 있는 횟수를 다 썼습니다. 카탈로그 결과만 보여 드립니다 —
