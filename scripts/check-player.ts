@@ -10,7 +10,13 @@ import assert from "node:assert/strict";
 
 import { PARENT_OF } from "@/constants/genres";
 import { CATALOG } from "@/data/catalog";
-import { browseSoundingId, currentTrack, isSounding, usePlayerStore } from "@/lib/use-player-store";
+import {
+  browseSoundingId,
+  currentTrack,
+  isCatalogTrack,
+  isSounding,
+  usePlayerStore,
+} from "@/lib/use-player-store";
 import type { PlayableTrack } from "@/lib/use-player-store";
 
 const QUEUE: PlayableTrack[] = ["a", "b", "c"].map((id) => ({
@@ -57,7 +63,10 @@ assert.equal(store.getState().isPlaying, true, "마지막 곡 다음에 안 이�
 assert.equal(store.getState().queue.length, 4, "이어 붙인 곡이 큐에 안 들어갔다");
 assert.equal(store.getState().index, 3, "이어 붙였는데 위치가 마지막을 안 가리킨다");
 const linked = currentTrack(store.getState());
-assert.equal(linked?.subGenre, "kpop", "다른 하위 장르가 이어졌다");
+// **이어 붙는 곡은 언제나 카탈로그의 곡이다.** 후보 풀이 카탈로그뿐이라
+// (`radioPick`) 여기가 깨지면 장르 없는 곡이 큐에 섞여 다음 판정이 무너진다
+assert.ok(linked && isCatalogTrack(linked), "이어 붙인 곡이 카탈로그 밖에서 왔다");
+assert.equal(linked.subGenre, "kpop", "다른 하위 장르가 이어졌다");
 assert.equal(["a", "b", "c"].includes(linked?.id ?? ""), false, "들은 곡이 다시 이어졌다");
 
 // 같은 종류가 마르면 넓힌다. kpop 을 전부 들은 셈 치면 상위 장르(pop) 안에서 온다
@@ -68,8 +77,10 @@ store.setState({
 });
 store.getState().skip(1);
 assert.equal(store.getState().isPlaying, true, "같은 하위 장르가 말랐다고 멈췄다");
+const widened = currentTrack(store.getState());
+assert.ok(widened && isCatalogTrack(widened), "넓혀서 고른 곡이 카탈로그 밖에서 왔다");
 assert.equal(
-  PARENT_OF[currentTrack(store.getState())!.subGenre],
+  PARENT_OF[widened.subGenre],
   "pop",
   "하위 장르가 말랐을 때 상위 장르 밖에서 골랐다",
 );

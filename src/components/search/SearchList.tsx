@@ -3,7 +3,7 @@
 import { TrackRow } from "@/components/common/TrackRow";
 import { useSavedTrackIds } from "@/hooks/use-playlists";
 import { isPlayable, soundingId, usePlayerStore } from "@/lib/use-player-store";
-import type { CatalogTrack } from "@/types/music";
+import type { AnyTrack } from "@/types/music";
 
 /**
  * 검색 결과 목록.
@@ -19,14 +19,23 @@ import type { CatalogTrack } from "@/types/music";
  * 구독은 둘뿐이다(재생 중인 곡 하나, 보관함 하나). 줄마다 구독하면
  * 스무 줄이 스무 번 깨어난다 → `TrackRow`
  */
-export function SearchList({ tracks }: { tracks: readonly CatalogTrack[] }) {
+export function SearchList({
+  tracks,
+  queueId = "search",
+}: {
+  tracks: readonly AnyTrack[];
+  /* **목록마다 큐 이름이 다르다.** 카탈로그에서 찾은 것과 YouTube 에서 찾아온
+     것이 한 화면에 두 목록으로 서는데, 이름이 같으면 첫 곡이 겹칠 때 한쪽을
+     누른 것이 다른 쪽을 멈춘다 → `QueueId` 의 리스트·전체보기와 같은 이유 */
+  queueId?: "search" | "search:remote";
+}) {
   // 큐는 **틀 수 있는 곡만**이다. 목록은 찾은 것을 전부 그린다 — 재생 불가를
   // 목록에서까지 빼면 "없다" 고 말하는 셈인데, 있는 곡이다 → `LibraryList`
   const queue = tracks.filter(isPlayable);
   const play = usePlayerStore((state) => state.play);
   // 큐가 하나뿐이라 이름을 정확히 맞춰 본다. 아이콘과 행동이 같은 조건에서
   // 갈리도록 아래 `onPlay` 도 같은 이름을 쓴다 → `soundingId`
-  const sounding = usePlayerStore((state) => soundingId(state, "search"));
+  const sounding = usePlayerStore((state) => soundingId(state, queueId));
   const savedIds = useSavedTrackIds();
 
   return (
@@ -39,7 +48,7 @@ export function SearchList({ tracks }: { tracks: readonly CatalogTrack[] }) {
             saved={savedIds.has(track.id)}
             onPlay={() =>
               play(
-                "search",
+                queueId,
                 queue,
                 queue.findIndex((item) => item.id === track.id),
               )

@@ -13,7 +13,7 @@ import { usePreference } from "@/hooks/use-preference";
 import { formatDuration } from "@/lib/format";
 import { moodAffinity } from "@/lib/quiz/scoring";
 import { trackMood } from "@/lib/report/recommend";
-import { currentTrack, isPlayable, usePlayerStore } from "@/lib/use-player-store";
+import { currentTrack, isCatalogTrack, isPlayable, usePlayerStore } from "@/lib/use-player-store";
 
 /** 분위기 3축. 카탈로그가 곡마다 들고 있는 값 그대로다 */
 const AXES = [
@@ -134,17 +134,23 @@ export function PlayerScreen({
 
   if (!track) return null;
 
-  const mood = trackMood(track);
-  const match = preference
-    ? moodAffinity(
-        {
-          energy: preference.axes.energy,
-          valence: preference.axes.valence,
-          dreamy: preference.axes.dreamy,
-        },
-        mood,
-      )
-    : null;
+  /* **카탈로그 밖의 곡에는 좌표가 없다.** 검색이 YouTube 에서 찾아온 곡은
+     장르도 무드도 없다 — 그건 사람이 카탈로그에 적어 넣는 값이라 API 가 안
+     준다. 지어내면 이 화면에서 제일 큰 글씨로 거짓말을 하게 된다("내 취향과
+     73% 맞음"). 없으면 그 줄들을 통째로 안 그린다 → `RemoteTrack` */
+  const scored = isCatalogTrack(track) ? track : null;
+  const mood = scored ? trackMood(scored) : null;
+  const match =
+    preference && mood
+      ? moodAffinity(
+          {
+            energy: preference.axes.energy,
+            valence: preference.axes.valence,
+            dreamy: preference.axes.dreamy,
+          },
+          mood,
+        )
+      : null;
   const length = formatDuration(track.duration);
 
   return (
@@ -208,7 +214,11 @@ export function PlayerScreen({
                 제목 옆에 두면 곡 정보가 아니라 화면의 주제처럼 읽힌다.
 
                 곡이 바뀌면 다시 채워진다: `key` 로 갈아 끼워야 애니메이션이 다시
-                돈다. 같은 요소에 값만 바꾸면 막대가 소리 없이 순간이동한다. */}
+                돈다. 같은 요소에 값만 바꾸면 막대가 소리 없이 순간이동한다.
+
+                **좌표가 없는 곡에는 안 그린다.** 검색이 YouTube 에서 찾아온
+                곡은 무드가 없어서, 그리려면 값을 지어내야 한다 → `mood` */}
+            {mood && (
             <ul key={track.id} className="mt-10 flex w-full flex-col gap-4">
               {AXES.map((axis, index) => (
                 <li key={axis.key} className="flex items-center gap-4">
@@ -229,6 +239,7 @@ export function PlayerScreen({
                 </li>
               ))}
             </ul>
+            )}
 
             {/* 막대 아래다 — 위 세 줄을 다 읽고 나서 나오는 한 문장이 결론이다.
                 검사를 안 한 사람에게는 안 나온다: 기준이 없는데 숫자를 적을 수 없다 */}
@@ -240,7 +251,12 @@ export function PlayerScreen({
           </div>
 
           <div className="flex w-full min-w-0 flex-col">
-            <p className="eyebrow max-lg:justify-center">{SUB_GENRES[track.subGenre].ko}</p>
+            {/* 카탈로그 밖의 곡은 장르 자리에 출처를 적는다. 자리를 비워 두면
+                제목이 위로 붙어 다른 화면처럼 보이고, 장르를 지어내면 이 곡이
+                카탈로그에 있는 것처럼 읽힌다 → `RemoteTrack` */}
+            <p className="eyebrow max-lg:justify-center">
+              {scored ? SUB_GENRES[scored.subGenre].ko : "YouTube"}
+            </p>
             <h1 className="mt-5 text-[44px] leading-[1.1] max-sm:text-[32px]">{track.title}</h1>
             <p className="mt-3 text-lg text-slate">
               {track.artist}

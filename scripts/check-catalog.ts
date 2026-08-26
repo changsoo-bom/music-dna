@@ -5,6 +5,7 @@ import { REGIONS } from "@/constants/regions";
 import { CATALOG } from "@/data/catalog";
 import { browseGroups, browseHref } from "@/lib/browse";
 import { searchTracks } from "@/lib/search";
+import { classify } from "@/lib/youtube/classify";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
 import { maxPerGenre, nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
@@ -326,9 +327,62 @@ assert.ok(
   "카탈로그에 없는 곡이 결과에 섞였다",
 );
 
+/* 6. 가수 질의 판정 ────────────────────────────────────────
+      **틀리면 100 units 을 쓰고 엉뚱한 사람의 채널을 가수라고 세운다.**
+      YouTube 에 물어보는 대신 결과의 쏠림으로 판정하는 자리라(`classify`),
+      호출 없이 여기서 다 본다 — 실제 API 를 때리는 검사는 할당량을 먹는다. */
+
+/** 표본 만들기. `[["ch1", 6], ["ch2", 4]]` → 채널별로 그만큼의 결과 */
+const results = (...groups: readonly (readonly [string, string, number])[]) =>
+  groups.flatMap(([channelId, channelTitle, count]) =>
+    Array.from({ length: count }, () => ({ channelId, channelTitle })),
+  );
+
+// 한 채널로 몰리고 이름도 맞으면 가수다
+assert.equal(
+  classify("NewJeans", results(["ch1", "NewJeans", 7], ["ch2", "어떤 채널", 3])),
+  "ch1",
+  "가수 채널로 몰렸는데 못 알아봤다",
+);
+// 검색어가 채널명을 포함하는 방향도 본다 — `뉴진스 NewJeans` 같은 채널명
+assert.equal(
+  classify("뉴진스 NewJeans", results(["ch1", "뉴진스", 8], ["ch2", "x", 2])),
+  "ch1",
+  "채널명이 검색어의 일부일 때 못 알아봤다",
+);
+// 대소문자·공백·구두점은 안 가린다
+assert.equal(classify("new jeans", results(["ch1", "NEWJEANS", 5])), "ch1", "표기 차이로 놓쳤다");
+
+// **흩어지면 곡 제목이다.** 커버·리액션·라이브가 섞인 모양이다
+assert.equal(
+  classify("Ditto", results(["a", "A", 2], ["b", "B", 2], ["c", "C", 2], ["d", "D", 2])),
+  null,
+  "채널이 흩어졌는데 가수라고 판정했다",
+);
+// **몰렸어도 이름이 다르면 아니다.** 부지런한 리액션 채널이 상위를 먹을 수 있다
+assert.equal(
+  classify("아이유", results(["ch9", "노래 리액션 채널", 8], ["ch2", "x", 2])),
+  null,
+  "이름이 안 맞는 채널을 가수로 세웠다",
+);
+// 경계: 표본이 없거나 검색어가 비면 판정하지 않는다
+assert.equal(classify("아무개", []), null, "빈 결과에서 채널을 골랐다");
+assert.equal(classify("", results(["ch1", "무엇", 5])), null, "빈 검색어로 가수를 판정했다");
+// 정확히 40% 는 통과한다(10개 중 4개). 경계가 어느 쪽인지 적어 둔다
+assert.equal(
+  classify("가수", results(["ch1", "가수", 4], ["b", "B", 3], ["c", "C", 3])),
+  "ch1",
+  "40% 경계에서 떨어졌다",
+);
+assert.equal(
+  classify("가수", results(["ch1", "가수", 3], ["b", "B", 4], ["c", "C", 3])),
+  null,
+  "1등이 40% 미만인데 통과했다",
+);
+
 const kr = CATALOG.filter((track) => track.region === "kr").length;
 
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 검색 11건 · 다시 찾기 3판 · 길이 표기 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 검색 11건 · 가수 판정 9건 · 다시 찾기 3판 · 길이 표기 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );

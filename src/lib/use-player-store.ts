@@ -2,13 +2,29 @@ import { create } from "zustand";
 
 import { PARENT_OF } from "@/constants/genres";
 import { CATALOG } from "@/data/catalog";
-import type { CatalogTrack, Genre } from "@/types/music";
+import type { AnyTrack, CatalogTrack, Genre } from "@/types/music";
 
-/** 큐에 담기려면 재생할 것이 있어야 한다 */
-export type PlayableTrack = CatalogTrack & { youtubeId: string };
+/**
+ * 큐에 담기려면 재생할 것이 있어야 한다.
+ *
+ * **카탈로그 밖의 곡도 큐에 들어온다**(`RemoteTrack`) — 검색이 YouTube 에서
+ * 찾아온 곡이다. 트는 데 필요한 것은 `youtubeId` 하나고, 장르는 큐가 끝난 뒤
+ * 이어 틀 곡을 고를 때만 쓴다(`radioPick`). 없으면 없는 대로 고른다.
+ */
+export type PlayableTrack = AnyTrack & { youtubeId: string };
 
-export function isPlayable(track: CatalogTrack): track is PlayableTrack {
+/**
+ * **제네릭이다.** 그냥 `track is PlayableTrack` 으로 두면 카탈로그 배열을
+ * 거른 결과가 유니온으로 넓어져서 `subGenre` 를 잃는다 — 거르기 전에 알던
+ * 것을 거르고 나서 모르게 되면 안 된다.
+ */
+export function isPlayable<T extends AnyTrack>(track: T): track is T & { youtubeId: string } {
   return typeof track.youtubeId === "string";
+}
+
+/** 카탈로그의 곡인가. `subGenre` 가 있는 쪽이 카탈로그다 */
+export function isCatalogTrack(track: AnyTrack): track is CatalogTrack {
+  return "subGenre" in track;
 }
 
 /**
@@ -36,6 +52,7 @@ export type QueueId =
   | "browse"
   | `browse:${Genre}`
   | "search"
+  | "search:remote"
   | `library:${string}`;
 
 /**
@@ -56,8 +73,15 @@ export type QueueId =
  */
 function radioPick(after: PlayableTrack, heard: ReadonlySet<string>): PlayableTrack | null {
   const pool = CATALOG.filter(isPlayable).filter((track) => !heard.has(track.id));
-  const parent = PARENT_OF[after.subGenre];
 
+  // **카탈로그 밖의 곡 다음에는 종류를 못 좁힌다.** 검색이 YouTube 에서 찾아온
+  // 곡에는 장르가 없다 — 지어내면 엉뚱한 칸에서 이어진다. 좁히지 못할 뿐
+  // 멈추지는 않는다: 카탈로그 전체가 후보다
+  if (!isCatalogTrack(after)) {
+    return pool[Math.floor(Math.random() * pool.length)] ?? null;
+  }
+
+  const parent = PARENT_OF[after.subGenre];
   const sameSub = pool.filter((track) => track.subGenre === after.subGenre);
   const sameGenre = pool.filter((track) => PARENT_OF[track.subGenre] === parent);
   const from = sameSub.length ? sameSub : sameGenre.length ? sameGenre : pool;

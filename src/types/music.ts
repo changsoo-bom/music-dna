@@ -128,6 +128,47 @@ export type CatalogTrack = {
   duration?: number;
 };
 
+/**
+ * **카탈로그 밖에서 온 곡.** 검색이 YouTube 에서 주워 온 것이라 장르도 지역도
+ * 없다 — 그건 사람이 카탈로그에 적어 넣는 값이고, API 는 안 준다.
+ *
+ * `id` 는 `yt:{videoId}` 다. 카탈로그 id(`t001`)와 절대 안 겹치는 모양이어야
+ * 한다 — 겹치면 저장소에 남은 id 가 어느 쪽 곡인지 알 수 없고, 목록의 `key`
+ * 도 부딪힌다.
+ *
+ * **보관함에 못 담는다.** 리스트는 id 만 저장하고 읽을 때 카탈로그에서 되찾는데
+ * (`toTracks`), 여기 곡은 카탈로그에 없어서 조용히 사라진다. 담기 버튼을 아예
+ * 안 그리는 이유다 → `SearchList`
+ */
+export type RemoteTrack = {
+  id: `yt:${string}`;
+  title: string;
+  artist: string;
+  youtubeId: string;
+  /** 초 */
+  duration?: number;
+};
+
+/**
+ * 화면이 곡으로 그릴 수 있는 것. **줄 하나를 그리는 데 필요한 것은 둘이 같다** —
+ * 커버·제목·아티스트·길이. 다른 것은 장르와 지역인데, 그건 목록을 묶고 좁히는
+ * 쪽이 쓰지 줄이 쓰지 않는다 → `TrackRow`
+ */
+export type AnyTrack = CatalogTrack | RemoteTrack;
+
+/**
+ * 검색이 찾아낸 가수. **YouTube 채널이 주는 것이 전부다** — 앨범도 데뷔년도도
+ * 없다. 있는 것만 그리고 없는 것은 지어내지 않는다.
+ */
+export type RemoteArtist = {
+  channelId: string;
+  name: string;
+  /** 채널 설명의 첫 줄. 없을 수 있다 */
+  about: string;
+  thumbnail?: string;
+  subscribers?: number;
+};
+
 /** 사용자가 고르거나 플레이리스트에 담은 곡. 시각은 처음부터 넣는다 */
 export type SavedTrack = {
   trackId: string;
