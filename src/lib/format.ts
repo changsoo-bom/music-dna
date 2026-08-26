@@ -29,3 +29,24 @@ export function formatDuration(seconds: number | undefined): string {
   if (!seconds || seconds < 0 || !Number.isFinite(seconds)) return "";
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 }
+
+/**
+ * 구독자 수를 사람이 읽는 단위로. `1234567` → `123만`
+ *
+ * **한국어 단위로 끊는다.** `1.2M` 은 이 화면에서 한 번도 안 쓰는 표기고,
+ * 천 단위 쉼표(`1,234,567`)는 여덟 글자가 카드 한 줄을 먹는다. 정확한 수를
+ * 아는 것이 이 자리의 일이 아니다 — 큰 채널인지 아닌지만 말하면 된다.
+ *
+ * **버림이다.** 반올림하면 9,999 명이 `1만` 이 되는데, 그 채널은 아직
+ * 1만이 아니다. 모자란 쪽으로 틀리는 편이 낫다.
+ *
+ * 컴포넌트 파일에 있던 것을 여기로 옮겼다 — 거기서는 `next/image` 를
+ * 들여오는 파일에 얹혀 있어서 `scripts/check-catalog.ts` 가 못 만졌다.
+ * 경계가 셋(천·만·억)인 함수가 검사 없이 남아 있던 이유다.
+ */
+export function readableCount(value: number): string {
+  if (value >= 100_000_000) return `${Math.floor(value / 100_000_000)}억`;
+  if (value >= 10_000) return `${Math.floor(value / 10_000)}만`;
+  if (value >= 1_000) return `${Math.floor(value / 1_000)}천`;
+  return String(value);
+}
