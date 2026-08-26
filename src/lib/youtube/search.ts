@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { classify } from "@/lib/youtube/classify";
+import { songsFirst } from "@/lib/youtube/song";
 import type { RemoteArtist, RemoteTrack } from "@/types/music";
 
 /**
@@ -16,9 +17,18 @@ import type { RemoteArtist, RemoteTrack } from "@/types/music";
  *    몰리는지를 보고** 가수 질의였다고 판정한다(`classify`). 가수면 거기서
  *    채널 id 를 이미 알고 있으므로, 나머지는 1 units 짜리 호출로 끝난다:
  *    `channels.list`(정보 + 업로드 목록 id) → `playlistItems.list`(그 가수의 곡).
- *    102 units 다.
  * 2. **같은 말은 한 번만 산다.** `fetch` 를 하루 캐시로 감싼다. 캐시 키는
  *    주소이므로 검색어가 곧 키다 → `.claude/rules/data.md`
+ *
+ * 여기에 `videos.list` 한 번(1 unit)이 붙는다 — 곡 제목 질의는 101, 가수
+ * 질의는 103 units. 길이를 받아 오는 값인데, 화면에 곡 길이를 그리는 것보다
+ * **쇼츠와 한 시간짜리 반복 영상을 거르는 쪽이 크다**(`isSongLength`).
+ *
+ * ## 노래만 남긴다
+ *
+ * `videoCategoryId=10`(음악)으로는 안무 영상이 안 걸러진다 — 그것도 음악
+ * 카테고리다. 받아 온 결과를 제목·채널로 거르고 음원을 앞에 세운다
+ * (`songsFirst`). 거기는 호출이 안 늘어나서 공짜다.
  *
  * ## 실패는 던지지 않는다
  *
@@ -44,8 +54,17 @@ const API = "https://www.googleapis.com/youtube/v3";
 /** 하루. 검색 결과는 그보다 빨리 안 변하고, 짧게 잡을 이유가 할당량뿐이다 */
 const REVALIDATE = 60 * 60 * 24;
 
-/** 한 번에 받아 볼 영상 수. 분류가 채널 쏠림을 보는 표본이기도 하다 */
-const SAMPLE = 10;
+/**
+ * 한 번에 받아 볼 영상 수. 분류가 채널 쏠림을 보는 표본이기도 하다.
+ *
+ * **25 를 받는 이유는 거르기 때문이다.** 안무·직캠·리액션을 빼고 나면
+ * 열 개 중 서너 개만 남는 검색어가 있다 → `songsFirst`. `search.list` 는
+ * 개수와 상관없이 100 units 이라 넉넉히 받는 편이 공짜로 낫다.
+ */
+const SAMPLE = 25;
+
+/** 화면에 세울 곡 수. 거르고 남은 것 중 앞에서부터 */
+const SHOWN = 12;
 
 /** 가수 화면에 세울 곡 수. `playlistItems` 는 50개까지 1 units 다 */
 const ARTIST_TRACKS = 24;
@@ -66,7 +85,9 @@ const searchItem = z.object({
   }),
 });
 
-const searchResponse = z.object({ items: z.array(z.unknown()).optional() });
+/** `items` 만 꺼내는 봉투. `search.list` · `channels.list` · `playlistItems.list` ·
+    `videos.list` 가 전부 같은 모양이라 하나로 쓴다 */
+const listResponse = z.object({ items: z.array(z.unknown()).optional() });
 
 const channelItem = z.object({
   id: z.string().min(1),
@@ -81,7 +102,6 @@ const channelItem = z.object({
   }),
 });
 
-const channelResponse = z.object({ items: z.array(z.unknown()).optional() });
 
 const playlistItem = z.object({
   snippet: z.object({
@@ -90,6 +110,21 @@ const playlistItem = z.object({
     resourceId: z.object({ videoId: z.string().min(1) }),
   }),
 });
+
+const videoItem = z.object({
+  id: z.string().min(1),
+  contentDetails: z.object({ duration: z.string() }),
+});
+
+/** ISO 8601 `PT4M13S` → 253 */
+function toSeconds(iso: string): number {
+  const parsed = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(iso);
+  if (!parsed) return 0;
+  return Number(parsed[1] ?? 0) * 3600 + Number(parsed[2] ?? 0) * 60 + Number(parsed[3] ?? 0);
+}
+
+/** 거르기 전의 한 줄. `songsFirst` 가 보는 모양이다 */
+type Row = { videoId: string; title: string; channel: string; duration?: number };
 
 /** 찾은 것. **던지는 대신 이걸 돌려준다** */
 export type YoutubeSearch =
@@ -132,11 +167,55 @@ function parseEach<T>(items: unknown[], schema: z.ZodType<T>): T[] {
 }
 
 /**
+ * **길이를 받아 온다. 1 unit.** `videos.list` 는 id 50개까지 한 번에 주므로
+ * 표본이 25개든 1 unit 이다 — 검색 한 번(100)에 견주면 없는 값이나 마찬가지고,
+ * 얻는 것이 둘이다: 화면에 곡 길이가 뜨고, **쇼츠와 한 시간짜리 반복 영상이
+ * 걸러진다**(`isSongLength`). 제목만으로는 그 둘을 못 가른다.
+ *
+ * 실패하면 길이 없이 간다. 길이는 있으면 좋은 값이지 없으면 못 그리는 값이
+ * 아니다 → `formatDuration` 이 빈 문자열을 돌려준다
+ */
+async function withDurations(rows: Row[]): Promise<Row[]> {
+  if (rows.length === 0) return rows;
+
+  const detail = await call("videos", {
+    part: "contentDetails",
+    id: rows.map((row) => row.videoId).join(","),
+  });
+  if (!detail.ok) return rows;
+
+  const envelope = listResponse.safeParse(detail.data);
+  if (!envelope.success) return rows;
+
+  const seconds = new Map(
+    parseEach(envelope.data.items ?? [], videoItem).map((item) => [
+      item.id,
+      toSeconds(item.contentDetails.duration),
+    ]),
+  );
+  // 0 초는 못 받은 것과 같다. 넣어 두면 `isSongLength` 가 전부 떨어뜨린다
+  return rows.map((row) => ({ ...row, duration: seconds.get(row.videoId) || undefined }));
+}
+
+/**
  * `search.list` 가 준 제목은 `아티스트 - 제목 (Official Video)` 처럼 한 줄에
  * 다 들어 있다. **가수 이름이 따로 있는 곳은 채널 제목뿐이다.**
  */
-function toTrack(videoId: string, title: string, artist: string): RemoteTrack {
-  return { id: `yt:${videoId}`, title, artist, youtubeId: videoId };
+function toTrack(row: Row): RemoteTrack {
+  return {
+    id: `yt:${row.videoId}`,
+    title: row.title,
+    artist: row.channel,
+    youtubeId: row.videoId,
+    duration: row.duration,
+  };
+}
+
+/** 거르고, 음원을 앞에 세우고, 화면에 세울 만큼만 자른다 */
+async function toTracks(rows: Row[]): Promise<RemoteTrack[]> {
+  return songsFirst(await withDurations(rows))
+    .slice(0, SHOWN)
+    .map(toTrack);
 }
 
 export async function searchYoutube(query: string): Promise<YoutubeSearch> {
@@ -155,10 +234,16 @@ export async function searchYoutube(query: string): Promise<YoutubeSearch> {
   });
   if (!found.ok) return found.status;
 
-  const envelope = searchResponse.safeParse(found.data);
+  const envelope = listResponse.safeParse(found.data);
   if (!envelope.success) return { status: "failed" };
   const videos = parseEach(envelope.data.items ?? [], searchItem);
   if (videos.length === 0) return { status: "tracks", tracks: [] };
+
+  const rows: Row[] = videos.map((video) => ({
+    videoId: video.id.videoId,
+    title: video.snippet.title,
+    channel: video.snippet.channelTitle,
+  }));
 
   // ② 결과가 한 채널로 몰리면 가수를 찾은 것이다 → `classify`
   const channelId = classify(
@@ -172,9 +257,7 @@ export async function searchYoutube(query: string): Promise<YoutubeSearch> {
   if (!channelId) {
     return {
       status: "tracks",
-      tracks: videos.map((video) =>
-        toTrack(video.id.videoId, video.snippet.title, video.snippet.channelTitle),
-      ),
+      tracks: await toTracks(rows),
     };
   }
 
@@ -185,7 +268,7 @@ export async function searchYoutube(query: string): Promise<YoutubeSearch> {
   });
   if (!channel.ok) return channel.status;
 
-  const channelEnvelope = channelResponse.safeParse(channel.data);
+  const channelEnvelope = listResponse.safeParse(channel.data);
   if (!channelEnvelope.success) return { status: "failed" };
   const [info] = parseEach(channelEnvelope.data.items ?? [], channelItem);
   // 채널이 사라졌으면 가수 화면을 못 세운다. 검색 결과는 이미 손에 있으므로
@@ -193,9 +276,7 @@ export async function searchYoutube(query: string): Promise<YoutubeSearch> {
   if (!info) {
     return {
       status: "tracks",
-      tracks: videos.map((video) =>
-        toTrack(video.id.videoId, video.snippet.title, video.snippet.channelTitle),
-      ),
+      tracks: await toTracks(rows),
     };
   }
 
@@ -205,20 +286,21 @@ export async function searchYoutube(query: string): Promise<YoutubeSearch> {
     playlistId: info.contentDetails.relatedPlaylists.uploads,
     maxResults: String(ARTIST_TRACKS),
   });
-  const uploadItems = uploads.ok ? channelResponse.safeParse(uploads.data) : null;
+  const uploadItems = uploads.ok ? listResponse.safeParse(uploads.data) : null;
+  /* **업로드 목록도 똑같이 거른다.** 아티스트 채널에는 음원만 있는 게 아니라
+     안무 영상·티저·비하인드가 같이 올라간다 — 오히려 여기가 더 섞여 있다.
+     같은 규칙으로 걸러야 검색어에 따라 목록의 성격이 달라지지 않는다 */
   const tracks =
     uploadItems?.success === true
-      ? parseEach(uploadItems.data.items ?? [], playlistItem).map((item) =>
-          toTrack(
-            item.snippet.resourceId.videoId,
-            item.snippet.title,
-            item.snippet.videoOwnerChannelTitle ?? info.snippet.title,
-          ),
+      ? await toTracks(
+          parseEach(uploadItems.data.items ?? [], playlistItem).map((item) => ({
+            videoId: item.snippet.resourceId.videoId,
+            title: item.snippet.title,
+            channel: item.snippet.videoOwnerChannelTitle ?? info.snippet.title,
+          })),
         )
       : // 업로드 목록만 실패하면 가수 정보는 살린다. 검색 결과가 곡을 대신한다
-        videos.map((video) =>
-          toTrack(video.id.videoId, video.snippet.title, video.snippet.channelTitle),
-        );
+        await toTracks(rows);
 
   const subscribers = Number(info.statistics?.subscriberCount);
 

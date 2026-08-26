@@ -6,6 +6,7 @@ import { CATALOG } from "@/data/catalog";
 import { browseGroups, browseHref } from "@/lib/browse";
 import { searchTracks } from "@/lib/search";
 import { classify } from "@/lib/youtube/classify";
+import { isSongLength, looksLikeSong, songsFirst } from "@/lib/youtube/song";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
 import { maxPerGenre, nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
@@ -380,9 +381,76 @@ assert.equal(
   "1등이 40% 미만인데 통과했다",
 );
 
+/* 7. 노래만 남기기 ─────────────────────────────────────────
+      **여기서 잘못 버린 곡은 찾는 사람에게 없는 곡이 된다.** 검색이 고장 난
+      것과 구별이 안 되므로, 통과시켜야 할 것을 통과시키는지가 막는 것보다
+      중요하다 → `songsFirst` */
+
+const song = (title: string, channel = "어떤 채널") => ({ title, channel });
+
+// 노래가 아닌 것은 막는다
+for (const bad of [
+  "NewJeans - Ditto 안무 영상",
+  "aespa 'Next Level' Dance Practice",
+  "IU - Love wins all (Choreography ver.)",
+  "블랙핑크 뚜두뚜두 직캠",
+  "Ditto 교차편집 / stage mix",
+  "[리액션] 뉴진스 신곡 처음 들어봄",
+  "Attention - cover by 어떤사람",
+  "Super Shy 노래방 karaoke",
+  "OMG (Instrumental)",
+  "NewJeans 데뷔 비하인드",
+  "Ditto 티저 teaser",
+  "아이유 인터뷰",
+  "Ditto #shorts",
+  "NewJeans full album 전곡 듣기",
+  "잔잔한 플레이리스트 1시간",
+]) {
+  assert.equal(looksLikeSong(bad, "어떤 채널"), false, `노래가 아닌데 통과했다: ${bad}`);
+}
+
+// **노래는 통과해야 한다.** 단어 하나로 막으면 여기가 무너진다 —
+// `Dance The Night` 의 dance, `Discover` 안의 cover
+for (const good of [
+  "NewJeans (뉴진스) 'Ditto' Official MV",
+  "Dua Lipa - Dance The Night (Official Music Video)",
+  "Discover - 어떤 밴드",
+  "IU(아이유) _ 밤편지(Through the Night)",
+  "aespa 에스파 'Next Level' M/V",
+  "Ditto (Lyrics)",
+  "Ditto (Remix)",
+  "Live Forever - Oasis",
+]) {
+  assert.equal(looksLikeSong(good, "어떤 채널"), true, `노래인데 막혔다: ${good}`);
+}
+
+// 길이로 거른다. **모르는 것은 안 막는다**
+assert.equal(isSongLength(undefined), true, "길이를 모른다고 막았다");
+assert.equal(isSongLength(30), false, "30초짜리 쇼츠가 통과했다");
+assert.equal(isSongLength(210), true, "3분 30초짜리 곡이 막혔다");
+assert.equal(isSongLength(3600), false, "한 시간짜리가 통과했다");
+
+// **음원이 앞에 온다.** `- Topic` 이 YouTube Music 이 파는 그 음원이다
+assert.deepEqual(
+  songsFirst([
+    song("Ditto", "어떤 채널"),
+    song("Ditto", "NewJeans - Topic"),
+    song("Ditto", "HYBE LABELS"),
+  ]).map((item) => item.channel),
+  ["NewJeans - Topic", "어떤 채널", "HYBE LABELS"],
+  "음원 채널이 앞에 안 왔다",
+);
+
+// **다 걸러졌으면 되돌린다.** 있는데 없다고 말하면 안 된다
+assert.equal(
+  songsFirst([song("Ditto 안무 영상"), song("Ditto 직캠")]).length,
+  2,
+  "전부 걸러졌는데 빈 목록을 줬다",
+);
+
 const kr = CATALOG.filter((track) => track.region === "kr").length;
 
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 검색 11건 · 가수 판정 9건 · 다시 찾기 3판 · 길이 표기 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 검색 11건 · 가수 판정 9건 · 노래 거르기 27건 · 다시 찾기 3판 · 길이 표기 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );
