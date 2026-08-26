@@ -4,6 +4,9 @@ import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
 import { REGIONS } from "@/constants/regions";
 import { CATALOG } from "@/data/catalog";
 import { browseGroups, browseHref } from "@/lib/browse";
+import { searchTracks } from "@/lib/search";
+import { classify } from "@/lib/youtube/classify";
+import { isSongLength, looksLikeSong, songsFirst } from "@/lib/youtube/song";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
 import { maxPerGenre, nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
@@ -63,7 +66,7 @@ assert.deepEqual(empty, [], `곡이 하나도 없는 하위 장르: ${empty.join
 /**
  * **국내·해외 × 장르 열 칸이 전부 차 있다.**
  *
- * 전체보기는 두 축을 곱해서 좁힌다(`RegionSwitch` × `GenreRail`). 한 칸이
+ * 둘러보기는 두 축을 곱해서 좁힌다(`RegionSwitch` × `GenreRail`). 한 칸이
  * 비면 `browseGroups` 가 그 칸을 통째로 떨어뜨려서 **색인에서 장르 줄이
  * 사라지고**, 이미 공유된 `/browse?region=kr&genre=electronic` 은 빈 안내문만
  * 남는 화면이 된다.
@@ -81,7 +84,7 @@ for (const region of REGIONS) {
     ).length;
     assert.ok(
       count >= 4,
-      `${region.label} ${genre.label} 이 ${count}곡이다 — 전체보기에서 그 칸이 색인에 안 뜬다`,
+      `${region.label} ${genre.label} 이 ${count}곡이다 — 둘러보기에서 그 칸이 색인에 안 뜬다`,
     );
   }
 }
@@ -245,7 +248,7 @@ for (const track of CATALOG) {
   );
 }
 
-/* 4. 전체보기 — 좁히는 규칙 ────────────────────────────────
+/* 4. 둘러보기 — 좁히는 규칙 ────────────────────────────────
       `browseGroups`·`browseHref` 는 순수 함수라 화면을 안 열어도 여기서 다 본다.
       특히 `browseHref` 의 **`undefined`=유지 / `null`=해제** 규약은 틀려도
       타입이 안 잡는다: "장르 해제" 를 `undefined` 로 적으면 해제가 아니라
@@ -289,9 +292,165 @@ assert.ok(
   "곡이 없는 칸이 목록에 남았다",
 );
 
+/* 5. 검색 ──────────────────────────────────────────────────
+      `searchTracks` 도 순수 함수라 화면 없이 다 본다. 여기서 막고 싶은 것은
+      **조용한 빈 결과**다 — 대소문자나 띄어쓰기 하나로 아무것도 안 나오면
+      사용자에게는 "그 곡이 없다" 로만 보이고, 없는 것은 곡이 아니라 규칙이다. */
+
+const idsOf = (tracks: readonly { id: string }[]) => tracks.map((track) => track.id);
+
+// 빈 검색어는 빈 결과다. 전부 돌려주면 두 번째 둘러보기가 된다
+assert.deepEqual(searchTracks(""), [], "빈 검색어에 결과가 나왔다");
+assert.deepEqual(searchTracks("   "), [], "공백만 쳤는데 결과가 나왔다");
+
+// 대소문자와 띄어쓰기를 안 가린다. 표기는 하나뿐인데 치는 방법은 여럿이다
+const clairo = searchTracks("clairo");
+assert.ok(clairo.length >= 2, `아티스트로 찾은 곡이 ${clairo.length}곡뿐이다`);
+assert.deepEqual(idsOf(searchTracks("CLAIRO")), idsOf(clairo), "대문자로 치면 다른 결과가 나온다");
+assert.deepEqual(idsOf(searchTracks(" Clairo ")), idsOf(clairo), "앞뒤 공백이 결과를 바꾼다");
+assert.deepEqual(idsOf(searchTracks("cla iro")), idsOf(clairo), "가운데 공백이 결과를 바꾼다");
+assert.ok(
+  clairo.every((track) => track.artist === "Clairo"),
+  "아티스트로 찾았는데 다른 사람의 곡이 섞였다",
+);
+
+// **제목이 아티스트보다 앞이다.** 친 그대로인 곡이 아래에 있으면 검색이
+// 고장 난 것처럼 보인다
+assert.equal(searchTracks("bags")[0].title, "Bags", "제목이 그대로 맞는 곡이 첫 줄이 아니다");
+assert.equal(searchTracks("난춘")[0].artist, "새소년", "한글 제목으로 못 찾았다");
+
+// 없는 말은 빈 결과다. 여기가 무너지면 검색이 아무거나 돌려준다
+assert.deepEqual(searchTracks("zzzzz"), [], "없는 말에 결과가 나왔다");
+
+// 찾은 곡은 전부 카탈로그의 곡이다 — 목록이 그리는 것이 곧 이 결과다
+assert.ok(
+  searchTracks("a").every((track) => CATALOG.includes(track)),
+  "카탈로그에 없는 곡이 결과에 섞였다",
+);
+
+/* 6. 가수 질의 판정 ────────────────────────────────────────
+      **틀리면 100 units 을 쓰고 엉뚱한 사람의 채널을 가수라고 세운다.**
+      YouTube 에 물어보는 대신 결과의 쏠림으로 판정하는 자리라(`classify`),
+      호출 없이 여기서 다 본다 — 실제 API 를 때리는 검사는 할당량을 먹는다. */
+
+/** 표본 만들기. `[["ch1", 6], ["ch2", 4]]` → 채널별로 그만큼의 결과 */
+const results = (...groups: readonly (readonly [string, string, number])[]) =>
+  groups.flatMap(([channelId, channelTitle, count]) =>
+    Array.from({ length: count }, () => ({ channelId, channelTitle })),
+  );
+
+// 한 채널로 몰리고 이름도 맞으면 가수다
+assert.equal(
+  classify("NewJeans", results(["ch1", "NewJeans", 7], ["ch2", "어떤 채널", 3])),
+  "ch1",
+  "가수 채널로 몰렸는데 못 알아봤다",
+);
+// 검색어가 채널명을 포함하는 방향도 본다 — `뉴진스 NewJeans` 같은 채널명
+assert.equal(
+  classify("뉴진스 NewJeans", results(["ch1", "뉴진스", 8], ["ch2", "x", 2])),
+  "ch1",
+  "채널명이 검색어의 일부일 때 못 알아봤다",
+);
+// 대소문자·공백·구두점은 안 가린다
+assert.equal(classify("new jeans", results(["ch1", "NEWJEANS", 5])), "ch1", "표기 차이로 놓쳤다");
+
+// **흩어지면 곡 제목이다.** 커버·리액션·라이브가 섞인 모양이다
+assert.equal(
+  classify("Ditto", results(["a", "A", 2], ["b", "B", 2], ["c", "C", 2], ["d", "D", 2])),
+  null,
+  "채널이 흩어졌는데 가수라고 판정했다",
+);
+// **몰렸어도 이름이 다르면 아니다.** 부지런한 리액션 채널이 상위를 먹을 수 있다
+assert.equal(
+  classify("아이유", results(["ch9", "노래 리액션 채널", 8], ["ch2", "x", 2])),
+  null,
+  "이름이 안 맞는 채널을 가수로 세웠다",
+);
+// 경계: 표본이 없거나 검색어가 비면 판정하지 않는다
+assert.equal(classify("아무개", []), null, "빈 결과에서 채널을 골랐다");
+assert.equal(classify("", results(["ch1", "무엇", 5])), null, "빈 검색어로 가수를 판정했다");
+// 정확히 40% 는 통과한다(10개 중 4개). 경계가 어느 쪽인지 적어 둔다
+assert.equal(
+  classify("가수", results(["ch1", "가수", 4], ["b", "B", 3], ["c", "C", 3])),
+  "ch1",
+  "40% 경계에서 떨어졌다",
+);
+assert.equal(
+  classify("가수", results(["ch1", "가수", 3], ["b", "B", 4], ["c", "C", 3])),
+  null,
+  "1등이 40% 미만인데 통과했다",
+);
+
+/* 7. 노래만 남기기 ─────────────────────────────────────────
+      **여기서 잘못 버린 곡은 찾는 사람에게 없는 곡이 된다.** 검색이 고장 난
+      것과 구별이 안 되므로, 통과시켜야 할 것을 통과시키는지가 막는 것보다
+      중요하다 → `songsFirst` */
+
+const song = (title: string, channel = "어떤 채널") => ({ title, channel });
+
+// 노래가 아닌 것은 막는다
+for (const bad of [
+  "NewJeans - Ditto 안무 영상",
+  "aespa 'Next Level' Dance Practice",
+  "IU - Love wins all (Choreography ver.)",
+  "블랙핑크 뚜두뚜두 직캠",
+  "Ditto 교차편집 / stage mix",
+  "[리액션] 뉴진스 신곡 처음 들어봄",
+  "Attention - cover by 어떤사람",
+  "Super Shy 노래방 karaoke",
+  "OMG (Instrumental)",
+  "NewJeans 데뷔 비하인드",
+  "Ditto 티저 teaser",
+  "아이유 인터뷰",
+  "Ditto #shorts",
+  "NewJeans full album 전곡 듣기",
+  "잔잔한 플레이리스트 1시간",
+]) {
+  assert.equal(looksLikeSong(bad, "어떤 채널"), false, `노래가 아닌데 통과했다: ${bad}`);
+}
+
+// **노래는 통과해야 한다.** 단어 하나로 막으면 여기가 무너진다 —
+// `Dance The Night` 의 dance, `Discover` 안의 cover
+for (const good of [
+  "NewJeans (뉴진스) 'Ditto' Official MV",
+  "Dua Lipa - Dance The Night (Official Music Video)",
+  "Discover - 어떤 밴드",
+  "IU(아이유) _ 밤편지(Through the Night)",
+  "aespa 에스파 'Next Level' M/V",
+  "Ditto (Lyrics)",
+  "Ditto (Remix)",
+  "Live Forever - Oasis",
+]) {
+  assert.equal(looksLikeSong(good, "어떤 채널"), true, `노래인데 막혔다: ${good}`);
+}
+
+// 길이로 거른다. **모르는 것은 안 막는다**
+assert.equal(isSongLength(undefined), true, "길이를 모른다고 막았다");
+assert.equal(isSongLength(30), false, "30초짜리 쇼츠가 통과했다");
+assert.equal(isSongLength(210), true, "3분 30초짜리 곡이 막혔다");
+assert.equal(isSongLength(3600), false, "한 시간짜리가 통과했다");
+
+// **음원이 앞에 온다.** `- Topic` 이 YouTube Music 이 파는 그 음원이다
+assert.deepEqual(
+  songsFirst([
+    song("Ditto", "어떤 채널"),
+    song("Ditto", "NewJeans - Topic"),
+    song("Ditto", "HYBE LABELS"),
+  ]).map((item) => item.channel),
+  ["NewJeans - Topic", "어떤 채널", "HYBE LABELS"],
+  "음원 채널이 앞에 안 왔다",
+);
+
+// **다 걸러졌으면 되돌린다.** 있는데 없다고 말하면 안 된다
+assert.equal(
+  songsFirst([song("Ditto 안무 영상"), song("Ditto 직캠")]).length,
+  2,
+  "전부 걸러졌는데 빈 목록을 줬다",
+);
+
 const kr = CATALOG.filter((track) => track.region === "kr").length;
 
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 다시 찾기 3판 · 길이 표기 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 검색 11건 · 가수 판정 9건 · 노래 거르기 27건 · 다시 찾기 3판 · 길이 표기 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );

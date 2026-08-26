@@ -2,13 +2,29 @@ import { create } from "zustand";
 
 import { PARENT_OF } from "@/constants/genres";
 import { CATALOG } from "@/data/catalog";
-import type { CatalogTrack, Genre } from "@/types/music";
+import type { AnyTrack, CatalogTrack, Genre } from "@/types/music";
 
-/** 큐에 담기려면 재생할 것이 있어야 한다 */
-export type PlayableTrack = CatalogTrack & { youtubeId: string };
+/**
+ * 큐에 담기려면 재생할 것이 있어야 한다.
+ *
+ * **카탈로그 밖의 곡도 큐에 들어온다**(`RemoteTrack`) — 검색이 YouTube 에서
+ * 찾아온 곡이다. 트는 데 필요한 것은 `youtubeId` 하나고, 장르는 큐가 끝난 뒤
+ * 이어 틀 곡을 고를 때만 쓴다(`radioPick`). 없으면 없는 대로 고른다.
+ */
+export type PlayableTrack = AnyTrack & { youtubeId: string };
 
-export function isPlayable(track: CatalogTrack): track is PlayableTrack {
+/**
+ * **제네릭이다.** 그냥 `track is PlayableTrack` 으로 두면 카탈로그 배열을
+ * 거른 결과가 유니온으로 넓어져서 `subGenre` 를 잃는다 — 거르기 전에 알던
+ * 것을 거르고 나서 모르게 되면 안 된다.
+ */
+export function isPlayable<T extends AnyTrack>(track: T): track is T & { youtubeId: string } {
   return typeof track.youtubeId === "string";
+}
+
+/** 카탈로그의 곡인가. `subGenre` 가 있는 쪽이 카탈로그다 */
+export function isCatalogTrack(track: AnyTrack): track is CatalogTrack {
+  return "subGenre" in track;
 }
 
 /**
@@ -24,7 +40,7 @@ export function isPlayable(track: CatalogTrack): track is PlayableTrack {
  * 첫 곡이 같은 두 리스트가 서로를 일시정지시킨다 — B를 틀려고 눌렀는데
  * A가 멈춘다. 그래서 리스트만 자기 id 를 달고 다닌다.
  *
- * **전체보기도 같은 이유로 둘이다.** 줄을 눌러 트는 큐는 화면 전체(`browse`)고,
+ * **둘러보기도 같은 이유로 둘이다.** 줄을 눌러 트는 큐는 화면 전체(`browse`)고,
  * 칸의 "전체 재생" 은 그 칸만(`browse:{genre}`)이다. 같은 이름을 쓰면 화면 첫
  * 곡이 나는 중에 그 칸의 전체 재생을 눌렀을 때 아래 `play` 의 토글 분기에
  * 걸려서 **재생 버튼이 정지를 한다** — 첫 곡이 겹치는 것은 우연이 아니라
@@ -35,6 +51,8 @@ export type QueueId =
   | "played"
   | "browse"
   | `browse:${Genre}`
+  | "search"
+  | "search:remote"
   | `library:${string}`;
 
 /**
@@ -55,8 +73,15 @@ export type QueueId =
  */
 function radioPick(after: PlayableTrack, heard: ReadonlySet<string>): PlayableTrack | null {
   const pool = CATALOG.filter(isPlayable).filter((track) => !heard.has(track.id));
-  const parent = PARENT_OF[after.subGenre];
 
+  // **카탈로그 밖의 곡 다음에는 종류를 못 좁힌다.** 검색이 YouTube 에서 찾아온
+  // 곡에는 장르가 없다 — 지어내면 엉뚱한 칸에서 이어진다. 좁히지 못할 뿐
+  // 멈추지는 않는다: 카탈로그 전체가 후보다
+  if (!isCatalogTrack(after)) {
+    return pool[Math.floor(Math.random() * pool.length)] ?? null;
+  }
+
+  const parent = PARENT_OF[after.subGenre];
   const sameSub = pool.filter((track) => track.subGenre === after.subGenre);
   const sameGenre = pool.filter((track) => PARENT_OF[track.subGenre] === parent);
   const from = sameSub.length ? sameSub : sameGenre.length ? sameGenre : pool;
@@ -224,7 +249,7 @@ export function soundingId(state: PlayerState, queueId: QueueId): string | null 
 }
 
 /**
- * 전체보기에서 지금 소리를 내고 있는 곡의 id. **큐가 둘이라 따로 있다** —
+ * 둘러보기에서 지금 소리를 내고 있는 곡의 id. **큐가 둘이라 따로 있다** —
  * 줄을 눌러 튼 것(`browse`)과 칸의 전체 재생(`browse:{genre}`)은 서로 다른
  * 큐지만 **같은 화면이 튼 것**이라, 어느 쪽이든 그 줄에 표시가 붙어야 한다.
  * `soundingId` 로는 한 번에 한쪽만 볼 수 있다.

@@ -10,7 +10,13 @@ import assert from "node:assert/strict";
 
 import { PARENT_OF } from "@/constants/genres";
 import { CATALOG } from "@/data/catalog";
-import { browseSoundingId, currentTrack, isSounding, usePlayerStore } from "@/lib/use-player-store";
+import {
+  browseSoundingId,
+  currentTrack,
+  isCatalogTrack,
+  isSounding,
+  usePlayerStore,
+} from "@/lib/use-player-store";
 import type { PlayableTrack } from "@/lib/use-player-store";
 
 const QUEUE: PlayableTrack[] = ["a", "b", "c"].map((id) => ({
@@ -57,7 +63,10 @@ assert.equal(store.getState().isPlaying, true, "마지막 곡 다음에 안 이�
 assert.equal(store.getState().queue.length, 4, "이어 붙인 곡이 큐에 안 들어갔다");
 assert.equal(store.getState().index, 3, "이어 붙였는데 위치가 마지막을 안 가리킨다");
 const linked = currentTrack(store.getState());
-assert.equal(linked?.subGenre, "kpop", "다른 하위 장르가 이어졌다");
+// **이어 붙는 곡은 언제나 카탈로그의 곡이다.** 후보 풀이 카탈로그뿐이라
+// (`radioPick`) 여기가 깨지면 장르 없는 곡이 큐에 섞여 다음 판정이 무너진다
+assert.ok(linked && isCatalogTrack(linked), "이어 붙인 곡이 카탈로그 밖에서 왔다");
+assert.equal(linked.subGenre, "kpop", "다른 하위 장르가 이어졌다");
 assert.equal(["a", "b", "c"].includes(linked?.id ?? ""), false, "들은 곡이 다시 이어졌다");
 
 // 같은 종류가 마르면 넓힌다. kpop 을 전부 들은 셈 치면 상위 장르(pop) 안에서 온다
@@ -68,8 +77,10 @@ store.setState({
 });
 store.getState().skip(1);
 assert.equal(store.getState().isPlaying, true, "같은 하위 장르가 말랐다고 멈췄다");
+const widened = currentTrack(store.getState());
+assert.ok(widened && isCatalogTrack(widened), "넓혀서 고른 곡이 카탈로그 밖에서 왔다");
 assert.equal(
-  PARENT_OF[currentTrack(store.getState())!.subGenre],
+  PARENT_OF[widened.subGenre],
   "pop",
   "하위 장르가 말랐을 때 상위 장르 밖에서 골랐다",
 );
@@ -117,7 +128,7 @@ assert.equal(store.getState().queue.length, 2, "큐가 누른 목록으로 바�
 store.getState().play("played", otherList, 0);
 assert.equal(store.getState().isPlaying, false, "같은 목록의 같은 곡이 토글되지 않았다");
 
-// **전체보기는 큐가 둘이다** — 줄을 눌러 트는 화면 전체(`browse`)와 칸의
+// **둘러보기는 큐가 둘이다** — 줄을 눌러 트는 화면 전체(`browse`)와 칸의
 // 전체 재생(`browse:{genre}`). 한때 둘이 같은 이름을 써서, 화면 첫 곡이 나는
 // 중에 그 칸의 전체 재생을 누르면 위 토글 분기에 걸려 **재생 삼각형이 그려진
 // 버튼이 정지를 했다.** 첫 곡이 겹치는 것은 우연이 아니라 접힌 목록의 정상
@@ -137,16 +148,16 @@ assert.equal(browseSoundingId(store.getState()), "b", "줄 클릭으로 튼 곡�
 store.getState().toggle();
 assert.equal(browseSoundingId(store.getState()), null, "멈췄는데 표시가 남았다");
 
-// **전체보기 밖의 목록에는 안 붙는다.** 이 단언이 없으면 판정을 넓히다가
+// **둘러보기 밖의 목록에는 안 붙는다.** 이 단언이 없으면 판정을 넓히다가
 // `startsWith("b")` 로 만들어도 아무것도 안 빨개진다 — 그러면 추천에서 튼 곡이
-// 전체보기 목록에서도 일시정지 아이콘을 달고, 눌러도 안 멈춘다
+// 둘러보기 목록에서도 일시정지 아이콘을 달고, 눌러도 안 멈춘다
 reset();
 store.getState().play("recommend", QUEUE, 0);
-assert.equal(browseSoundingId(store.getState()), null, "추천에서 튼 곡에 전체보기 표시가 붙었다");
+assert.equal(browseSoundingId(store.getState()), null, "추천에서 튼 곡에 둘러보기 표시가 붙었다");
 store.getState().play("library:abc", QUEUE, 0);
-assert.equal(browseSoundingId(store.getState()), null, "리스트에서 튼 곡에 전체보기 표시가 붙었다");
+assert.equal(browseSoundingId(store.getState()), null, "리스트에서 튼 곡에 둘러보기 표시가 붙었다");
 store.getState().play("played", QUEUE, 0);
-assert.equal(browseSoundingId(store.getState()), null, "빠른 선곡에서 튼 곡에 전체보기 표시가 붙었다");
+assert.equal(browseSoundingId(store.getState()), null, "빠른 선곡에서 튼 곡에 둘러보기 표시가 붙었다");
 
 // 막혔던 곡을 다시 고르면 한 번 더 시도한다.
 // 영영 무시하면 눌러도 아무 일이 안 나는 카드가 된다.
@@ -209,5 +220,5 @@ assert.equal(
 );
 
 console.log(
-  `✓ 재생 큐 — 시작·토글·앞뒤·큐 끝에서 이어잇기·막힌 곡 건너뛰기·목록 전환·전체보기 두 큐·재정렬 후 토글·아이콘 일치`,
+  `✓ 재생 큐 — 시작·토글·앞뒤·큐 끝에서 이어잇기·막힌 곡 건너뛰기·목록 전환·둘러보기 두 큐·재정렬 후 토글·아이콘 일치`,
 );

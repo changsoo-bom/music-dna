@@ -2,7 +2,7 @@ import { SiteFooter } from "@/components/common/SiteFooter";
 import { SiteHeader } from "@/components/common/SiteHeader";
 
 /**
- * 헤더와 푸터를 두르는 껍데기. 홈·전체보기·보관함이 여기 산다.
+ * 헤더와 푸터를 두르는 껍데기. 홈·둘러보기·보관함이 여기 산다.
  *
  * **검사 화면은 이 그룹 밖이다**(`app/quiz`). 로고와 네비게이션이 있으면
  * "둘러보는 페이지" 로 읽히고, 5문항 1분짜리 흐름은 도중에 나갈 곳을 여러 개

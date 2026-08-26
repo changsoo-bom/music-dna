@@ -10,7 +10,7 @@ export type Genre = "pop" | "rock" | "hiphop" | "rnb" | "electronic";
 /**
  * 국내 곡인가 아닌가. **장르와 다른 축이다** — K-Pop 은 하위 장르지만
  * 국내 발라드·인디록·힙합은 저마다 다른 장르에 흩어져 있어서, 장르만으로는
- * "한국 노래" 를 못 고른다. 전체보기가 이 둘을 겹쳐서 좁힌다.
+ * "한국 노래" 를 못 고른다. 둘러보기가 이 둘을 겹쳐서 좁힌다.
  *
  * **둘로만 가른다.** 나라별로 쪼개면 곡 하나에 국적이 여럿인 경우
  * (한국에서 활동하는 일본 가수, 국제 공동작업)를 매번 판정해야 하는데,
@@ -111,7 +111,7 @@ export type CatalogTrack = {
   title: string;
   artist: string;
   subGenre: SubGenre;
-  /** 국내인가 해외인가. 전체보기의 첫 번째 탭 줄이 이 값으로 나뉜다 */
+  /** 국내인가 해외인가. 둘러보기의 첫 번째 탭 줄이 이 값으로 나뉜다 */
   region: Region;
   /**
    * 하위 장르 기본 좌표에서 **달라지는 축만** 적는다.
@@ -126,6 +126,47 @@ export type CatalogTrack = {
   youtubeId?: string;
   /** 초 */
   duration?: number;
+};
+
+/**
+ * **카탈로그 밖에서 온 곡.** 검색이 YouTube 에서 주워 온 것이라 장르도 지역도
+ * 없다 — 그건 사람이 카탈로그에 적어 넣는 값이고, API 는 안 준다.
+ *
+ * `id` 는 `yt:{videoId}` 다. 카탈로그 id(`t001`)와 절대 안 겹치는 모양이어야
+ * 한다 — 겹치면 저장소에 남은 id 가 어느 쪽 곡인지 알 수 없고, 목록의 `key`
+ * 도 부딪힌다.
+ *
+ * **보관함에 못 담는다.** 리스트는 id 만 저장하고 읽을 때 카탈로그에서 되찾는데
+ * (`toTracks`), 여기 곡은 카탈로그에 없어서 조용히 사라진다. 담기 버튼을 아예
+ * 안 그리는 이유다 → `SearchList`
+ */
+export type RemoteTrack = {
+  id: `yt:${string}`;
+  title: string;
+  artist: string;
+  youtubeId: string;
+  /** 초 */
+  duration?: number;
+};
+
+/**
+ * 화면이 곡으로 그릴 수 있는 것. **줄 하나를 그리는 데 필요한 것은 둘이 같다** —
+ * 커버·제목·아티스트·길이. 다른 것은 장르와 지역인데, 그건 목록을 묶고 좁히는
+ * 쪽이 쓰지 줄이 쓰지 않는다 → `TrackRow`
+ */
+export type AnyTrack = CatalogTrack | RemoteTrack;
+
+/**
+ * 검색이 찾아낸 가수. **YouTube 채널이 주는 것이 전부다** — 앨범도 데뷔년도도
+ * 없다. 있는 것만 그리고 없는 것은 지어내지 않는다.
+ */
+export type RemoteArtist = {
+  channelId: string;
+  name: string;
+  /** 채널 설명의 첫 줄. 없을 수 있다 */
+  about: string;
+  thumbnail?: string;
+  subscribers?: number;
 };
 
 /** 사용자가 고르거나 플레이리스트에 담은 곡. 시각은 처음부터 넣는다 */

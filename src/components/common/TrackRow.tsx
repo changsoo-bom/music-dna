@@ -5,12 +5,12 @@ import Image from "next/image";
 
 import { LibraryButton } from "@/components/common/LibraryButton";
 import { formatDuration } from "@/lib/format";
-import { isPlayable } from "@/lib/use-player-store";
-import type { CatalogTrack } from "@/types/music";
+import { isCatalogTrack, isPlayable } from "@/lib/use-player-store";
+import type { AnyTrack } from "@/types/music";
 
 /**
  * 곡 한 줄. 커버 + 옆으로 붙은 글자, 오른쪽 끝에 보관함 버튼.
- * 빠른 선곡·보관함·전체보기·전체 화면의 재생목록이 **전부 이걸 쓴다** —
+ * 빠른 선곡·보관함·둘러보기·전체 화면의 재생목록이 **전부 이걸 쓴다** —
  * 같은 곡을 네 화면이 다르게 그릴 이유가 없고, 한쪽만 고쳐서 어긋나는 일도
  * 여기서는 안 생긴다. 전에 전체 화면이 자기 몫을 따로 갖고 있었는데,
  * 재생 불가 처리를 이쪽에만 넣자마자 둘이 갈라지기 시작했다.
@@ -48,7 +48,7 @@ export function TrackRow({
   compact = false,
   savable = true,
 }: {
-  track: CatalogTrack;
+  track: AnyTrack;
   isCurrent: boolean;
   saved: boolean;
   onPlay: () => void;
@@ -64,6 +64,14 @@ export function TrackRow({
   // 담을 수는 있는데 틀 수는 없는 곡이 있다 — 카탈로그가 배치로 채워지는 중이라
   // `youtubeId` 가 아직 안 붙은 자리가 남는다. 그런 줄은 보이되 안 눌린다.
   const playable = isPlayable(track);
+  /* **카탈로그 밖의 곡은 못 담는다.** 리스트는 id 만 저장하고 읽을 때 카탈로그에서
+     되찾는데(`toTracks`), 검색이 YouTube 에서 찾아온 곡은 거기 없어서 담아도
+     다음에 열면 사라진다. 버튼을 안 그리는 것이 담기고 사라지는 것보다 낫고,
+     호출부가 `savable` 을 기억하는 데 기대지 않는다 → `RemoteTrack`
+
+     오른쪽 여백이 이 값을 같이 본다. `savable` 만 보면 버튼 없는 줄에 40px 이
+     빈 채로 남아서 곡 길이가 줄 끝에서 떨어져 뜬다 */
+  const hasSaveButton = savable && isCatalogTrack(track);
 
   const surface = compact
     ? "hover:bg-lifted"
@@ -92,7 +100,7 @@ export function TrackRow({
         } ${
           // 오른쪽 여백은 담기 버튼 자리다. 버튼이 없으면 그만큼 비워 둘
           // 이유도 없다 — 곡 길이가 줄 끝에서 40px 떨어져 뜬다
-          savable ? "pr-14" : "pr-4"
+          hasSaveButton ? "pr-14" : "pr-4"
         } ${surface} ${playable ? "" : "opacity-55"}`}
       >
         <div
@@ -155,7 +163,7 @@ export function TrackRow({
         )}
       </button>
 
-      {savable && (
+      {hasSaveButton && (
         <LibraryButton
           track={track}
           saved={saved}
