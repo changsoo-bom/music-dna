@@ -4,6 +4,7 @@ import { ViewTransition } from "react";
 import { CreatePlaylistButton } from "@/components/library/CreatePlaylistButton";
 import { LibraryList } from "@/components/library/LibraryList";
 
+/** 사이트 이름은 루트의 `template` 이 붙인다 → `app/layout.tsx` */
 export const metadata: Metadata = {
   title: "보관함",
 };

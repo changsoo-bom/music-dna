@@ -43,6 +43,8 @@ export function Pop({
   children: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  /** 방금 닫은 것이 **우리 자신인가.** 아래 `onClose` 가 이걸 보고 갈라진다 */
+  const teardown = useRef(false);
   const { open, beginClose, end } = state;
 
   // 여닫는 것은 명령형이다 — `<dialog>` 는 속성만으로는 안 열린다.
@@ -59,7 +61,14 @@ export function Pop({
     if (!open && dialog.open) dialog.close();
 
     return () => {
-      if (dialog.open) dialog.close();
+      if (!dialog.open) return;
+      // **표시를 남기고 닫는다.** `close()` 가 미는 `close` 이벤트는 그 자리에서
+      // 오지 않고 큐에 실린다 — 개발 모드(Strict Mode)에서는 이 정리 함수
+      // 바로 뒤에 effect 가 한 번 더 돌아 창을 다시 열어 놓는데, 그 뒤에
+      // 도착한 이벤트가 방금 열린 창을 닫아 버린다. 눌러도 안 열리는 창이
+      // 이것이었다. 우리가 닫은 것은 사람이 닫은 것과 다르다.
+      teardown.current = true;
+      dialog.close();
     };
   }, [open]);
 
@@ -73,7 +82,12 @@ export function Pop({
     <dialog
       ref={ref}
       onClose={() => {
-        beginClose();
+        /* 정리 함수가 닫은 것이면 **상태를 안 건드린다.** 그쪽은 창이
+           사라지는 길이 아니라 자리를 비우는 길이고, 실제로 닫혀야 할 때는
+           `open` 이 이미 꺼져 있어서 여기서 또 말할 것이 없다 */
+        const ours = teardown.current;
+        teardown.current = false;
+        if (!ours) beginClose();
 
         /* **초점이 갈 곳을 잃으면 본문 머리로 보낸다.**
            `<dialog>` 는 닫힐 때 열기 전 요소로 초점을 돌려주는데, 그 요소가

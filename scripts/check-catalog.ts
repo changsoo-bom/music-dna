@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 
 import { GENRES, PARENT_OF, SUB_GENRES } from "@/constants/genres";
+import { REGIONS } from "@/constants/regions";
 import { CATALOG } from "@/data/catalog";
+import { browseGroups, browseHref } from "@/lib/browse";
 import { QUESTIONS } from "@/lib/quiz/questions";
 import { computePreference } from "@/lib/quiz/scoring";
 import { maxPerGenre, nextExclusions, recommend, trackMood } from "@/lib/report/recommend";
@@ -57,6 +59,32 @@ const perSubGenre = CATALOG.reduce<Record<string, number>>((acc, t) => {
 const allSubGenres = GENRES.flatMap((g) => g.children.map((c) => c.id));
 const empty = allSubGenres.filter((id) => !perSubGenre[id]);
 assert.deepEqual(empty, [], `곡이 하나도 없는 하위 장르: ${empty.join(", ")}`);
+
+/**
+ * **국내·해외 × 장르 열 칸이 전부 차 있다.**
+ *
+ * 전체보기는 두 축을 곱해서 좁힌다(`RegionSwitch` × `GenreRail`). 한 칸이
+ * 비면 `browseGroups` 가 그 칸을 통째로 떨어뜨려서 **색인에서 장르 줄이
+ * 사라지고**, 이미 공유된 `/browse?region=kr&genre=electronic` 은 빈 안내문만
+ * 남는 화면이 된다.
+ *
+ * **존재만 보는 단언으로는 못 지킨다.** 전에는 `region` 별로 곡이 있는지만
+ * 봤는데(truthy 검사), 그건 한쪽이 1곡이어도 통과한다 — 정작 화면이 기대는
+ * 것은 region 하나가 아니라 열 칸 각각이다. 아래 형제 단언과 같은 하한(4곡)을
+ * 칸마다 건다. 곡을 새로 넣으면서 `region` 을 안 적으면 타입이 막지만,
+ * 한쪽으로 몰리는 것은 타입이 못 잡는다.
+ */
+for (const region of REGIONS) {
+  for (const genre of GENRES) {
+    const count = CATALOG.filter(
+      (track) => track.region === region.id && PARENT_OF[track.subGenre] === genre.id,
+    ).length;
+    assert.ok(
+      count >= 4,
+      `${region.label} ${genre.label} 이 ${count}곡이다 — 전체보기에서 그 칸이 색인에 안 뜬다`,
+    );
+  }
+}
 
 const perGenre = CATALOG.reduce<Record<string, number>>((acc, t) => {
   const parent = PARENT_OF[t.subGenre];
@@ -217,7 +245,53 @@ for (const track of CATALOG) {
   );
 }
 
+/* 4. 전체보기 — 좁히는 규칙 ────────────────────────────────
+      `browseGroups`·`browseHref` 는 순수 함수라 화면을 안 열어도 여기서 다 본다.
+      특히 `browseHref` 의 **`undefined`=유지 / `null`=해제** 규약은 틀려도
+      타입이 안 잡는다: "장르 해제" 를 `undefined` 로 적으면 해제가 아니라
+      유지가 되고, 누른 사람에게는 "칩을 눌렀는데 안 풀린다" 로만 보인다. */
+
+const both = { region: "kr", genre: "rock" } as const;
+assert.equal(browseHref(both, { genre: null }), "/browse?region=kr", "장르를 못 풀었다");
+assert.equal(browseHref(both, { region: null }), "/browse?genre=rock", "지역을 못 풀었다");
+// 안 넘긴 축은 그대로 물고 간다. 이게 깨지면 좁히려고 누른 것이 넓히는 결과가 된다
+assert.equal(browseHref(both, {}), "/browse?region=kr&genre=rock", "안 넘긴 축이 지워졌다");
+assert.equal(browseHref(both, { genre: "pop" }), "/browse?region=kr&genre=pop", "지역이 지워졌다");
+// 다 풀면 맨 주소다. `?` 만 남은 주소는 같은 화면의 다른 이름이 된다
+assert.equal(browseHref(both, { region: null, genre: null }), "/browse", "빈 물음표가 남았다");
+assert.equal(
+  browseHref({ region: null, genre: null }, { genre: "pop" }),
+  "/browse?genre=pop",
+  "아무것도 안 고른 상태에서 축을 못 켰다",
+);
+
+// 좁히지 않으면 카탈로그 전체다 — 그룹으로 묶는 사이에 곡이 새면 머리글의
+// 수(서버)와 목록(클라이언트)이 어긋난다
+assert.equal(
+  browseGroups(null, null).reduce((sum, group) => sum + group.tracks.length, 0),
+  CATALOG.length,
+  "좁히지 않았는데 곡이 샜다",
+);
+// 장르를 고르면 그 칸 하나만 남는다
+assert.deepEqual(
+  browseGroups(null, "electronic").map((group) => group.genre),
+  ["electronic"],
+  "장르를 골랐는데 다른 칸이 남았다",
+);
+// 좁힌 결과는 실제로 그 region 만이다
+assert.ok(
+  browseGroups("kr", null).every((group) => group.tracks.every((track) => track.region === "kr")),
+  "국내로 좁혔는데 해외 곡이 섞였다",
+);
+// 빈 칸은 떨어진다. "0곡" 헤더만 남는 자리가 생기지 않는다
+assert.ok(
+  browseGroups(null, null).every((group) => group.tracks.length > 0),
+  "곡이 없는 칸이 목록에 남았다",
+);
+
+const kr = CATALOG.filter((track) => track.region === "kr").length;
+
 console.log(
-  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 다시 찾기 3판 · 길이 표기 ·` +
+  `✓ 카탈로그 ${CATALOG.length}곡 · 하위 장르 ${Object.keys(perSubGenre).length}종 채움 · 국내 ${kr}곡 / 해외 ${CATALOG.length - kr}곡 · 지역×장르 10칸 · 좁히기·주소 10건 · 다시 찾기 3판 · 길이 표기 ·` +
     ` 추천에 등장한 하위 장르 ${subGenresSeen.size}종`,
 );
