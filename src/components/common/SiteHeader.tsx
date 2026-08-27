@@ -1,9 +1,10 @@
+import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { HeaderSearch } from "@/components/common/HeaderSearch";
 import { SiteNav } from "@/components/common/SiteNav";
-import { NAV_BACK } from "@/constants/nav";
+import { NAV_BACK, NAV_FORWARD } from "@/constants/nav";
 
 /**
  * 떠 있는 흰 필 헤더. 뷰포트 상단에 붙지 않고 24px 아래에 뜬다.
@@ -92,17 +93,33 @@ export function SiteHeader() {
             비면서 가운데 메뉴가 옮겨 앉는다 → `HeaderSearch` */}
         <div className="flex min-w-0 justify-end">
           {/* `useSearchParams` 가 정적 렌더에서 요구하는 경계다. 없으면
-              헤더를 쓰는 **모든** 화면이 깨진다 — 이 경계가 `/library`·
-              `/quiz` 를 정적인 채로 남긴다.
+              헤더를 쓰는 화면이 깨진다 — 이 경계가 `/library` 를 정적인 채로
+              남긴다. (`/quiz` 는 `(site)` 밖이라 헤더가 없다.)
 
-              대체물은 같은 크기의 빈 알약이다. 폼을 한 벌 더 그리면 하이드레이션
-              때 입력이 두 번 마운트된다 → `HeaderSearch` */}
+              넓은 화면의 대체물은 같은 크기의 빈 알약이다. 폼을 한 벌 더 그리면
+              하이드레이션 때 입력이 두 번 마운트된다 → `HeaderSearch`
+
+              **돋보기는 대체물이 아니라 진짜를 그린다.** 빈 알약은 `max-sm` 에서
+              숨으므로, 이것까지 없으면 정적으로 프리렌더되는 `/library` 의 HTML
+              에 **좁은 화면의 검색 입구가 하나도 없다** — JS 가 뜨기 전까지, 안
+              뜨면 영원히. 하이드레이션 후 `HeaderSearch` 가 같은 것을 그리므로
+              자리도 안 흔들린다 → `HeaderSearch` */}
           <Suspense
             fallback={
-              <div
-                aria-hidden
-                className="h-9 w-full max-w-56 rounded-pill border border-hair max-lg:max-w-44 max-sm:hidden"
-              />
+              <>
+                <div
+                  aria-hidden
+                  className="h-9 w-full max-w-56 rounded-pill border border-hair max-lg:max-w-44 max-sm:hidden"
+                />
+                <Link
+                  href="/search"
+                  transitionTypes={NAV_FORWARD}
+                  aria-label="곡·아티스트 검색"
+                  className="hidden text-slate transition-colors hover:text-ink max-sm:block"
+                >
+                  <MagnifyingGlassIcon size={18} weight="bold" aria-hidden />
+                </Link>
+              </>
             }
           >
             <HeaderSearch />
