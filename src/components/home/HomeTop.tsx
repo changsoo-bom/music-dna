@@ -3,12 +3,11 @@
 import { Shuffle } from "@phosphor-icons/react/dist/ssr";
 import { useEffect, useState } from "react";
 
-import { NAV_FORWARD } from "@/constants/nav";
 import { MyPlaylist } from "@/components/report/MyPlaylist";
 import { RecommendList } from "@/components/report/RecommendList";
 import { RetakeCta } from "@/components/report/RetakeCta";
 import { Verdict } from "@/components/report/Verdict";
-import { ButtonLink, buttonClass } from "@/components/ui/Button";
+import { buttonClass } from "@/components/ui/Button";
 import { useSavedTrackIds } from "@/hooks/use-playlists";
 import { usePreference } from "@/hooks/use-preference";
 import { readStoredValue } from "@/lib/stored-value";
@@ -56,7 +55,15 @@ function revealIfNoResult(el: HTMLElement | null) {
  * 그렸다가 하이드레이션 직후 결과로 넘어간다. 계정을 두지 않기로 한 결정의
  * 대가가 여기 남아 있고, 쿠키는 그 대가를 첫 페인트에서만 면제해 준다.
  */
-export function HomeTop({ serverRaw = null }: { serverRaw?: string | null }) {
+export function HomeTop({
+  serverRaw = null,
+  children,
+}: {
+  serverRaw?: string | null;
+  /** 검사 전 화면. **서버에서 그려서 내려온다** — 여기는 클라이언트라
+      안에서 만들면 카탈로그가 번들에 실린다 → `HomeIntro` */
+  children: React.ReactNode;
+}) {
   const preference = usePreference(serverRaw);
   // 보관함 구독은 이 화면에 하나다. 추천 카드가 각자 부르면 다섯 번 구독한다.
   // `MyPlaylist` 는 자기 목록만큼을 스스로 본다 → 두 목록이 서로 안 얽힌다
@@ -76,18 +83,11 @@ export function HomeTop({ serverRaw = null }: { serverRaw?: string | null }) {
 
   if (!preference) {
     return (
-      <section ref={revealIfNoResult} className="home-intro pt-28 pb-24 max-sm:pt-16 max-sm:pb-14">
-        <span className="eyebrow text-ink">시작</span>
-        <h1 className="mt-5 text-[clamp(32px,5vw,56px)] leading-[1.1]">
-          당신의 취향에는 지문이 있습니다
-        </h1>
-        <p className="mt-6 max-w-[44ch] text-lg text-slate max-sm:text-base">
-          다섯 문항이면 됩니다. 장르와 분위기를 골라 두면 그 좌표에 가장 가까운 곡을 찾아
-          드립니다.
-        </p>
-        <ButtonLink href="/quiz" transitionTypes={NAV_FORWARD} className="mt-9">
-          취향 분석하기
-        </ButtonLink>
+      /* 껍데기는 여기 남는다. `home-intro` 는 첫 페인트 전에 이 화면을 감추는
+         손잡이고(`globals.css`), `revealIfNoResult` 는 클라이언트 ref 라
+         서버 컴포넌트에 못 붙는다. 안에 드는 내용만 서버가 그린다 */
+      <section ref={revealIfNoResult} className="home-intro flex min-h-[100dvh] flex-col justify-center py-16 max-sm:py-12">
+        {children}
       </section>
     );
   }

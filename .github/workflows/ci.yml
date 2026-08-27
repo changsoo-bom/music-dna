@@ -32,4 +32,6 @@ jobs:
 
       - run: pnpm check:player
 
+      - run: pnpm check:library
+
       - run: pnpm build

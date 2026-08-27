@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { ViewTransition } from "react";
 
+import { HomeIntro } from "@/components/home/HomeIntro";
 import { HomeTop } from "@/components/home/HomeTop";
 import { PREFERENCE_COOKIE, decodePreferenceCookie } from "@/lib/preference-cookie";
 
@@ -33,8 +34,14 @@ export default async function HomePage() {
       default="none"
     >
       <main className="shell flex-1 pb-28 max-sm:pb-16">
-        <HomeTop serverRaw={serverRaw} />
-      </main>
+        {/* 검사 전 화면을 **여기서 만들어 넘긴다.** `HomeTop` 은 저장소를
+            읽어야 해서 클라이언트인데, 소개 화면에는 읽을 것이 없고 카탈로그
+            178곡을 그리는 차트가 들어 있다 — 안에서 만들면 그 카탈로그가
+            클라이언트 번들에 실린다 → `HomeIntro` */}
+        <HomeTop serverRaw={serverRaw}>
+          <HomeIntro />
+        </HomeTop>
+      </main>
     </ViewTransition>
   );
 }

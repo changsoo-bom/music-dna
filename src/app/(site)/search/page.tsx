@@ -119,18 +119,23 @@ export default async function SearchPage({
         <section className="pt-28 pb-24 max-sm:pt-16 max-sm:pb-14">
           <span className="eyebrow text-ink">검색</span>
 
-          {/* **이 화면에서는 칸이 여기 하나다.** 헤더 것은 스스로 접는다
-              (`hideOnResults`) — 헤더는 레이아웃에 살아서 `?q=` 를 모르므로
-              거기 남겨 두면 결과를 보는 내내 빈 칸이 서 있고, `아이유` 를
-              `아이유 밤편지` 로 좁히려면 처음부터 다시 쳐야 한다. 지금 찾고
-              있는 말을 물고 있을 수 있는 것은 이쪽뿐이다.
+          {/* **좁은 화면에만 있는 칸이다.** 넓은 화면에서는 헤더의 칸이 이
+              화면에서도 살아 있고 지금 찾는 말을 물고 있다(`HeaderSearch`) —
+              여기 하나 더 두면 한 화면에 같은 칸이 둘이 된다.
+
+              좁은 화면에서는 헤더의 필드가 로고와 메뉴 사이를 못 버텨서
+              돋보기만 남는데, 그 돋보기가 보내는 곳이 여기다. 이 칸까지 없으면
+              **좁은 화면에는 검색 입구가 하나도 없다.**
+
+              경계가 `sm` 하나로 맞물린다 — 헤더 필드가 `max-sm:hidden`,
+              이쪽이 `sm:hidden` 이라 어느 폭에서도 정확히 하나만 선다.
 
               `key` 로 리마운트시킨다 — 비제어 입력이라 주소가 바뀌어도
               `defaultValue` 가 안 따라온다. 뒤로가기로 이전 검색어에 돌아왔을
               때 칸에는 방금 친 말이 남아 있으면, 화면과 칸이 다른 말을 한다.
               effect 로 값을 되돌리지 말라는 `.claude/rules/react.md` 가
               지정한 도구가 `key` 다 */}
-          <SearchField key={query} query={query} className="mt-5 w-72 max-md:w-full" />
+          <SearchField key={query} query={query} className="mt-5 w-full sm:hidden" />
 
           {/* **사람을 찾아왔으면 화면 맨 위가 그 사람이다.** 카탈로그가 아는
               가수가 먼저다 — 우리가 손으로 적은 값이라 틀릴 수가 없고, 밖에서

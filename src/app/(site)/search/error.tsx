@@ -23,16 +23,16 @@ export default function SearchError({ reset }: { reset: () => void }) {
       <section className="pt-28 pb-24 max-sm:pt-16 max-sm:pb-14">
         <span className="eyebrow text-ink">검색하지 못했습니다</span>
 
-        {/* **이 화면에도 칸이 있어야 한다.** 헤더의 칸은 `/search` 에서
-            접힌다(`HeaderSearch`) — 결과 화면이 자기 칸을 갖기 때문인데,
-            그 화면이 죽으면 이 화면이 대신 뜨므로 여기까지 없으면 **검색이
-            실패한 자리에 검색 입구가 하나도 없다.** 남는 것이 같은 말을
-            그대로 다시 던지는 `다시 찾기` 뿐이 된다.
+        {/* **좁은 화면에만 있는 칸이다** — 결과 화면과 같은 이유이자 같은
+            경계다(`sm`). 넓은 화면에서는 헤더의 칸이 살아 있고, 좁은 화면에는
+            돋보기밖에 없어서 이것까지 없으면 **검색이 실패한 자리에 검색
+            입구가 하나도 없다.** 남는 것이 같은 말을 그대로 다시 던지는
+            `다시 찾기` 뿐이 된다 → `SearchPage`
 
             찾던 말은 안 물린다. 여기는 클라이언트 경계라 `?q=` 를 받지
             못하고, **다른 말로 찾아보라는 것이 이 자리의 제안**이라 빈 칸이
             맞다 — 같은 말을 다시 던지는 것은 옆 버튼이 한다 */}
-        <SearchField className="mt-5 w-72 max-md:w-full" />
+        <SearchField className="mt-5 w-full sm:hidden" />
 
         <h1 className="mt-8 text-[clamp(28px,3.4vw,40px)] leading-[1.1]">
           잠시 뒤에 다시 찾아보세요
