@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { HeaderSearch } from "@/components/common/HeaderSearch";
 import { SiteNav } from "@/components/common/SiteNav";
@@ -87,9 +88,25 @@ export function SiteHeader() {
             `min-w-0` 은 늘어난 칸이 제 min-content 아래로 줄어들 수 있게
             한다 — 트랙을 0 까지 열어 놓고 아이템이 안 줄면 소용이 없다.
 
-            결과 화면에서는 이 칸이 통째로 접힌다 → `HeaderSearch` */}
+            **이 칸은 어느 화면에서도 안 접힌다.** 접으면 격자의 오른쪽이
+            비면서 가운데 메뉴가 옮겨 앉는다 → `HeaderSearch` */}
         <div className="flex min-w-0 justify-end">
-          <HeaderSearch />
+          {/* `useSearchParams` 가 정적 렌더에서 요구하는 경계다. 없으면
+              헤더를 쓰는 **모든** 화면이 깨진다 — 이 경계가 `/library`·
+              `/quiz` 를 정적인 채로 남긴다.
+
+              대체물은 같은 크기의 빈 알약이다. 폼을 한 벌 더 그리면 하이드레이션
+              때 입력이 두 번 마운트된다 → `HeaderSearch` */}
+          <Suspense
+            fallback={
+              <div
+                aria-hidden
+                className="h-9 w-full max-w-56 rounded-pill border border-hair max-lg:max-w-44 max-sm:hidden"
+              />
+            }
+          >
+            <HeaderSearch />
+          </Suspense>
         </div>
       </header>
     </div>
