@@ -65,6 +65,17 @@ export function HomeIntro() {
         <ButtonLink href="/quiz" transitionTypes={NAV_FORWARD} className="mt-9">
           취향 분석하기
         </ButtonLink>
+
+        {/* **저장 고지가 저장보다 먼저 와야 한다.** 이 화면은 푸터가 없고
+            (`globals.css`) `/quiz` 는 `(site)` 그룹 밖이라 거기에도 없어서,
+            푸터에만 두면 다섯 문항이 끝나고 localStorage 와 쿠키에 결과가
+            앉은 **다음에야** 처음 읽게 된다. 버튼 바로 아래가 마지막 자리다.
+
+            푸터의 문장을 그대로 쓰지 않는다 — 아직 재생 이력이 없고, 여기서
+            할 약속은 지금 누르면 무엇이 남는지 하나다 → `SiteFooter` */}
+        <p className="mt-5 text-[13px] text-slate">
+          결과는 이 브라우저에 저장됩니다. 계정이 없고, 서버에 남기지 않습니다.
+        </p>
       </div>
 
       <CatalogWall />
