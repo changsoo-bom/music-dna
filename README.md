@@ -138,3 +138,12 @@ Vercel. Production Branch 는 `main` 이고 흐름은 `feat/*` → `development`
 
 배포 전에 **Environment Variables 에 `YOUTUBE_API_KEY`** 를 넣는다(Production · Preview).
 DB 도 인증도 없고 카탈로그는 저장소에 커밋돼 있어서 그 밖에 필요한 설정이 없다.
+
+## 기여
+
+고쳐 주는 건 환영한다. `development` 에서 갈라서 `development` 로 PR 을 보낸다.
+규칙은 [CONTRIBUTING.md](CONTRIBUTING.md) 에 있다 — 특히 디자인 시스템 제약과
+카탈로그에 곡을 더하는 절차는 읽고 시작하는 편이 빠르다.
+
+**라이선스는 붙이지 않았다.** 소스를 보고 고쳐 주는 것은 환영하지만 가져다 쓰는
+용도는 아니다.
