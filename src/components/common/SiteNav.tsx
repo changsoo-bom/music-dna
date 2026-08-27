@@ -6,8 +6,15 @@ import { usePathname } from "next/navigation";
 import { NAV_FORWARD } from "@/constants/nav";
 
 const ITEMS = [
-  { href: "/browse", label: "둘러보기" },
-  { href: "/library", label: "보관함" },
+  { href: "/browse", label: "둘러보기", narrow: true },
+  { href: "/library", label: "보관함", narrow: true },
+  /**
+   * **좁은 화면에서는 빠진다.** 세 칸이 되면 로고와 돋보기 사이 폭을 넘겨
+   * 가운데 칸이 밀리는데, 헤더는 페이지가 바뀌어도 안 움직이는 것이 일이다.
+   * 가는 곳 둘이 먼저고 이건 한 번 읽고 마는 글이라, 셋 중 이것이 빠진다.
+   * **`max-sm` 에서는 푸터가 같은 링크를 든다** → `SiteFooter`
+   */
+  { href: "/about", label: "만든 방법", narrow: false },
 ] as const;
 
 /**
@@ -56,7 +63,7 @@ export function SiteNav({ className = "" }: { className?: string }) {
             aria-current={here ? "page" : undefined}
             className={`relative transition-colors ${
               here ? "text-ink" : "text-slate hover:text-ink"
-            }`}
+            } ${item.narrow ? "" : "max-sm:hidden"}`}
           >
             {item.label}
             <span

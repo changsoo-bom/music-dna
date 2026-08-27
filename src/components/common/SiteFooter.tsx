@@ -48,6 +48,12 @@ export function SiteFooter() {
 
         <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-2 border-t border-canvas/25 pt-6 text-[13px] text-canvas/70 max-sm:mt-6">
           <span>© 2026 Music DNA</span>
+          {/* **좁은 화면에서는 여기가 유일한 입구다** — 헤더의 세 번째 칸이
+              `max-sm` 에서 빠진다. 넓은 화면에도 남겨 둔다: 푸터까지 내려온
+              사람이 찾는 것이 대개 이 줄이다 → `SiteNav` */}
+          <Link href="/about" className="transition-opacity hover:opacity-70">
+            만든 방법
+          </Link>
         </div>
       </div>
     </footer>
