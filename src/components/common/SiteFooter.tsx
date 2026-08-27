@@ -18,7 +18,7 @@ import Link from "next/link";
  */
 export function SiteFooter() {
   return (
-    <footer className="mt-20 rounded-t-stadium bg-ink pt-12 pb-9 text-canvas max-sm:mt-14 max-sm:pt-9 max-sm:pb-7">
+    <footer className="site-foot mt-20 rounded-t-stadium bg-ink pt-12 pb-9 text-canvas max-sm:mt-14 max-sm:pt-9 max-sm:pb-7">
       <div className="shell">
         {/* 좁아지면 세로로 쌓는다. 한 줄로 두면 워드마크 옆에서
             안내 문장이 한 글자씩 끊긴다 */}
